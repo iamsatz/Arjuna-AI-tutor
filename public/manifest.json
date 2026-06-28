@@ -1,7 +1,7 @@
 {
   "name": "Arjuna",
   "short_name": "Arjuna",
-  "description": "Homework tutor for Aadya",
+  "description": "Voice-first homework tutor for kids",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#FFF8F0",

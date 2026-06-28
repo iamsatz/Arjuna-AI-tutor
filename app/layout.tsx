@@ -3,7 +3,7 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   title: "Arjuna",
-  description: "Voice-first homework tutor for Aadya",
+  description: "Voice-first homework tutor for kids",
   manifest: "/manifest.json",
   appleWebApp: {
     capable: true,

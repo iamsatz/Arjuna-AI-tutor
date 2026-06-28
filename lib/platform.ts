@@ -6,13 +6,16 @@ export function isTvDevice(): boolean {
     ua.includes("tv") ||
     ua.includes("leanback") ||
     ua.includes("aft") ||
-    ua.includes("androidtv")
+    ua.includes("androidtv") ||
+    ua.includes("crkey")
   ) {
     return true;
   }
 
   const params = new URLSearchParams(window.location.search);
   if (params.get("tv") === "1") return true;
+
+  if (window.location.pathname.startsWith("/tv")) return true;
 
   return (
     window.matchMedia("(min-width: 960px) and (pointer: coarse)").matches &&

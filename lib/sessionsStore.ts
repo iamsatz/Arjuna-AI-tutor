@@ -5,6 +5,8 @@ export type StoredSession = {
   id: string;
   date: string;
   durationMin?: number;
+  childName?: string;
+  inviteCode?: string;
   english_summary: string;
   telugu_summary: string;
   whatsappSent: { mother: boolean; father: boolean };

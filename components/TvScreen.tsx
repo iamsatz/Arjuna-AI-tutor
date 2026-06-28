@@ -114,7 +114,7 @@ export function TvScreen() {
     <main className="mx-auto flex min-h-dvh w-full max-w-6xl flex-col items-center justify-center gap-10 bg-arjuna-bg px-12 py-10">
       <div className="text-center">
         <p className="text-sm font-medium uppercase tracking-[0.35em] text-arjuna-muted">
-          Arjuna · Class 2 · TV
+          Arjuna · TV
         </p>
         <p className="mt-2 text-lg text-arjuna-muted">
           Linked to phone · code {activeCode}

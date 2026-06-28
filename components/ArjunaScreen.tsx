@@ -7,9 +7,14 @@ import { PairingBadge } from "./PairingBadge";
 import { V0ProgressPanel } from "./V0ProgressPanel";
 import { useArjunaSession } from "@/hooks/useArjunaSession";
 import { useRoomPublisher } from "@/hooks/useRoomSync";
+import type { ChildProfile } from "@/lib/childProfile";
 import { SARVAM_SPEAKERS } from "@/lib/sarvam";
 
-export function ArjunaScreen() {
+type ArjunaScreenProps = {
+  profile: ChildProfile;
+};
+
+export function ArjunaScreen({ profile }: ArjunaScreenProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const {
     avatarState,
@@ -23,9 +28,10 @@ export function ArjunaScreen() {
     playGreeting,
     v0Locked,
     lastReply,
-  } = useArjunaSession();
+  } = useArjunaSession(profile);
 
   const phase = v0Locked ? "v0" : "alpha";
+  const headerGrade = profile.grade ? ` · ${profile.grade}` : "";
   const { code, tvLinked } = useRoomPublisher({
     avatarState,
     statusMessage,
@@ -39,7 +45,8 @@ export function ArjunaScreen() {
     <main className="mx-auto flex min-h-dvh max-w-md flex-col items-center justify-between bg-arjuna-bg px-6 py-10">
       <div className="flex w-full flex-col items-center gap-4 pt-6">
         <p className="text-sm font-medium uppercase tracking-widest text-arjuna-muted">
-          Arjuna · Class 2 {v0Locked ? "· V0" : "· Alpha"}
+          Arjuna · {profile.childName}
+          {headerGrade} {v0Locked ? "· V0" : "· Alpha"}
         </p>
         <ArjunaAvatar
           state={avatarState}

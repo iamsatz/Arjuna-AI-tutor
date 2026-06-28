@@ -1,6 +1,6 @@
 # Arjuna
 
-Voice-first homework tutor for **Aadya — Class 2, CBSE Cambridge Primary**.
+Voice-first homework tutor for kids. Share invite links from the owner dashboard.
 
 ## Phases (interactive family loop)
 

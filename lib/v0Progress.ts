@@ -16,13 +16,13 @@ export const V0_STEPS: V0Step[] = [
   {
     id: "v0-2-voice",
     title: "V0.2 Voice test",
-    hint: "Play greeting for wife + Aadya. Pick shubh, priya, or ritu.",
+    hint: "Play greeting and pick shubh, priya, or ritu.",
     logFile: "arjuna-prd/OBSERVATIONS/prototype-voice.md",
   },
   {
     id: "v0-3-pack",
     title: "V0.3 Learner pack",
-    hint: "Fill AADYA.md + add 5 diary photos to homework-samples/",
+    hint: "Add learner profile notes + 5 diary photos to homework-samples/",
     logFile: "arjuna-prd/AADYA.md",
   },
   {
@@ -40,7 +40,7 @@ export const V0_STEPS: V0Step[] = [
   {
     id: "alpha-trial",
     title: "Alpha home trial",
-    hint: "One diary photo + one Talk exchange with Aadya on her phone",
+    hint: "One diary photo + one Talk exchange on a test device",
     logFile: "arjuna-prd/OBSERVATIONS/alpha-trial-1.md",
   },
 ];

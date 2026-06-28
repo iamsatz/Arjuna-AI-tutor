@@ -16,9 +16,11 @@ export async function middleware(request: NextRequest) {
   }
 
   const isOwnerPage = pathname.startsWith("/owner");
-  const isOwnerSessionsApi = pathname.startsWith("/api/owner/sessions");
+  const isOwnerApi =
+    pathname.startsWith("/api/owner/") ||
+    (pathname === "/api/events" && request.method === "GET");
 
-  if (!isOwnerPage && !isOwnerSessionsApi) {
+  if (!isOwnerPage && !isOwnerApi) {
     return NextResponse.next();
   }
 
@@ -27,7 +29,7 @@ export async function middleware(request: NextRequest) {
   const authorized = await verifyOwnerSession(password, cookie);
 
   if (!authorized) {
-    if (isOwnerSessionsApi) {
+    if (isOwnerApi) {
       return NextResponse.json({ error: "unauthorized" }, { status: 401 });
     }
 
@@ -40,5 +42,10 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/owner", "/owner/:path*", "/api/owner/sessions"],
+  matcher: [
+    "/owner",
+    "/owner/:path*",
+    "/api/owner/:path*",
+    "/api/events",
+  ],
 };

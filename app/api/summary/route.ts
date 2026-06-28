@@ -13,7 +13,12 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const body = (await request.json()) as { transcript: string; durationMin?: number };
+  const body = (await request.json()) as {
+    transcript: string;
+    durationMin?: number;
+    childName?: string;
+    inviteCode?: string;
+  };
   if (!body.transcript?.trim()) {
     return NextResponse.json({ error: "transcript required" }, { status: 400 });
   }
@@ -47,6 +52,8 @@ export async function POST(request: NextRequest) {
       id: randomUUID(),
       date: new Date().toISOString(),
       durationMin: body.durationMin,
+      childName: body.childName,
+      inviteCode: body.inviteCode,
       english_summary: summary.english_summary,
       telugu_summary: summary.telugu_summary,
       whatsappSent,

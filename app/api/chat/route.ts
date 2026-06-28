@@ -14,6 +14,10 @@ export async function POST(request: NextRequest) {
   const body = (await request.json()) as {
     messages: ChatMessage[];
     contextNote?: string;
+    childName?: string;
+    grade?: string;
+    board?: "CBSE" | "ICSE" | "IB" | "State";
+    languageMode?: "english" | "pure_telugu" | "mixed";
   };
 
   if (!body.messages?.length) {
@@ -25,6 +29,10 @@ export async function POST(request: NextRequest) {
       apiKey,
       body.messages,
       body.contextNote,
+      body.childName ?? "friend",
+      body.languageMode ?? "mixed",
+      body.grade,
+      body.board,
     );
     return NextResponse.json({ reply });
   } catch (error) {

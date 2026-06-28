@@ -1,6 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import type { ChildProfile } from "@/lib/childProfile";
+import { buildGreeting } from "@/lib/childProfile";
 import type { ChatMessage, HomeworkTask, SessionMeta } from "@/lib/types";
 import { createSessionMeta } from "@/lib/types";
 import { detectModeFromTask } from "@/lib/modes";
@@ -15,11 +17,14 @@ const SILENCE_CLOSE_MS = 300 * 1000;
 
 export type AvatarState = "idle" | "speaking" | "loading" | "listening";
 
-export function useArjunaSession() {
+export function useArjunaSession(profile: ChildProfile) {
   const v0Locked = isV0Locked();
+  const childName = profile.childName;
+  const greeting = buildGreeting(childName);
+
   const [avatarState, setAvatarState] = useState<AvatarState>("loading");
   const [statusMessage, setStatusMessage] = useState(
-    "Arjuna is getting his voice ready…",
+    "Arjuna is getting ready…",
   );
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [meta, setMeta] = useState<SessionMeta>(createSessionMeta);
@@ -93,13 +98,16 @@ export function useArjunaSession() {
       const response = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ messages: nextMessages, contextNote }),
+        body: JSON.stringify({
+          messages: nextMessages,
+          contextNote,
+          childName: profile.childName,
+          grade: profile.grade,
+        }),
       });
 
       if (!response.ok) {
-        await speak(
-          "Something's wrong Aadya, let's ask Amma.",
-        );
+        await speak("Something went wrong. Let's ask a parent for help.");
         return;
       }
 
@@ -111,7 +119,7 @@ export function useArjunaSession() {
       setMessages((prev) => [...prev, assistantMsg]);
       setLastReply(data.reply);
 
-      if (/amma ni adugudama|ask amma/i.test(data.reply)) {
+      if (/ask (a )?parent|amma ni adugudama/i.test(data.reply)) {
         setMeta((m) => ({
           ...m,
           askAmmaFlags: [...m.askAmmaFlags, userText.slice(0, 80)],
@@ -121,20 +129,20 @@ export function useArjunaSession() {
       await speak(data.reply);
       setStatusMessage("Tap Talk when ready");
     },
-    [messages, speak, touchActivity],
+    [messages, profile.childName, profile.grade, speak, touchActivity],
   );
 
   const playGreeting = useCallback(async () => {
     touchActivity();
-    setStatusMessage("Arjuna is getting his voice ready…");
-    await speak("Namaste Aadya! Class 2 homework em undi today?");
-    setLastReply("Namaste Aadya! Class 2 homework em undi today?");
+    setStatusMessage("Arjuna is getting ready…");
+    await speak(greeting);
+    setLastReply(greeting);
     setStatusMessage(
       v0Locked
         ? "Try speakers above. Tap Arjuna to hear again."
         : "Tap Talk to speak, or Photo for diary",
     );
-  }, [speak, touchActivity, v0Locked]);
+  }, [greeting, speak, touchActivity, v0Locked]);
 
   const stopRecording = useCallback(async () => {
     const recorder = mediaRecorderRef.current;
@@ -200,7 +208,7 @@ export function useArjunaSession() {
       await arjunaReply(text, contextNote);
     } catch {
       setAvatarState("idle");
-      await speak("Something's wrong Aadya, let's ask Amma.");
+      await speak("Something went wrong. Let's ask a parent for help.");
     }
   }, [arjunaReply, meta, speak]);
 
@@ -219,13 +227,13 @@ export function useArjunaSession() {
       setAvatarState("listening");
       setStatusMessage("Listening… tap Talk again when done");
     } catch {
-      setStatusMessage("Mic permission kavali. Amma help cheyyandi.");
+      setStatusMessage("Mic permission needed. Ask a parent for help.");
     }
   }, [touchActivity]);
 
   const toggleTalk = useCallback(async () => {
     if (v0Locked) {
-      setStatusMessage("Talk unlocks after V0 gate. Finish family steps below.");
+      setStatusMessage("Talk unlocks after V0 gate. Finish validation steps below.");
       return;
     }
     if (sessionEndedRef.current) return;
@@ -239,7 +247,7 @@ export function useArjunaSession() {
   const handlePhoto = useCallback(
     async (file: File) => {
       if (v0Locked) {
-        setStatusMessage("Photo unlocks after V0 gate. Finish family steps below.");
+        setStatusMessage("Photo unlocks after V0 gate. Finish validation steps below.");
         return;
       }
       touchActivity();
@@ -260,19 +268,16 @@ export function useArjunaSession() {
           reason?: string;
         };
 
-        if (
-          !data.tasks?.length ||
-          data.confidence === "low"
-        ) {
+        if (!data.tasks?.length || data.confidence === "low") {
           if (attempts >= 2) {
             await speak(
-              "No problem Aadya! Amma ni call cheyyu. Nenu wait chestanu.",
+              `No problem ${childName}! Ask a parent for help. I'll wait here.`,
             );
-            setStatusMessage("Photo failed twice — ask Amma");
+            setStatusMessage("Photo failed twice — ask a parent");
             return;
           }
           await speak(
-            "Aadya, photo clear ga ledu kiddo. Matti try cheyyava?",
+            `${childName}, the photo isn't clear. Can you try again?`,
           );
           setStatusMessage("Try another photo");
           setAvatarState("idle");
@@ -292,15 +297,15 @@ export function useArjunaSession() {
           .join(". ");
 
         await arjunaReply(
-          `[Diary photo uploaded. Tasks found: ${list}. Read these aloud to Aadya and ask which one first.]`,
-          "This is from diary photo — confirm tasks with Aadya warmly in Telugu-English mix.",
+          `[Diary photo uploaded. Tasks found: ${list}. Read these aloud to ${childName} and ask which one first.]`,
+          `This is from diary photo — confirm tasks with ${childName} warmly.`,
         );
       } catch {
-        await speak("Something's wrong Aadya, let's ask Amma.");
+        await speak("Something went wrong. Let's ask a parent for help.");
         setAvatarState("idle");
       }
     },
-    [arjunaReply, meta.photoAttempts, speak, touchActivity, v0Locked],
+    [arjunaReply, childName, meta.photoAttempts, speak, touchActivity, v0Locked],
   );
 
   const endSession = useCallback(async () => {
@@ -318,19 +323,26 @@ export function useArjunaSession() {
 
     const durationMin = Math.round((Date.now() - meta.startedAt) / 60000);
 
-    await speak("Super job today Aadya! Go play outside now. Tomorrow malli kalsudam!");
+    await speak(
+      `Great job today ${childName}! See you next time for more homework.`,
+    );
 
     if (transcript.length > 20) {
       await fetch("/api/summary", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ transcript, durationMin }),
+        body: JSON.stringify({
+          transcript,
+          durationMin,
+          childName: profile.childName,
+          inviteCode: profile.inviteCode,
+        }),
       });
     }
 
-    setStatusMessage("Session done! Amma ki message pampina.");
+    setStatusMessage("Session done! Summary sent to parents.");
     setAvatarState("idle");
-  }, [messages, meta.startedAt, speak, v0Locked]);
+  }, [childName, messages, meta.startedAt, profile.childName, profile.inviteCode, speak, v0Locked]);
 
   useEffect(() => {
     void playGreeting();
@@ -353,7 +365,7 @@ export function useArjunaSession() {
 
       if (elapsed >= WARN_23_MS && !warned23Ref.current) {
         warned23Ref.current = true;
-        void speak("3 minutes lo finish cheddam. Okka question?");
+        void speak("3 minutes left. One more question?");
       } else if (elapsed >= WARN_20_MS && !warned20Ref.current) {
         warned20Ref.current = true;
         void speak("Great work! 5 more minutes.");
@@ -364,19 +376,17 @@ export function useArjunaSession() {
         void endSession();
       } else if (silent >= SILENCE_BREAK_MS && silenceStageRef.current < 2) {
         silenceStageRef.current = 2;
-        void speak(
-          "Okay kiddo, 2 min break teesko. Back antey nenu wait chestanu.",
-        );
+        void speak("Take a 2 minute break. I'll wait when you're back.");
       } else if (silent >= SILENCE_CHECK_MS && silenceStageRef.current < 1) {
         silenceStageRef.current = 1;
         void speak(
-          "Aadya, nuvvu okay na? Stuck ayyava, or brain break kavala?",
+          `${childName}, are you okay? Stuck, or need a brain break?`,
         );
       }
     }, 5000);
 
     return () => clearInterval(interval);
-  }, [avatarState, endSession, meta.startedAt, speak, v0Locked]);
+  }, [avatarState, childName, endSession, meta.startedAt, speak, v0Locked]);
 
   useEffect(() => {
     if (v0Locked) return;

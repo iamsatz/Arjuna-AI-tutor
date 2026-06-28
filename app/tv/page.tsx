@@ -1,5 +1,5 @@
-import { TvScreen } from "@/components/TvScreen";
+import { TvLessonScreen } from "@/components/TvLessonScreen";
 
 export default function TvPage() {
-  return <TvScreen />;
+  return <TvLessonScreen />;
 }

@@ -1,8 +1,8 @@
 const SARVAM_TTS_URL = "https://api.sarvam.ai/text-to-speech";
 const SARVAM_STT_URL = "https://api.sarvam.ai/speech-to-text";
 
-export const ARJUNA_GREETING =
-  "Namaste Aadya! Class 2 homework em undi today?";
+export const DEFAULT_GREETING =
+  "Hi! What homework do you have? Please upload or tell me the homework.";
 
 export const SARVAM_SPEAKERS = ["shubh", "priya", "ritu"] as const;
 export type SarvamSpeaker = (typeof SARVAM_SPEAKERS)[number];
@@ -19,7 +19,7 @@ export async function synthesizeSpeech(
   options: SarvamSpeakOptions = {},
 ): Promise<{ audioBase64: string; mimeType: string }> {
   const {
-    text = ARJUNA_GREETING,
+    text = DEFAULT_GREETING,
     languageCode = "te-IN",
     speaker = "shubh",
     pace = 0.95,
