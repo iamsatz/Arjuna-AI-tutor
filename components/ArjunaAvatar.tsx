@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import type { AvatarState } from "@/lib/avatar";
 
 type ArjunaAvatarProps = {
@@ -8,6 +9,8 @@ type ArjunaAvatarProps = {
   size?: "phone" | "tv" | "sm";
   showTarget?: boolean;
 };
+
+const MASCOT_SRC = "/mascot/arjuna.png";
 
 export function ArjunaAvatar({
   state,
@@ -38,7 +41,7 @@ export function ArjunaAvatar({
         : state === "celebrate"
           ? "Bullseye!"
           : state === "loading"
-            ? "Getting ready…"
+            ? "Reading…"
             : null;
 
   return (
@@ -51,39 +54,19 @@ export function ArjunaAvatar({
       <button
         type="button"
         onClick={onTap}
-        aria-label="Arjuna mascot"
+        aria-label="Arjuna — your homework guru"
         disabled={isTv || !onTap}
-        className={`relative overflow-hidden rounded-full bg-gradient-to-b from-amber-200 to-orange-400 shadow-chunky transition active:scale-95 ${ringClass}`}
+        className={`relative overflow-hidden rounded-full bg-gradient-to-b from-amber-100 to-orange-200 shadow-chunky transition active:scale-95 ${ringClass}`}
         style={{ width: dim, height: dim }}
       >
-        <svg
-          viewBox="0 0 120 120"
-          className="h-full w-full"
-          aria-hidden
-        >
-          <circle cx="60" cy="60" r="58" fill="#FFD9A8" />
-          <ellipse cx="60" cy="72" rx="28" ry="32" fill="#FDBA74" />
-          <circle cx="60" cy="42" r="26" fill="#FED7AA" />
-          <circle cx="52" cy="40" r="3" fill="#2D2419" />
-          <circle cx="68" cy="40" r="3" fill="#2D2419" />
-          <path
-            d="M52 50 Q60 56 68 50"
-            fill="none"
-            stroke="#2D2419"
-            strokeWidth="2"
-            strokeLinecap="round"
-          />
-          <path
-            d="M38 58 Q60 38 82 58"
-            fill="none"
-            stroke="#8B4513"
-            strokeWidth="3"
-          />
-          <rect x="78" y="48" width="28" height="6" rx="3" fill="#8B4513" />
-          <path d="M106 51 L112 51 L110 46 Z" fill="#64748B" />
-          <ellipse cx="48" cy="46" rx="4" ry="2" fill="#FCA5A5" opacity="0.6" />
-          <ellipse cx="72" cy="46" rx="4" ry="2" fill="#FCA5A5" opacity="0.6" />
-        </svg>
+        <Image
+          src={MASCOT_SRC}
+          alt="Arjuna"
+          width={dim}
+          height={dim}
+          className="h-full w-full object-cover object-top"
+          priority={isSm}
+        />
       </button>
       {statusLabel && (
         <span

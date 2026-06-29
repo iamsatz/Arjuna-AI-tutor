@@ -3,6 +3,7 @@ import type { CurriculumBoard } from "@/lib/childProfile";
 export type StoredExam = {
   id: string;
   invite_code: string;
+  profile_id: string | null;
   child_name: string;
   subject: string;
   board: CurriculumBoard | null;
@@ -19,6 +20,7 @@ export type StoredExam = {
 export type CreateExamInput = {
   inviteCode: string;
   childName: string;
+  profileId?: string;
   subject: string;
   board?: CurriculumBoard;
   grade?: string;

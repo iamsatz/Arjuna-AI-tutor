@@ -8,6 +8,7 @@ function mapRow(row: Record<string, unknown>): StoredExam {
   return {
     id: String(row.id),
     invite_code: String(row.invite_code),
+    profile_id: (row.profile_id as string | null) ?? null,
     child_name: String(row.child_name),
     subject: String(row.subject),
     board: (row.board as CurriculumBoard | null) ?? null,
@@ -30,6 +31,7 @@ export async function createExam(input: CreateExamInput): Promise<StoredExam | n
     .from("arjuna_exams")
     .insert({
       invite_code: input.inviteCode,
+      profile_id: input.profileId ?? null,
       child_name: input.childName,
       subject: input.subject,
       board: input.board ?? null,
@@ -53,15 +55,17 @@ export async function createExam(input: CreateExamInput): Promise<StoredExam | n
 
 export async function listExamsByInvite(
   inviteCode: string,
-  childName?: string,
+  opts?: { childName?: string; profileId?: string },
 ): Promise<StoredExam[]> {
   const sb = getSupabaseServer();
   if (!sb) return [];
 
   let query = sb.from("arjuna_exams").select("*").eq("invite_code", inviteCode);
 
-  if (childName?.trim()) {
-    query = query.eq("child_name", childName.trim());
+  if (opts?.profileId?.trim()) {
+    query = query.eq("profile_id", opts.profileId.trim());
+  } else if (opts?.childName?.trim()) {
+    query = query.eq("child_name", opts.childName.trim());
   }
 
   const { data, error } = await query

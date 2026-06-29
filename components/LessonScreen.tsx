@@ -18,7 +18,18 @@ import { loadSettings } from "@/lib/settings";
 import type { StoredExam } from "@/lib/examTypes";
 import { getStreak, recordConceptMastered } from "@/lib/streak";
 import { getBadges } from "@/lib/badges";
+import { HomeworkCaptureTray, MAX_PHOTOS } from "./HomeworkCaptureTray";
+import { HomeworkTaskReview } from "./HomeworkTaskReview";
+import { LessonProgress } from "@/components/ui/LessonProgress";
+import {
+  emptyManualTask,
+  homeworkToReviewable,
+  reviewableToHomework,
+  type ReviewableTask,
+} from "@/lib/homeworkReview";
 import type { AvatarState } from "@/lib/avatar";
+
+type HwPhase = "capture" | "extracting" | "review";
 
 type LessonScreenProps = {
   profile: ChildProfile;
@@ -38,11 +49,17 @@ export function LessonScreen({
   onActiveChange,
 }: LessonScreenProps) {
   const searchParams = useSearchParams();
-  const fileRef = useRef<HTMLInputElement>(null);
-  const [textInput, setTextInput] = useState("");
   const [recording, setRecording] = useState(false);
   const recorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
+  const [hwPhase, setHwPhase] = useState<HwPhase>("capture");
+  const [captureFiles, setCaptureFiles] = useState<File[]>([]);
+  const [previewUrls, setPreviewUrls] = useState<string[]>([]);
+  const [diaryNote, setDiaryNote] = useState("");
+  const [spokenNote, setSpokenNote] = useState("");
+  const [reviewTasks, setReviewTasks] = useState<ReviewableTask[]>([]);
+  const [extractHint, setExtractHint] = useState<string | null>(null);
+  const [startingLesson, setStartingLesson] = useState(false);
   const [upcomingExams, setUpcomingExams] = useState<StoredExam[]>([]);
   const [streak, setStreak] = useState(getStreak);
   const [badges, setBadges] = useState(getBadges);
@@ -59,9 +76,10 @@ export function LessonScreen({
   useEffect(() => {
     async function loadExams() {
       try {
-        const res = await fetch(
-          `/api/exam?inviteCode=${encodeURIComponent(profile.inviteCode)}&childName=${encodeURIComponent(profile.childName)}`,
-        );
+        const params = new URLSearchParams({ inviteCode: profile.inviteCode });
+        if (profile.id) params.set("profileId", profile.id);
+        else params.set("childName", profile.childName);
+        const res = await fetch(`/api/exam?${params.toString()}`);
         if (!res.ok) return;
         const data = (await res.json()) as { exams: StoredExam[] };
         setUpcomingExams(
@@ -72,7 +90,7 @@ export function LessonScreen({
       }
     }
     void loadExams();
-  }, [profile.inviteCode, profile.childName]);
+  }, [profile.inviteCode, profile.id, profile.childName]);
 
   const lesson = useLessonSession({
     profile,
@@ -95,7 +113,7 @@ export function LessonScreen({
     setTimeout(() => setAvatarOverride(null), 1200);
   }, [lesson]);
 
-  async function startMic() {
+  async function toggleMic() {
     if (recording) {
       const recorder = recorderRef.current;
       if (!recorder) return;
@@ -106,7 +124,10 @@ export function LessonScreen({
       setRecording(false);
       const blob = new Blob(chunksRef.current, { type: "audio/webm" });
       chunksRef.current = [];
-      await lesson.transcribeAndExtract(blob);
+      const text = await lesson.transcribeToText(blob);
+      if (text) {
+        setSpokenNote((prev) => (prev ? `${prev}\n${text}` : text));
+      }
       return;
     }
 
@@ -123,6 +144,73 @@ export function LessonScreen({
     } catch {
       alert("Please allow microphone access in your browser settings.");
     }
+  }
+
+  function handleAddFiles(fileList: FileList | null) {
+    if (!fileList?.length) return;
+    const incoming = Array.from(fileList);
+    const room = MAX_PHOTOS - captureFiles.length;
+    if (room <= 0) return;
+    const next = incoming.slice(0, room);
+    setCaptureFiles((prev) => [...prev, ...next]);
+    setPreviewUrls((prev) => [
+      ...prev,
+      ...next.map((f) => URL.createObjectURL(f)),
+    ]);
+  }
+
+  function handleRemoveFile(index: number) {
+    setCaptureFiles((prev) => prev.filter((_, i) => i !== index));
+    setPreviewUrls((prev) => {
+      const url = prev[index];
+      if (url) URL.revokeObjectURL(url);
+      return prev.filter((_, i) => i !== index);
+    });
+  }
+
+  function clearCapture() {
+    previewUrls.forEach((url) => URL.revokeObjectURL(url));
+    setCaptureFiles([]);
+    setPreviewUrls([]);
+    setDiaryNote("");
+    setSpokenNote("");
+    setReviewTasks([]);
+    setExtractHint(null);
+    setHwPhase("capture");
+  }
+
+  async function handleReadHomework() {
+    setHwPhase("extracting");
+    setExtractHint(null);
+    const result = await lesson.extractHomeworkForReview({
+      files: captureFiles.length ? captureFiles : undefined,
+      diaryNote: diaryNote.trim() || undefined,
+      text: spokenNote.trim() || undefined,
+    });
+    const rows =
+      result.tasks.length > 0
+        ? homeworkToReviewable(result.tasks)
+        : [];
+    setReviewTasks(rows);
+    if (result.error) {
+      setExtractHint(result.error);
+    } else if (rows.length === 0) {
+      setExtractHint(
+        "Couldn't read tasks — add them manually below.",
+      );
+    } else if (result.confidence !== "high") {
+      setExtractHint("Some items may need fixing — check subjects and text.");
+    }
+    setHwPhase("review");
+  }
+
+  async function handleStartSelected() {
+    const selected = reviewableToHomework(reviewTasks);
+    if (!selected.length) return;
+    setStartingLesson(true);
+    await lesson.startSelectedTasks(selected);
+    setStartingLesson(false);
+    setHwPhase("capture");
   }
 
   const showInput = state.phase === "input" && !readOnly;
@@ -261,7 +349,11 @@ export function LessonScreen({
         </div>
       )}
 
-      {showInput && (
+      {showInput && hwPhase === "extracting" && (
+        <LessonProgress step="reading" />
+      )}
+
+      {showInput && hwPhase === "capture" && (
         <div className="space-y-3">
           {upcomingExams.length > 0 && (
             <Card className="border-green-200 bg-green-50">
@@ -286,66 +378,61 @@ export function LessonScreen({
             </Card>
           )}
 
-          <p className="font-display text-sm font-bold text-arjuna-text">
-            How do you want to add homework?
-          </p>
-
-          <input
-            ref={fileRef}
-            type="file"
-            accept="image/*"
-            capture="environment"
-            className="hidden"
-            onChange={(e) => {
-              const file = e.target.files?.[0];
-              if (file) void lesson.extractTasks({ type: "photo", file });
-              e.target.value = "";
-            }}
-          />
-          <Button
-            size="lg"
-            className="flex w-full items-center justify-center gap-2"
+          <HomeworkCaptureTray
+            files={captureFiles}
+            previewUrls={previewUrls}
+            diaryNote={diaryNote}
+            spokenNote={spokenNote}
+            recording={recording}
             disabled={loading}
-            onClick={() => fileRef.current?.click()}
-          >
-            <span className="text-xl">📷</span> Photo homework
-          </Button>
-          <Button
-            size="lg"
-            variant="secondary"
-            className="flex w-full items-center justify-center gap-2"
-            disabled={loading}
-            onClick={() => void startMic()}
-          >
-            <span className="text-xl">🎤</span>
-            {recording ? "Stop & send" : "Speak homework"}
-          </Button>
-          <textarea
-            value={textInput}
-            onChange={(e) => setTextInput(e.target.value)}
-            placeholder="Or type homework here…"
-            className="w-full rounded-2xl border-2 border-orange-100 p-4 text-sm"
-            rows={3}
+            onDiaryNoteChange={setDiaryNote}
+            onAddFiles={handleAddFiles}
+            onRemoveFile={handleRemoveFile}
+            onReadHomework={() => void handleReadHomework()}
+            onToggleMic={() => void toggleMic()}
+            onClear={clearCapture}
           />
-          <Button
-            variant="secondary"
-            className="flex w-full items-center justify-center gap-2"
-            disabled={loading || !textInput.trim()}
-            onClick={() =>
-              void lesson.extractTasks({ type: "text", text: textInput })
-            }
-          >
-            <span className="text-xl">⌨️</span> Send typed homework
-          </Button>
         </div>
+      )}
+
+      {showInput && hwPhase === "review" && (
+        <HomeworkTaskReview
+          tasks={reviewTasks}
+          extractHint={extractHint ?? undefined}
+          onChange={setReviewTasks}
+          onAddManual={() =>
+            setReviewTasks((prev) => [...prev, emptyManualTask()])
+          }
+          onBack={() => setHwPhase("capture")}
+          onStart={() => void handleStartSelected()}
+          starting={startingLesson}
+        />
       )}
 
       {showTeaching && !readOnly && (
         <div className="mt-auto space-y-3 pb-4">
+          {state.tasks.length > 1 && (
+            <div className="flex flex-wrap gap-2">
+              {state.tasks.map((t, i) => (
+                <button
+                  key={`${t.subject}-${i}`}
+                  type="button"
+                  onClick={() => void lesson.jumpToTask(i)}
+                  className={`rounded-full px-3 py-1 text-xs font-bold ${
+                    i === state.currentTaskIndex
+                      ? "bg-arjuna-primary text-white"
+                      : "bg-white text-arjuna-muted ring-1 ring-orange-200"
+                  }`}
+                >
+                  {i + 1}. {t.subject}
+                </button>
+              ))}
+            </div>
+          )}
           {state.tasks[state.currentTaskIndex] && (
             <Card className="border-orange-200 bg-orange-50 py-3">
               <p className="text-xs font-semibold uppercase text-arjuna-muted">
-                Now learning
+                Task {state.currentTaskIndex + 1} of {state.tasks.length}
               </p>
               <p className="mt-1 font-display font-bold text-arjuna-text">
                 {state.tasks[state.currentTaskIndex].subject}:{" "}

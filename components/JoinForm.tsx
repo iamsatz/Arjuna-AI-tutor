@@ -4,6 +4,7 @@ import { FormEvent, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   addProfile,
+  tryAddProfile,
   type CurriculumBoard,
   type MediumOfInstruction,
 } from "@/lib/childProfile";
@@ -58,14 +59,14 @@ export function JoinForm({ code }: JoinFormProps) {
         setInviteValid(true);
 
         if (data.invite.claimed && data.invite.childName) {
-          addProfile({
+          const result = tryAddProfile({
             inviteCode: code,
             childName: data.invite.childName,
             grade: data.invite.grade,
             board: data.invite.board,
             medium: "english_medium",
           });
-          router.replace("/?welcome=1");
+          if (result.ok) router.replace("/?welcome=1");
           return;
         }
       } catch {
@@ -106,11 +107,27 @@ export function JoinForm({ code }: JoinFormProps) {
         return;
       }
 
-      addProfile(profileInput);
+      const result = tryAddProfile(profileInput);
+      if (!result.ok) {
+        setError(
+          result.reason === "duplicate_name"
+            ? `A child named ${childName.trim()} already exists in this family. Use a different name.`
+            : "Could not save profile. Try again.",
+        );
+        return;
+      }
       router.replace("/?welcome=1");
     } catch {
       if (inviteValid) {
-        addProfile(profileInput);
+        const result = tryAddProfile(profileInput);
+        if (!result.ok) {
+          setError(
+            result.reason === "duplicate_name"
+              ? `A child named ${childName.trim()} already exists in this family. Use a different name.`
+              : "Could not save profile. Try again.",
+          );
+          return;
+        }
         router.replace("/?welcome=1");
         return;
       }

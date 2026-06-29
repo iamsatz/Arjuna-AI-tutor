@@ -9,7 +9,8 @@ export async function GET(request: NextRequest) {
   }
 
   const childName = request.nextUrl.searchParams.get("childName") ?? undefined;
-  const exams = await listExamsByInvite(inviteCode, childName);
+  const profileId = request.nextUrl.searchParams.get("profileId") ?? undefined;
+  const exams = await listExamsByInvite(inviteCode, { childName, profileId });
   return NextResponse.json({ exams });
 }
 
@@ -17,6 +18,7 @@ export async function POST(request: NextRequest) {
   const body = (await request.json()) as {
     inviteCode?: string;
     childName?: string;
+    profileId?: string;
     subject?: string;
     board?: CurriculumBoard;
     grade?: string;
@@ -36,6 +38,7 @@ export async function POST(request: NextRequest) {
   const exam = await createExam({
     inviteCode: body.inviteCode,
     childName: body.childName,
+    profileId: body.profileId,
     subject: body.subject,
     board: body.board,
     grade: body.grade,

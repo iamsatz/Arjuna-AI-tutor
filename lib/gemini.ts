@@ -99,26 +99,52 @@ export async function extractHomeworkFromPhoto(
   imageBase64: string,
   mimeType: string,
 ): Promise<{ tasks: HomeworkTask[]; confidence: string; reason?: string }> {
-  const raw = await geminiGenerate(
-    apiKey,
-    [
-      { text: PHOTO_EXTRACTION_PROMPT },
-      { inline_data: { mime_type: mimeType, data: imageBase64 } },
-    ],
-    undefined,
-    1024,
-  );
+  return extractHomeworkFromPhotos(apiKey, [
+    { data: imageBase64, mimeType },
+  ]);
+}
 
+export type HomeworkImageInput = { data: string; mimeType: string };
+
+export async function extractHomeworkFromPhotos(
+  apiKey: string,
+  images: HomeworkImageInput[],
+  options?: { diaryNote?: string; extraText?: string },
+): Promise<{ tasks: HomeworkTask[]; confidence: string; reason?: string }> {
+  const parts: GeminiPart[] = [{ text: PHOTO_EXTRACTION_PROMPT }];
+
+  if (options?.diaryNote?.trim()) {
+    parts.push({
+      text: `Teacher diary note (use with the images):\n${options.diaryNote.trim()}`,
+    });
+  }
+  if (options?.extraText?.trim()) {
+    parts.push({ text: `Additional context:\n${options.extraText.trim()}` });
+  }
+
+  for (const img of images) {
+    parts.push({
+      inline_data: { mime_type: img.mimeType, data: img.data },
+    });
+  }
+
+  const raw = await geminiGenerate(apiKey, parts, undefined, 2048);
   return parseJson(raw);
 }
 
 export async function extractHomeworkFromText(
   apiKey: string,
   text: string,
+  diaryNote?: string,
 ): Promise<{ tasks: HomeworkTask[]; confidence: string; reason?: string }> {
+  let prompt = `${TEXT_EXTRACTION_PROMPT}\n\nStudent input:\n${text}`;
+  if (diaryNote?.trim()) {
+    prompt = `${TEXT_EXTRACTION_PROMPT}\n\nTeacher diary note:\n${diaryNote.trim()}\n\nAdditional:\n${text}`;
+  }
+
   const raw = await geminiGenerate(
     apiKey,
-    [{ text: `${TEXT_EXTRACTION_PROMPT}\n\nStudent input:\n${text}` }],
+    [{ text: prompt }],
     undefined,
     1024,
   );

@@ -30,6 +30,20 @@ export const MEDIUM_OPTIONS: { value: MediumOfInstruction; label: string }[] = [
   { value: "telugu_medium", label: "Telugu medium (government school)" },
 ];
 
+export const SUBJECT_OPTIONS = [
+  "Maths",
+  "English",
+  "Telugu",
+  "Hindi",
+  "EVS",
+  "Science",
+  "Social Studies",
+  "Computer",
+  "Other",
+] as const;
+
+export type SubjectOption = (typeof SUBJECT_OPTIONS)[number];
+
 /** Kid avatar bubble colors */
 export const KID_COLORS = [
   "bg-sky-400",

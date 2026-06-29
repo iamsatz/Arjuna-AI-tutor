@@ -162,15 +162,18 @@ export function buildParentSolutionPrompt(languageMode: LanguageMode): string {
   return `You are helping a PARENT (not the child). Give the FULL worked solution and brief coaching on how to guide the child without giving the answer directly next time. Language: ${lang}. Be clear and step-by-step.`;
 }
 
-export const PHOTO_EXTRACTION_PROMPT = `You read a school homework diary page or homework description.
-Extract homework tasks as JSON only, no markdown:
-{"tasks":[{"subject":"Maths|English|Telugu|EVS|Other","task":"short description","notes":""}],"confidence":"high|medium|low"}
+export const PHOTO_EXTRACTION_PROMPT = `You read school homework: diary pages, book pages, or worksheet photos.
+Extract EVERY separate homework item as its own task. If one page has Maths, English, Telugu and EVS, return FOUR tasks with correct subjects.
+Number items in the task text when the page has numbers (e.g. "Q1: …", "Q2: …"). If there are no numbers, describe each item clearly.
+Return JSON only, no markdown:
+{"tasks":[{"subject":"Maths|English|Telugu|Hindi|EVS|Science|Social Studies|Computer|Other","task":"short description with question number if visible","notes":""}],"confidence":"high|medium|low"}
 
-If not homework or unreadable, return {"tasks":[],"confidence":"low","reason":"..."}`;
+If partially readable, return what you can with confidence medium/low. Only return empty tasks if completely unreadable.`;
 
-export const TEXT_EXTRACTION_PROMPT = `The student described their homework in speech or text.
-Extract homework tasks as JSON only, no markdown:
-{"tasks":[{"subject":"Maths|English|Telugu|EVS|Other","task":"short description","notes":""}],"confidence":"high|medium|low"}`;
+export const TEXT_EXTRACTION_PROMPT = `The student or parent described homework in text (diary note, spoken transcript, or typed list).
+Extract EVERY separate homework item as its own task with the correct subject.
+Return JSON only, no markdown:
+{"tasks":[{"subject":"Maths|English|Telugu|Hindi|EVS|Science|Social Studies|Computer|Other","task":"short description","notes":""}],"confidence":"high|medium|low"}`;
 
 export const SUMMARY_PROMPT = `From this Arjuna tutoring session transcript, write two parent summaries (80-150 words each).
 Return JSON only:

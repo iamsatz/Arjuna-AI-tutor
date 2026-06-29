@@ -3,6 +3,7 @@
 import { FormEvent, useState } from "react";
 import {
   addProfile,
+  tryAddProfile,
   getActiveProfile,
   listProfiles,
   removeProfile,
@@ -65,7 +66,7 @@ export function KidSwitcher({ onActiveChange }: KidSwitcherProps) {
       setError("Enter a name");
       return;
     }
-    const created = addProfile({
+    const result = tryAddProfile({
       inviteCode: active.inviteCode,
       childName: name.trim(),
       grade: grade || undefined,
@@ -73,10 +74,15 @@ export function KidSwitcher({ onActiveChange }: KidSwitcherProps) {
       schoolName: active.schoolName,
       medium,
     });
-    if (!created) {
-      setError(`Max ${MAX_PROFILES} kids on one device`);
+    if (!result.ok) {
+      setError(
+        result.reason === "duplicate_name"
+          ? `${name.trim()} already exists — use a different name`
+          : `Max ${MAX_PROFILES} kids on one device`,
+      );
       return;
     }
+    const created = result.profile;
     setName("");
     setGrade("");
     setBoard("");

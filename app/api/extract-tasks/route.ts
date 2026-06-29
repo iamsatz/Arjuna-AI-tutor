@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import {
-  extractHomeworkFromPhoto,
+  extractHomeworkFromPhotos,
   extractHomeworkFromText,
 } from "@/lib/gemini";
 
@@ -18,25 +18,56 @@ export async function POST(request: NextRequest) {
   try {
     if (contentType.includes("multipart/form-data")) {
       const form = await request.formData();
-      const photo = form.get("photo");
-      if (!(photo instanceof File)) {
-        return NextResponse.json({ error: "photo required" }, { status: 400 });
+      const photos = form.getAll("photo").filter((p): p is File => p instanceof File);
+      const diaryNote = String(form.get("diaryNote") ?? "").trim() || undefined;
+      const text = String(form.get("text") ?? "").trim() || undefined;
+
+      if (photos.length === 0 && !diaryNote && !text) {
+        return NextResponse.json(
+          { error: "photo, diaryNote or text required" },
+          { status: 400 },
+        );
       }
-      const buffer = Buffer.from(await photo.arrayBuffer());
-      const result = await extractHomeworkFromPhoto(
-        apiKey,
-        buffer.toString("base64"),
-        photo.type || "image/jpeg",
-      );
+
+      if (photos.length > 0) {
+        const images = await Promise.all(
+          photos.map(async (photo) => {
+            const buffer = Buffer.from(await photo.arrayBuffer());
+            return {
+              data: buffer.toString("base64"),
+              mimeType: photo.type || "image/jpeg",
+            };
+          }),
+        );
+        const result = await extractHomeworkFromPhotos(apiKey, images, {
+          diaryNote,
+          extraText: text,
+        });
+        return NextResponse.json(result);
+      }
+
+      const combined = [diaryNote, text].filter(Boolean).join("\n\n");
+      const result = await extractHomeworkFromText(apiKey, combined, diaryNote);
       return NextResponse.json(result);
     }
 
-    const body = (await request.json()) as { text?: string };
-    if (!body.text?.trim()) {
+    const body = (await request.json()) as {
+      text?: string;
+      diaryNote?: string;
+    };
+    const text = body.text?.trim();
+    const diaryNote = body.diaryNote?.trim();
+
+    if (!text && !diaryNote) {
       return NextResponse.json({ error: "text required" }, { status: 400 });
     }
 
-    const result = await extractHomeworkFromText(apiKey, body.text.trim());
+    const combined = [diaryNote, text].filter(Boolean).join("\n\n");
+    const result = await extractHomeworkFromText(
+      apiKey,
+      combined,
+      diaryNote,
+    );
     return NextResponse.json(result);
   } catch (error) {
     const message = error instanceof Error ? error.message : "Extract failed";

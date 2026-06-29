@@ -65,9 +65,15 @@ export function ExamHub({ profile }: ExamHubProps) {
   const loadExams = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await fetch(
-        `/api/exam?inviteCode=${encodeURIComponent(profile.inviteCode)}&childName=${encodeURIComponent(profile.childName)}`,
-      );
+      const params = new URLSearchParams({
+        inviteCode: profile.inviteCode,
+      });
+      if (profile.id) {
+        params.set("profileId", profile.id);
+      } else {
+        params.set("childName", profile.childName);
+      }
+      const res = await fetch(`/api/exam?${params.toString()}`);
       if (!res.ok) throw new Error("load failed");
       const data = (await res.json()) as { exams: StoredExam[] };
       setExams(data.exams ?? []);
@@ -76,7 +82,7 @@ export function ExamHub({ profile }: ExamHubProps) {
     } finally {
       setLoading(false);
     }
-  }, [profile.inviteCode]);
+  }, [profile.inviteCode, profile.id, profile.childName]);
 
   useEffect(() => {
     void loadExams();
@@ -162,6 +168,7 @@ export function ExamHub({ profile }: ExamHubProps) {
         body: JSON.stringify({
           inviteCode: profile.inviteCode,
           childName: profile.childName,
+          profileId: profile.id,
           subject: subj.subject,
           board: profile.board,
           grade: profile.grade,
@@ -198,6 +205,7 @@ export function ExamHub({ profile }: ExamHubProps) {
         body: JSON.stringify({
           inviteCode: profile.inviteCode,
           childName: profile.childName,
+          profileId: profile.id,
           subject,
           board: profile.board,
           grade: profile.grade,

@@ -126,12 +126,22 @@ export function useLessonSession({
   );
 
   const teachCurrentTask = useCallback(
-    async (contextNote?: string) => {
-      const task = activeState.tasks[activeState.currentTaskIndex];
+    async (contextNote?: string, taskIndex?: number, tasksList?: HomeworkTask[]) => {
+      const list = tasksList ?? activeState.tasks;
+      const idx = taskIndex ?? activeState.currentTaskIndex;
+      const task = list[idx];
       if (!task) return;
 
       setLoading(true);
       patchState({ avatarState: "loading", phase: "teaching" });
+
+      const noteLine = task.notes?.trim()
+        ? `Child/parent note: ${task.notes.trim()}. `
+        : "";
+      const baseContext =
+        contextNote ??
+        `${noteLine}Teach this task: ${task.subject} — ${task.task}`;
+      const chatContext = `${noteLine}Current task: ${task.subject} — ${task.task}`;
 
       const intro =
         settings.languageMode === "pure_telugu"
@@ -144,7 +154,7 @@ export function useLessonSession({
         ...activeState.messages,
         {
           role: "user" as const,
-          content: contextNote ?? `Teach this task: ${task.subject} — ${task.task}`,
+          content: baseContext,
         },
       ];
 
@@ -154,7 +164,7 @@ export function useLessonSession({
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             messages,
-            contextNote: contextNote ?? `Current task: ${task.subject} — ${task.task}`,
+            contextNote: chatContext,
             childName: profile.childName,
             grade: profile.grade,
             board: profile.board,
@@ -208,74 +218,149 @@ export function useLessonSession({
     ],
   );
 
-  const startTask = useCallback(async () => {
-    const task = activeState.tasks[activeState.currentTaskIndex];
-    if (!task) return;
-    void track("task_started", { subject: task.subject, task: task.task });
-    patchState({
-      attemptCount: 0,
-      phase: "task_intro",
-      statusMessage: `Starting ${task.subject}…`,
-    });
-    await teachCurrentTask();
-  }, [activeState.currentTaskIndex, activeState.tasks, patchState, teachCurrentTask]);
+  const startTaskAt = useCallback(
+    async (index: number, tasks?: HomeworkTask[]) => {
+      const list = tasks ?? activeState.tasks;
+      const task = list[index];
+      if (!task) return;
+      void track("task_started", { subject: task.subject, task: task.task });
+      patchState({
+        currentTaskIndex: index,
+        attemptCount: 0,
+        phase: "task_intro",
+        statusMessage: `Task ${index + 1} of ${list.length}: ${task.subject}`,
+      });
+      await teachCurrentTask(undefined, index, list);
+    },
+    [activeState.tasks, patchState, teachCurrentTask],
+  );
 
-  const extractTasks = useCallback(
-    async (input: { type: "photo"; file: File } | { type: "text"; text: string }) => {
+  const startTask = useCallback(async () => {
+    await startTaskAt(activeState.currentTaskIndex);
+  }, [activeState.currentTaskIndex, startTaskAt]);
+
+  const extractHomeworkForReview = useCallback(
+    async (input: {
+      files?: File[];
+      diaryNote?: string;
+      text?: string;
+    }): Promise<{
+      tasks: HomeworkTask[];
+      confidence: string;
+      reason?: string;
+      error?: string;
+    }> => {
       setLoading(true);
       patchState({ avatarState: "loading", statusMessage: "Reading homework…" });
 
       try {
-        let result: { tasks: HomeworkTask[]; confidence: string };
-        if (input.type === "photo") {
+        let result: {
+          tasks: HomeworkTask[];
+          confidence: string;
+          reason?: string;
+        };
+
+        if (input.files?.length) {
           const form = new FormData();
-          form.append("photo", input.file);
-          const res = await fetch("/api/extract-tasks", { method: "POST", body: form });
-          if (!res.ok) throw new Error("extract failed");
+          for (const file of input.files) {
+            form.append("photo", file);
+          }
+          if (input.diaryNote?.trim()) {
+            form.append("diaryNote", input.diaryNote.trim());
+          }
+          if (input.text?.trim()) {
+            form.append("text", input.text.trim());
+          }
+          const res = await fetch("/api/extract-tasks", {
+            method: "POST",
+            body: form,
+          });
+          if (!res.ok) {
+            const err = (await res.json()) as { message?: string };
+            throw new Error(err.message ?? "extract failed");
+          }
           result = await res.json();
         } else {
+          const combined = [input.diaryNote, input.text]
+            .filter(Boolean)
+            .join("\n\n")
+            .trim();
+          if (!combined) {
+            return {
+              tasks: [],
+              confidence: "low",
+              error: "Add photos or type the diary note first.",
+            };
+          }
           const res = await fetch("/api/extract-tasks", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ text: input.text }),
+            body: JSON.stringify({
+              text: combined,
+              diaryNote: input.diaryNote?.trim(),
+            }),
           });
-          if (!res.ok) throw new Error("extract failed");
+          if (!res.ok) {
+            const err = (await res.json()) as { message?: string };
+            throw new Error(err.message ?? "extract failed");
+          }
           result = await res.json();
         }
 
         void track("homework_input", {
-          inputType: input.type,
+          inputType: input.files?.length ? "photo" : "text",
           tasksCount: result.tasks?.length ?? 0,
         });
 
-        if (!result.tasks?.length || result.confidence === "low") {
-          patchState({
-            avatarState: "idle",
-            statusMessage: "Could not read homework. Try again.",
-          });
-          return;
-        }
+        patchState({ avatarState: "idle" });
 
+        return {
+          tasks: result.tasks ?? [],
+          confidence: result.confidence ?? "medium",
+          reason: result.reason,
+        };
+      } catch (e) {
+        patchState({ avatarState: "idle" });
+        return {
+          tasks: [],
+          confidence: "low",
+          error:
+            e instanceof Error ? e.message : "Could not read homework.",
+        };
+      } finally {
+        setLoading(false);
+      }
+    },
+    [patchState],
+  );
+
+  const startSelectedTasks = useCallback(
+    async (tasks: HomeworkTask[]) => {
+      if (!tasks.length) return;
+
+      setLoading(true);
+      try {
         let roomCode = activeState.code;
         if (settings.deviceMode === "phone_tv" && !roomCode) {
           roomCode = await createSupabaseRoomClient({
             ...activeState,
-            tasks: result.tasks,
+            tasks,
             controller: "tv",
           });
         }
 
         patchState({
-          tasks: result.tasks,
+          tasks,
           currentTaskIndex: 0,
           code: roomCode,
           phase: "task_intro",
           avatarState: "idle",
-          statusMessage: `${result.tasks.length} tasks found`,
+          statusMessage: `${tasks.length} task${tasks.length > 1 ? "s" : ""} ready`,
+          messages: [],
         });
 
         if (settings.deviceMode === "phone_only" || controller === "tv") {
-          await startTask();
+          await startTaskAt(0, tasks);
         } else if (settings.deviceMode === "phone_tv" && controller === "phone") {
           const msg =
             settings.languageMode === "pure_telugu"
@@ -284,33 +369,37 @@ export function useLessonSession({
           patchState({ statusMessage: msg, lastReply: msg });
           if (roomCode) await speak(msg);
         }
-      } catch {
-        patchState({
-          avatarState: "idle",
-          statusMessage: "Something went wrong.",
-        });
       } finally {
         setLoading(false);
       }
     },
-    [activeState, controller, patchState, settings.deviceMode, settings.languageMode, speak, startTask],
+    [
+      activeState,
+      controller,
+      patchState,
+      settings.deviceMode,
+      settings.languageMode,
+      speak,
+      startTaskAt,
+    ],
   );
 
-  const transcribeAndExtract = useCallback(
-    async (blob: Blob) => {
-      const form = new FormData();
-      form.append("audio", blob, "recording.webm");
-      const res = await fetch("/api/transcribe", { method: "POST", body: form });
-      if (!res.ok) throw new Error("transcribe failed");
-      const data = (await res.json()) as { transcript: string };
-      if (!data.transcript?.trim()) {
-        patchState({ statusMessage: "Didn't catch that. Try again." });
-        return;
-      }
-      await extractTasks({ type: "text", text: data.transcript });
+  const jumpToTask = useCallback(
+    async (index: number) => {
+      if (index < 0 || index >= activeState.tasks.length) return;
+      await startTaskAt(index);
     },
-    [extractTasks, patchState],
+    [activeState.tasks.length, startTaskAt],
   );
+
+  const transcribeToText = useCallback(async (blob: Blob): Promise<string | null> => {
+    const form = new FormData();
+    form.append("audio", blob, "recording.webm");
+    const res = await fetch("/api/transcribe", { method: "POST", body: form });
+    if (!res.ok) return null;
+    const data = (await res.json()) as { transcript: string };
+    return data.transcript?.trim() || null;
+  }, []);
 
   const handleExplainAgain = useCallback(async () => {
     void track("explain_again", { attempt: activeState.attemptCount + 1 });
@@ -492,8 +581,10 @@ export function useLessonSession({
     setDoubtInput,
     pinInput,
     setPinInput,
-    extractTasks,
-    transcribeAndExtract,
+    extractHomeworkForReview,
+    startSelectedTasks,
+    jumpToTask,
+    transcribeToText,
     handleExplainAgain,
     handleDoubt,
     handleUnderstood,

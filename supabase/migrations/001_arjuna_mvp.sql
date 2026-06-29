@@ -49,6 +49,7 @@ end $$;
 
 create table if not exists public.arjuna_exams (
   id uuid primary key default gen_random_uuid(),
+  profile_id text,
   invite_code text not null,
   child_name text not null,
   subject text not null,
@@ -64,6 +65,7 @@ create table if not exists public.arjuna_exams (
 );
 
 create index if not exists arjuna_exams_invite_code_idx on public.arjuna_exams (invite_code);
+create index if not exists arjuna_exams_profile_id_idx on public.arjuna_exams (profile_id);
 create index if not exists arjuna_exams_exam_date_idx on public.arjuna_exams (exam_date);
 
 alter table public.arjuna_exams enable row level security;

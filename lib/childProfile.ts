@@ -172,17 +172,45 @@ export function setActiveProfile(id: string): ChildProfile | null {
   return store.profiles.find((p) => p.id === id) ?? null;
 }
 
+export function nameExistsInFamily(
+  inviteCode: string,
+  childName: string,
+  excludeId?: string,
+): boolean {
+  const normalized = childName.trim().toLowerCase();
+  if (!normalized) return false;
+  return readStore().profiles.some(
+    (p) =>
+      p.inviteCode === inviteCode &&
+      p.id !== excludeId &&
+      p.childName.trim().toLowerCase() === normalized,
+  );
+}
+
+export type AddProfileResult =
+  | { ok: true; profile: ChildProfile }
+  | { ok: false; reason: "duplicate_name" | "max_profiles" };
+
 /**
  * Adds a new profile (assigns an id) and makes it active.
- * Returns null if the cap is reached.
  */
 export function addProfile(profile: ChildProfile): ChildProfile | null {
+  const result = tryAddProfile(profile);
+  return result.ok ? result.profile : null;
+}
+
+export function tryAddProfile(profile: ChildProfile): AddProfileResult {
   const store = readStore();
-  if (store.profiles.length >= MAX_PROFILES) return null;
+  if (store.profiles.length >= MAX_PROFILES) {
+    return { ok: false, reason: "max_profiles" };
+  }
+  if (nameExistsInFamily(profile.inviteCode, profile.childName)) {
+    return { ok: false, reason: "duplicate_name" };
+  }
   const id = profile.id ?? generateProfileId();
   const created: ChildProfile = { ...profile, id };
   writeStore({ profiles: [...store.profiles, created], activeId: id });
-  return created;
+  return { ok: true, profile: created };
 }
 
 export function removeProfile(id: string): ChildProfile | null {
@@ -229,6 +257,9 @@ export function saveChildProfile(profile: ChildProfile): ChildProfile {
   if (index >= 0) {
     profiles[index] = saved;
   } else if (profiles.length < MAX_PROFILES) {
+    if (nameExistsInFamily(profile.inviteCode, profile.childName, id)) {
+      return profiles.find((p) => p.id === store.activeId) ?? saved;
+    }
     profiles.push(saved);
   } else {
     // Cap reached and no match: replace the active slot to preserve old behavior.
