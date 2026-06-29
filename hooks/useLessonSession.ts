@@ -19,6 +19,7 @@ import {
   useSupabaseRoomPublisher,
 } from "@/hooks/useSupabaseRoom";
 import { isTvDevice } from "@/lib/platform";
+import { friendlyExtractError } from "@/lib/userErrors";
 
 const MAX_ATTEMPTS = 4;
 
@@ -282,11 +283,18 @@ export function useLessonSession({
             error?: string;
             message?: string;
           };
-          if (!res.ok && !body.tasks) {
+          if (!res.ok && !body.tasks?.length) {
             return {
               tasks: [],
               confidence: "low",
-              error: body.message ?? body.error ?? "Could not read homework.",
+              error: friendlyExtractError(body.error, body.message),
+            };
+          }
+          if (body.error && !body.tasks?.length) {
+            return {
+              tasks: [],
+              confidence: body.confidence ?? "low",
+              error: friendlyExtractError(body.error, body.message),
             };
           }
           result = {
@@ -321,11 +329,18 @@ export function useLessonSession({
             error?: string;
             message?: string;
           };
-          if (!res.ok && !body.tasks) {
+          if (!res.ok && !body.tasks?.length) {
             return {
               tasks: [],
               confidence: "low",
-              error: body.message ?? body.error ?? "Could not read homework.",
+              error: friendlyExtractError(body.error, body.message),
+            };
+          }
+          if (body.error && !body.tasks?.length) {
+            return {
+              tasks: [],
+              confidence: body.confidence ?? "low",
+              error: friendlyExtractError(body.error, body.message),
             };
           }
           result = {
@@ -352,8 +367,9 @@ export function useLessonSession({
         return {
           tasks: [],
           confidence: "low",
-          error:
-            e instanceof Error ? e.message : "Could not read homework.",
+          error: friendlyExtractError(
+            e instanceof Error ? e.message : "extract_failed",
+          ),
         };
       } finally {
         setLoading(false);
