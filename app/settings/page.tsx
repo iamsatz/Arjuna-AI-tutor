@@ -8,9 +8,8 @@ import {
   saveChildProfile,
   type ChildProfile,
   type MediumOfInstruction,
-  type TeachingMethod,
 } from "@/lib/childProfile";
-import { MEDIUM_OPTIONS, METHOD_OPTIONS } from "@/lib/profileOptions";
+import { MEDIUM_OPTIONS } from "@/lib/profileOptions";
 import type { StoredCurriculum } from "@/lib/curriculumTypes";
 import {
   loadSettings,
@@ -25,7 +24,6 @@ export default function SettingsPage() {
   const [profile, setProfile] = useState<ChildProfile | null>(null);
   const [schoolName, setSchoolName] = useState("");
   const [medium, setMedium] = useState<MediumOfInstruction>("english_medium");
-  const [method, setMethod] = useState<TeachingMethod>("experiential");
   const [curriculum, setCurriculum] = useState<StoredCurriculum | null>(null);
   const [curriculumBusy, setCurriculumBusy] = useState(false);
   const [curriculumMsg, setCurriculumMsg] = useState<string | null>(null);
@@ -37,7 +35,6 @@ export default function SettingsPage() {
     setProfile(p);
     setSchoolName(p?.schoolName ?? "");
     setMedium(p?.medium ?? "english_medium");
-    setMethod(p?.method ?? "experiential");
   }, []);
 
   const schoolKey =
@@ -82,7 +79,7 @@ export default function SettingsPage() {
 
   function saveTeachingProfile() {
     if (!profile) return;
-    saveChildProfile({ ...profile, medium, method });
+    saveChildProfile({ ...profile, medium });
     setProfile(loadChildProfile());
     setSaved(true);
     setTimeout(() => setSaved(false), 2000);
@@ -209,26 +206,12 @@ export default function SettingsPage() {
               ))}
             </select>
           </label>
-          <label className="block">
-            <span className="text-sm font-medium">How their school teaches</span>
-            <select
-              value={method}
-              onChange={(e) => setMethod(e.target.value as TeachingMethod)}
-              className="mt-2 w-full rounded-xl border p-3"
-            >
-              {METHOD_OPTIONS.map((opt) => (
-                <option key={opt.value} value={opt.value}>
-                  {opt.label}
-                </option>
-              ))}
-            </select>
-          </label>
           <button
             type="button"
             onClick={saveTeachingProfile}
             className="w-full rounded-xl border border-arjuna-primary/30 bg-white py-2.5 text-sm font-semibold"
           >
-            Save teaching style
+            Save medium
           </button>
         </section>
       )}

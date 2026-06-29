@@ -6,9 +6,8 @@ import {
   addProfile,
   type CurriculumBoard,
   type MediumOfInstruction,
-  type TeachingMethod,
 } from "@/lib/childProfile";
-import { MEDIUM_OPTIONS, METHOD_OPTIONS } from "@/lib/profileOptions";
+import { MEDIUM_OPTIONS } from "@/lib/profileOptions";
 
 type JoinFormProps = {
   code: string;
@@ -20,8 +19,8 @@ export function JoinForm({ code }: JoinFormProps) {
   const [grade, setGrade] = useState("");
   const [board, setBoard] = useState<CurriculumBoard | "">("");
   const [medium, setMedium] = useState<MediumOfInstruction>("english_medium");
-  const [method, setMethod] = useState<TeachingMethod>("experiential");
   const [loading, setLoading] = useState(true);
+  const [inviteValid, setInviteValid] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [label, setLabel] = useState<string | null>(null);
@@ -46,6 +45,7 @@ export function JoinForm({ code }: JoinFormProps) {
         };
 
         setLabel(data.invite.label ?? null);
+        setInviteValid(true);
 
         if (data.invite.claimed && data.invite.childName) {
           addProfile({
@@ -54,7 +54,6 @@ export function JoinForm({ code }: JoinFormProps) {
             grade: data.invite.grade,
             board: data.invite.board,
             medium: "english_medium",
-            method: "experiential",
           });
           router.replace("/");
           return;
@@ -74,28 +73,38 @@ export function JoinForm({ code }: JoinFormProps) {
     setSubmitting(true);
     setError(null);
 
+    const profileInput = {
+      inviteCode: code,
+      childName: childName.trim(),
+      grade: grade.trim() || undefined,
+      board: board || undefined,
+      medium,
+    };
+
     try {
       const response = await fetch(`/api/invite/${code}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ childName, grade, board: board || undefined }),
+        body: JSON.stringify({
+          childName: profileInput.childName,
+          grade: profileInput.grade,
+          board: profileInput.board,
+        }),
       });
 
-      if (!response.ok) {
+      if (!response.ok && !inviteValid) {
         setError("Could not save profile. Try again.");
         return;
       }
 
-      addProfile({
-        inviteCode: code,
-        childName: childName.trim(),
-        grade: grade.trim() || undefined,
-        board: board || undefined,
-        medium,
-        method,
-      });
+      addProfile(profileInput);
       router.replace("/");
     } catch {
+      if (inviteValid) {
+        addProfile(profileInput);
+        router.replace("/");
+        return;
+      }
       setError("Could not save profile. Try again.");
     } finally {
       setSubmitting(false);
@@ -192,23 +201,6 @@ export function JoinForm({ code }: JoinFormProps) {
             className="mt-2 w-full rounded-xl border border-arjuna-primary/20 bg-white px-4 py-3 text-arjuna-text outline-none focus:border-arjuna-primary"
           >
             {MEDIUM_OPTIONS.map((opt) => (
-              <option key={opt.value} value={opt.value}>
-                {opt.label}
-              </option>
-            ))}
-          </select>
-        </label>
-
-        <label className="block">
-          <span className="text-sm font-medium text-arjuna-text">
-            How their school teaches
-          </span>
-          <select
-            value={method}
-            onChange={(e) => setMethod(e.target.value as TeachingMethod)}
-            className="mt-2 w-full rounded-xl border border-arjuna-primary/20 bg-white px-4 py-3 text-arjuna-text outline-none focus:border-arjuna-primary"
-          >
-            {METHOD_OPTIONS.map((opt) => (
               <option key={opt.value} value={opt.value}>
                 {opt.label}
               </option>

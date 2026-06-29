@@ -161,11 +161,17 @@ export async function claimInvite(
     if (error) console.error("claimInvite supabase", error);
   }
 
-  const invites = await readInvitesFromFile();
-  const index = invites.findIndex((invite) => invite.code === code);
-  if (index === -1) return null;
+  try {
+    const invites = await readInvitesFromFile();
+    const index = invites.findIndex((invite) => invite.code === code);
+    if (index !== -1) {
+      invites[index] = updated;
+      await writeInvitesToFile(invites);
+    }
+  } catch (error) {
+    console.error("claimInvite file", error);
+  }
 
-  invites[index] = updated;
-  await writeInvitesToFile(invites);
+  // Invite was valid — return success even if server persistence failed (e.g. Vercel read-only FS).
   return updated;
 }

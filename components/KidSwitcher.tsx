@@ -11,9 +11,8 @@ import {
   type ChildProfile,
   type CurriculumBoard,
   type MediumOfInstruction,
-  type TeachingMethod,
 } from "@/lib/childProfile";
-import { MEDIUM_OPTIONS, METHOD_OPTIONS } from "@/lib/profileOptions";
+import { MEDIUM_OPTIONS } from "@/lib/profileOptions";
 import { verifyParentPin } from "@/lib/settings";
 
 type KidSwitcherProps = {
@@ -34,7 +33,6 @@ export function KidSwitcher({ onActiveChange }: KidSwitcherProps) {
   const [grade, setGrade] = useState("");
   const [board, setBoard] = useState<CurriculumBoard | "">("");
   const [medium, setMedium] = useState<MediumOfInstruction>("english_medium");
-  const [method, setMethod] = useState<TeachingMethod>("experiential");
 
   const active = profiles.find((p) => p.id === activeId) ?? profiles[0] ?? null;
 
@@ -67,7 +65,6 @@ export function KidSwitcher({ onActiveChange }: KidSwitcherProps) {
       board: board || undefined,
       schoolName: active.schoolName,
       medium,
-      method,
     });
     if (!created) {
       setError(`Max ${MAX_PROFILES} kids on one device`);
@@ -207,17 +204,6 @@ export function KidSwitcher({ onActiveChange }: KidSwitcherProps) {
             className="w-full rounded-lg border p-2 text-sm"
           >
             {MEDIUM_OPTIONS.map((opt) => (
-              <option key={opt.value} value={opt.value}>
-                {opt.label}
-              </option>
-            ))}
-          </select>
-          <select
-            value={method}
-            onChange={(e) => setMethod(e.target.value as TeachingMethod)}
-            className="w-full rounded-lg border p-2 text-sm"
-          >
-            {METHOD_OPTIONS.map((opt) => (
               <option key={opt.value} value={opt.value}>
                 {opt.label}
               </option>

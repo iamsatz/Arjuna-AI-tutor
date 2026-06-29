@@ -23,5 +23,30 @@
     "code": "family05",
     "label": "Family 5",
     "createdAt": "2026-06-28T16:00:00.000Z"
+  },
+  {
+    "code": "family06",
+    "label": "Family 6",
+    "createdAt": "2026-06-29T12:00:00.000Z"
+  },
+  {
+    "code": "family07",
+    "label": "Family 7",
+    "createdAt": "2026-06-29T12:00:00.000Z"
+  },
+  {
+    "code": "family08",
+    "label": "Family 8",
+    "createdAt": "2026-06-29T12:00:00.000Z"
+  },
+  {
+    "code": "family09",
+    "label": "Family 9",
+    "createdAt": "2026-06-29T12:00:00.000Z"
+  },
+  {
+    "code": "family10",
+    "label": "Family 10",
+    "createdAt": "2026-06-29T12:00:00.000Z"
   }
 ]
