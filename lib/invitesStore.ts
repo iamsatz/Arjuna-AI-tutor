@@ -15,6 +15,10 @@ export type StoredInvite = {
 
 const INVITES_PATH = path.join(process.cwd(), "data", "invites.json");
 
+function isProduction(): boolean {
+  return process.env.VERCEL === "1" || process.env.NODE_ENV === "production";
+}
+
 function mapRow(row: Record<string, unknown>): StoredInvite {
   return {
     code: String(row.code),
@@ -25,6 +29,10 @@ function mapRow(row: Record<string, unknown>): StoredInvite {
     board: (row.board as StoredInvite["board"] | null) ?? undefined,
     claimedAt: (row.claimed_at as string | null) ?? (row.claimedAt as string | undefined),
   };
+}
+
+function normalizeCode(code: string): string {
+  return code.trim().toLowerCase();
 }
 
 async function readInvitesFromFile(): Promise<StoredInvite[]> {
@@ -65,38 +73,48 @@ export async function readInvites(): Promise<StoredInvite[]> {
   return readInvitesFromFile();
 }
 
+async function generateUniqueCode(
+  existing: StoredInvite[],
+): Promise<string> {
+  let code = "";
+  do {
+    code = randomBytes(4).toString("hex");
+  } while (existing.some((invite) => invite.code === code));
+  return code;
+}
+
 export async function createInvite(label?: string): Promise<StoredInvite> {
   const sb = getSupabaseServer();
-  let code = "";
 
   if (sb) {
-    const existing = await readInvitesFromSupabase();
-    if (existing) {
-      do {
-        code = randomBytes(4).toString("hex");
-      } while (existing.some((invite) => invite.code === code));
+    const existing = (await readInvitesFromSupabase()) ?? [];
+    const code = await generateUniqueCode(existing);
+    const invite: StoredInvite = {
+      code,
+      label: label?.trim() || undefined,
+      createdAt: new Date().toISOString(),
+    };
 
-      const invite: StoredInvite = {
-        code,
-        label: label?.trim() || undefined,
-        createdAt: new Date().toISOString(),
-      };
+    const { error } = await sb.from("arjuna_invites").insert({
+      code: invite.code,
+      label: invite.label ?? null,
+    });
 
-      const { error } = await sb.from("arjuna_invites").insert({
-        code: invite.code,
-        label: invite.label ?? null,
-      });
-
-      if (!error) return invite;
-      console.error("createInvite supabase", error);
+    if (!error) return invite;
+    console.error("createInvite supabase", error);
+    if (isProduction()) {
+      throw new Error(
+        "Could not save invite to database. Check Supabase migration (arjuna_invites table).",
+      );
     }
+  } else if (isProduction()) {
+    throw new Error(
+      "Database not configured. Add NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY on Vercel.",
+    );
   }
 
   const invites = await readInvitesFromFile();
-  do {
-    code = randomBytes(4).toString("hex");
-  } while (invites.some((invite) => invite.code === code));
-
+  const code = await generateUniqueCode(invites);
   const invite: StoredInvite = {
     code,
     label: label?.trim() || undefined,
@@ -111,19 +129,27 @@ export async function createInvite(label?: string): Promise<StoredInvite> {
 export async function getInviteByCode(
   code: string,
 ): Promise<StoredInvite | null> {
+  const normalized = normalizeCode(code);
+  if (!normalized) return null;
+
   const sb = getSupabaseServer();
   if (sb) {
     const { data, error } = await sb
       .from("arjuna_invites")
       .select("*")
-      .eq("code", code)
+      .eq("code", normalized)
       .maybeSingle();
 
-    if (!error && data) return mapRow(data);
+    if (error) {
+      console.error("getInviteByCode supabase", error);
+      return null;
+    }
+    if (data) return mapRow(data);
+    return null;
   }
 
   const invites = await readInvitesFromFile();
-  return invites.find((invite) => invite.code === code) ?? null;
+  return invites.find((invite) => invite.code === normalized) ?? null;
 }
 
 export async function claimInvite(
@@ -132,7 +158,8 @@ export async function claimInvite(
   grade?: string,
   board?: StoredInvite["board"],
 ): Promise<StoredInvite | null> {
-  const existing = await getInviteByCode(code);
+  const normalized = normalizeCode(code);
+  const existing = await getInviteByCode(normalized);
   if (!existing) return null;
 
   const updated: StoredInvite = {
@@ -153,17 +180,18 @@ export async function claimInvite(
         board: updated.board ?? null,
         claimed_at: updated.claimedAt,
       })
-      .eq("code", code)
+      .eq("code", normalized)
       .select("*")
       .single();
 
     if (!error && data) return mapRow(data);
     if (error) console.error("claimInvite supabase", error);
+    if (isProduction()) return updated;
   }
 
   try {
     const invites = await readInvitesFromFile();
-    const index = invites.findIndex((invite) => invite.code === code);
+    const index = invites.findIndex((invite) => invite.code === normalized);
     if (index !== -1) {
       invites[index] = updated;
       await writeInvitesToFile(invites);
@@ -172,6 +200,5 @@ export async function claimInvite(
     console.error("claimInvite file", error);
   }
 
-  // Invite was valid — return success even if server persistence failed (e.g. Vercel read-only FS).
   return updated;
 }

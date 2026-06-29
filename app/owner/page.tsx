@@ -64,14 +64,21 @@ export default function OwnerDashboardPage() {
       });
 
       if (!response.ok) {
-        throw new Error("Create failed");
+        const body = (await response.json().catch(() => null)) as {
+          message?: string;
+        } | null;
+        throw new Error(body?.message ?? "Create failed");
       }
 
       const data = (await response.json()) as { invite: StoredInvite };
       setInvites((current) => [data.invite, ...current]);
       setInviteLabel("");
-    } catch {
-      setError("Could not create invite link.");
+    } catch (err) {
+      setError(
+        err instanceof Error
+          ? err.message
+          : "Could not create invite link.",
+      );
     } finally {
       setCreatingInvite(false);
     }
@@ -120,7 +127,7 @@ export default function OwnerDashboardPage() {
             type="text"
             value={inviteLabel}
             onChange={(event) => setInviteLabel(event.target.value)}
-            placeholder="Optional label (e.g. Sharma family)"
+            placeholder="Optional label (e.g. Sharma family) — not the link code"
             className="flex-1 rounded-xl border border-arjuna-primary/20 bg-white px-4 py-2 text-sm text-arjuna-text outline-none focus:border-arjuna-primary"
           />
           <button

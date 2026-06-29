@@ -40,7 +40,7 @@ export function InviteRequired() {
               type="text"
               value={code}
               onChange={(e) => setCode(e.target.value)}
-              placeholder="e.g. family01"
+              placeholder="Paste the code from your link (e.g. a1b2c3d4)"
               autoComplete="off"
               autoCapitalize="none"
               className="mt-2 w-full rounded-2xl border-2 border-orange-100 bg-white px-4 py-3.5 font-semibold text-arjuna-text outline-none focus:border-arjuna-primary"

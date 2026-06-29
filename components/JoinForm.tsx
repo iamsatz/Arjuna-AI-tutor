@@ -41,7 +41,9 @@ export function JoinForm({ code }: JoinFormProps) {
       try {
         const response = await fetch(`/api/invite/${code}`);
         if (!response.ok) {
-          setError("This invite link is not valid.");
+          setError(
+            "This invite link is not valid. Open the full link from Copy link (not the family name).",
+          );
           return;
         }
 
