@@ -1,16 +1,14 @@
 import { randomUUID } from "crypto";
 import { NextRequest, NextResponse } from "next/server";
 import { generateSessionSummary } from "@/lib/gemini";
+import { missingGeminiResponse } from "@/lib/userErrors";
 import { appendSession } from "@/lib/sessionsStore";
 import { sendWhatsAppText } from "@/lib/whatsapp";
 
 export async function POST(request: NextRequest) {
   const geminiKey = process.env.GEMINI_API_KEY;
   if (!geminiKey) {
-    return NextResponse.json(
-      { error: "missing_api_key", message: "Add GEMINI_API_KEY to .env.local" },
-      { status: 503 },
-    );
+    return missingGeminiResponse();
   }
 
   const body = (await request.json()) as {

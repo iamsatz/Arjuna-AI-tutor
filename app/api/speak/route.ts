@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { synthesizeSpeech, DEFAULT_GREETING } from "@/lib/sarvam";
+import { missingSarvamResponse } from "@/lib/userErrors";
 
 function ttsLanguage(languageMode?: string, languageCode?: string): string {
   if (languageCode) return languageCode;
@@ -35,13 +36,7 @@ async function handleSpeak(
   const apiKey = process.env.SARVAM_API_KEY;
 
   if (!apiKey || apiKey === "your_sarvam_api_key_here") {
-    return NextResponse.json(
-      {
-        error: "missing_api_key",
-        message: "Add SARVAM_API_KEY to .env.local",
-      },
-      { status: 503 },
-    );
+    return missingSarvamResponse();
   }
 
   try {

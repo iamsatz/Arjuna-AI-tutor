@@ -5,6 +5,7 @@ import {
   saveCurriculum,
 } from "@/lib/curriculumStore";
 import { extractCurriculum } from "@/lib/gemini";
+import { missingGeminiResponse } from "@/lib/userErrors";
 
 export async function GET(request: NextRequest) {
   const schoolKey = request.nextUrl.searchParams.get("schoolKey");
@@ -55,10 +56,7 @@ export async function POST(request: NextRequest) {
   }
 
   if (!apiKey) {
-    return NextResponse.json(
-      { error: "missing_api_key", message: "Add GEMINI_API_KEY to .env.local" },
-      { status: 503 },
-    );
+    return missingGeminiResponse();
   }
 
   try {

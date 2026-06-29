@@ -1,14 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { generateParentSolution } from "@/lib/gemini";
+import { missingGeminiResponse } from "@/lib/userErrors";
 import type { LanguageMode } from "@/lib/settings";
 
 export async function POST(request: NextRequest) {
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) {
-    return NextResponse.json(
-      { error: "missing_api_key", message: "Add GEMINI_API_KEY to .env.local" },
-      { status: 503 },
-    );
+    return missingGeminiResponse();
   }
 
   const body = (await request.json()) as {

@@ -1,13 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { transcribeSpeech } from "@/lib/sarvam";
+import { missingSarvamResponse } from "@/lib/userErrors";
 
 export async function POST(request: NextRequest) {
   const apiKey = process.env.SARVAM_API_KEY;
   if (!apiKey) {
-    return NextResponse.json(
-      { error: "missing_api_key", message: "Add SARVAM_API_KEY to .env.local" },
-      { status: 503 },
-    );
+    return missingSarvamResponse();
   }
 
   const form = await request.formData();

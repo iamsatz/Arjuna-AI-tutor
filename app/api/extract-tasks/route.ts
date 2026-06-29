@@ -3,15 +3,12 @@ import {
   extractHomeworkFromPhotos,
   extractHomeworkFromText,
 } from "@/lib/gemini";
+import { missingGeminiExtractResponse } from "@/lib/userErrors";
 
 export async function POST(request: NextRequest) {
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) {
-    return NextResponse.json({
-      tasks: [],
-      confidence: "low",
-      error: "missing_api_key",
-    });
+    return missingGeminiExtractResponse();
   }
 
   const contentType = request.headers.get("content-type") ?? "";

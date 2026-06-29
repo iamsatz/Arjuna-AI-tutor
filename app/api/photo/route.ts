@@ -1,13 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { extractHomeworkFromPhoto } from "@/lib/gemini";
+import { missingGeminiExtractResponse } from "@/lib/userErrors";
 
 export async function POST(request: NextRequest) {
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) {
-    return NextResponse.json(
-      { error: "missing_api_key", message: "Add GEMINI_API_KEY to .env.local" },
-      { status: 503 },
-    );
+    return missingGeminiExtractResponse();
   }
 
   const form = await request.formData();
@@ -29,6 +27,11 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(result);
   } catch (error) {
     const message = error instanceof Error ? error.message : "Photo read failed";
-    return NextResponse.json({ error: "photo_failed", message }, { status: 502 });
+    return NextResponse.json({
+      tasks: [],
+      confidence: "low",
+      reason: "extract_failed",
+      error: message,
+    });
   }
 }

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { extractConceptNotesFromImages } from "@/lib/gemini";
+import { missingGeminiResponse } from "@/lib/userErrors";
 import { getExamById, updateExam } from "@/lib/examStore";
 
 const SOFT_PAGE_CAP = 30;
@@ -7,10 +8,7 @@ const SOFT_PAGE_CAP = 30;
 export async function POST(request: NextRequest) {
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) {
-    return NextResponse.json(
-      { error: "missing_api_key", message: "Add GEMINI_API_KEY to .env.local" },
-      { status: 503 },
-    );
+    return missingGeminiResponse();
   }
 
   const form = await request.formData();
