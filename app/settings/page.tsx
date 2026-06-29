@@ -132,12 +132,26 @@ export default function SettingsPage() {
   }
 
   return (
-    <main className="mx-auto min-h-dvh max-w-md bg-arjuna-bg px-6 py-10">
-      <Link href="/" className="text-sm text-arjuna-primaryDark underline">
-        ← Homework
+    <main className="mx-auto min-h-dvh max-w-md bg-arjuna-bg px-5 py-8">
+      <Link
+        href="/"
+        className="inline-flex items-center gap-1 rounded-full bg-white px-3 py-1.5 text-sm font-semibold text-arjuna-primaryDark shadow-sm"
+      >
+        ← Back
       </Link>
-      <h1 className="mt-4 text-2xl font-semibold text-arjuna-text">Settings</h1>
-      <p className="mt-1 text-sm text-arjuna-muted">Parent area</p>
+      <h1 className="mt-4 font-display text-2xl font-bold text-arjuna-text">
+        Settings
+      </h1>
+      <p className="mt-1 text-sm text-arjuna-muted">
+        For parents — language, TV, syllabus, and PIN
+      </p>
+
+      <Link
+        href="/download"
+        className="mt-4 block rounded-2xl border-2 border-sky-200 bg-sky-50 p-4 text-center text-sm font-semibold text-sky-900 underline"
+      >
+        Install Arjuna app (Add to Home Screen or APK)
+      </Link>
 
       <section className="mt-6 space-y-4 rounded-2xl bg-white/95 p-5 shadow-sm">
         <label className="block">
@@ -216,10 +230,14 @@ export default function SettingsPage() {
         </section>
       )}
 
-      <section className="mt-6 space-y-4 rounded-2xl bg-white/95 p-5 shadow-sm">
-        <h2 className="text-lg font-semibold text-arjuna-text">School &amp; curriculum</h2>
+      <section className="mt-6 space-y-4 rounded-3xl border-2 border-purple-200 bg-purple-50/50 p-5 shadow-chunky">
+        <h2 className="font-display text-lg font-bold text-arjuna-text">
+          Your child&apos;s syllabus
+        </h2>
         <p className="text-sm text-arjuna-muted">
-          Upload the term plan once. All kids at the same school + grade share this memory.
+          Upload the school term plan once (PDF or photos). Arjuna reads it and
+          teaches the way your school teaches — you never pick a &quot;teaching
+          style&quot; manually.
         </p>
 
         {profile && (
@@ -252,9 +270,11 @@ export default function SettingsPage() {
           type="button"
           disabled={curriculumBusy || !schoolName.trim() || !profile?.grade}
           onClick={() => fileRef.current?.click()}
-          className="w-full rounded-xl bg-arjuna-primary py-3 font-semibold text-white disabled:opacity-50"
+          className="w-full rounded-2xl bg-arjuna-primary py-3.5 font-display font-bold text-white shadow-chunky disabled:opacity-50"
         >
-          {curriculumBusy ? "Understanding plan…" : "Upload term plan (PDF or photos)"}
+          {curriculumBusy
+            ? "Reading your syllabus…"
+            : "Upload syllabus (PDF or photos)"}
         </button>
         <input
           ref={fileRef}
@@ -299,13 +319,6 @@ export default function SettingsPage() {
           </div>
         )}
       </section>
-
-      <Link
-        href="/roadmap"
-        className="mt-6 block text-center text-sm text-arjuna-muted underline"
-      >
-        See roadmap & backlog (after MVP)
-      </Link>
     </main>
   );
 }

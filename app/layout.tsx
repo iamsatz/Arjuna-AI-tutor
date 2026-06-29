@@ -1,9 +1,22 @@
 import type { Metadata, Viewport } from "next";
+import { Fredoka, Inter } from "next/font/google";
 import "./globals.css";
 
+const fredoka = Fredoka({
+  subsets: ["latin"],
+  variable: "--font-fredoka",
+  display: "swap",
+});
+
+const inter = Inter({
+  subsets: ["latin"],
+  variable: "--font-inter",
+  display: "swap",
+});
+
 export const metadata: Metadata = {
-  title: "Arjuna",
-  description: "Voice-first homework tutor for kids",
+  title: "Arjuna — Homework Tutor",
+  description: "Playful AI homework tutor for kids. Photo, speak, or type homework.",
   manifest: "/manifest.json",
   appleWebApp: {
     capable: true,
@@ -26,8 +39,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
-      <body>{children}</body>
+    <html lang="en" className={`${fredoka.variable} ${inter.variable}`}>
+      <body className="font-sans antialiased">{children}</body>
     </html>
   );
 }

@@ -1,4 +1,4 @@
-import type { AvatarState } from "@/hooks/useArjunaSession";
+import type { AvatarState } from "@/lib/avatar";
 import type { ChatMessage, HomeworkTask } from "@/lib/types";
 import type { DeviceMode, LanguageMode } from "@/lib/settings";
 

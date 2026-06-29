@@ -7,7 +7,16 @@ import {
   type CurriculumBoard,
   type MediumOfInstruction,
 } from "@/lib/childProfile";
-import { MEDIUM_OPTIONS } from "@/lib/profileOptions";
+import {
+  BOARD_OPTIONS,
+  GRADE_OPTIONS,
+  MEDIUM_OPTIONS,
+  type GradeOption,
+} from "@/lib/profileOptions";
+import { ArjunaAvatar } from "@/components/ArjunaAvatar";
+import { Button } from "@/components/ui/Button";
+import { Card } from "@/components/ui/Card";
+import { StepDots } from "@/components/ui/StepDots";
 
 type JoinFormProps = {
   code: string;
@@ -15,8 +24,9 @@ type JoinFormProps = {
 
 export function JoinForm({ code }: JoinFormProps) {
   const router = useRouter();
+  const [step, setStep] = useState(1);
   const [childName, setChildName] = useState("");
-  const [grade, setGrade] = useState("");
+  const [grade, setGrade] = useState<GradeOption | "">("");
   const [board, setBoard] = useState<CurriculumBoard | "">("");
   const [medium, setMedium] = useState<MediumOfInstruction>("english_medium");
   const [loading, setLoading] = useState(true);
@@ -55,7 +65,7 @@ export function JoinForm({ code }: JoinFormProps) {
             board: data.invite.board,
             medium: "english_medium",
           });
-          router.replace("/");
+          router.replace("/?welcome=1");
           return;
         }
       } catch {
@@ -68,15 +78,14 @@ export function JoinForm({ code }: JoinFormProps) {
     void loadInvite();
   }, [code, router]);
 
-  async function handleSubmit(event: FormEvent) {
-    event.preventDefault();
+  async function finishSetup() {
     setSubmitting(true);
     setError(null);
 
     const profileInput = {
       inviteCode: code,
       childName: childName.trim(),
-      grade: grade.trim() || undefined,
+      grade: grade || undefined,
       board: board || undefined,
       medium,
     };
@@ -98,11 +107,11 @@ export function JoinForm({ code }: JoinFormProps) {
       }
 
       addProfile(profileInput);
-      router.replace("/");
+      router.replace("/?welcome=1");
     } catch {
       if (inviteValid) {
         addProfile(profileInput);
-        router.replace("/");
+        router.replace("/?welcome=1");
         return;
       }
       setError("Could not save profile. Try again.");
@@ -111,117 +120,166 @@ export function JoinForm({ code }: JoinFormProps) {
     }
   }
 
+  function handleNext(event: FormEvent) {
+    event.preventDefault();
+    setError(null);
+    if (step === 1) {
+      if (!childName.trim()) {
+        setError("What's your child's name?");
+        return;
+      }
+      setStep(2);
+      return;
+    }
+    void finishSetup();
+  }
+
   if (loading) {
     return (
-      <div className="rounded-2xl bg-white/95 p-6 text-sm text-arjuna-muted shadow-sm">
-        Loading invite...
-      </div>
+      <Card>
+        <p className="text-center text-sm text-arjuna-muted">Loading…</p>
+      </Card>
     );
   }
 
-  if (error && !childName) {
+  if (error && !childName && !inviteValid) {
     return (
-      <div className="rounded-2xl bg-white/95 p-6 shadow-sm">
+      <Card>
         <p className="text-sm text-red-700">{error}</p>
-      </div>
+      </Card>
     );
   }
 
   return (
-    <div className="rounded-2xl bg-white/95 p-6 shadow-sm">
-      <p className="text-sm font-medium uppercase tracking-widest text-arjuna-muted">
-        Arjuna · Welcome
-      </p>
-      <h1 className="mt-2 text-2xl font-semibold text-arjuna-text">
-        Set up your child
-      </h1>
-      {label && (
-        <p className="mt-2 text-sm text-arjuna-muted">Invite: {label}</p>
-      )}
-      <p className="mt-2 text-sm text-arjuna-muted">
-        Enter your child&apos;s name to start homework tutoring.
-      </p>
+    <Card>
+      <div className="flex flex-col items-center text-center">
+        <ArjunaAvatar state="idle" size="sm" />
+        <h1 className="mt-3 font-display text-2xl font-bold text-arjuna-text">
+          {step === 1 ? "Who are we helping?" : "Almost done!"}
+        </h1>
+        {label && (
+          <p className="mt-1 text-sm text-arjuna-muted">Family: {label}</p>
+        )}
+        <p className="mt-2 text-sm text-arjuna-muted">
+          {step === 1
+            ? "Tell us your child's name to get started."
+            : "Pick grade and school details — we'll use your syllabus later."}
+        </p>
+      </div>
 
-      <form onSubmit={handleSubmit} className="mt-6 space-y-4">
-        <label className="block">
-          <span className="text-sm font-medium text-arjuna-text">
-            Child&apos;s name
-          </span>
-          <input
-            type="text"
-            value={childName}
-            onChange={(event) => setChildName(event.target.value)}
-            required
-            autoComplete="given-name"
-            className="mt-2 w-full rounded-xl border border-arjuna-primary/20 bg-white px-4 py-3 text-arjuna-text outline-none focus:border-arjuna-primary"
-          />
-        </label>
+      <StepDots current={step} total={2} />
 
-        <label className="block">
-          <span className="text-sm font-medium text-arjuna-text">
-            Grade (optional)
-          </span>
-          <input
-            type="text"
-            value={grade}
-            onChange={(event) => setGrade(event.target.value)}
-            placeholder="Class 2, Grade 3, etc."
-            className="mt-2 w-full rounded-xl border border-arjuna-primary/20 bg-white px-4 py-3 text-arjuna-text outline-none focus:border-arjuna-primary"
-          />
-        </label>
+      <form onSubmit={handleNext} className="space-y-4">
+        {step === 1 && (
+          <label className="block">
+            <span className="text-sm font-semibold text-arjuna-text">
+              Child&apos;s name
+            </span>
+            <input
+              type="text"
+              value={childName}
+              onChange={(e) => setChildName(e.target.value)}
+              required
+              autoComplete="given-name"
+              placeholder="e.g. Aadya"
+              className="mt-2 w-full rounded-2xl border-2 border-orange-100 px-4 py-3.5 text-lg font-semibold outline-none focus:border-arjuna-primary"
+            />
+          </label>
+        )}
 
-        <label className="block">
-          <span className="text-sm font-medium text-arjuna-text">
-            Board (optional)
-          </span>
-          <select
-            value={board}
-            onChange={(event) =>
-              setBoard(event.target.value as CurriculumBoard | "")
-            }
-            className="mt-2 w-full rounded-xl border border-arjuna-primary/20 bg-white px-4 py-3 text-arjuna-text outline-none focus:border-arjuna-primary"
-          >
-            <option value="">Select board</option>
-            <option value="CBSE">CBSE</option>
-            <option value="ICSE">ICSE</option>
-            <option value="IB">IB</option>
-            <option value="State">State</option>
-          </select>
-        </label>
+        {step === 2 && (
+          <>
+            <label className="block">
+              <span className="text-sm font-semibold text-arjuna-text">
+                Grade
+              </span>
+              <select
+                value={grade}
+                onChange={(e) => setGrade(e.target.value as GradeOption | "")}
+                required
+                className="mt-2 w-full rounded-2xl border-2 border-orange-100 px-4 py-3.5 text-base outline-none focus:border-arjuna-primary"
+              >
+                <option value="">Pick a grade</option>
+                {GRADE_OPTIONS.map((g) => (
+                  <option key={g} value={g}>
+                    {g}
+                  </option>
+                ))}
+              </select>
+            </label>
 
-        <label className="block">
-          <span className="text-sm font-medium text-arjuna-text">
-            Medium of instruction
-          </span>
-          <select
-            value={medium}
-            onChange={(e) =>
-              setMedium(e.target.value as MediumOfInstruction)
-            }
-            className="mt-2 w-full rounded-xl border border-arjuna-primary/20 bg-white px-4 py-3 text-arjuna-text outline-none focus:border-arjuna-primary"
-          >
-            {MEDIUM_OPTIONS.map((opt) => (
-              <option key={opt.value} value={opt.value}>
-                {opt.label}
-              </option>
-            ))}
-          </select>
-        </label>
+            <label className="block">
+              <span className="text-sm font-semibold text-arjuna-text">
+                Board
+              </span>
+              <select
+                value={board}
+                onChange={(e) =>
+                  setBoard(e.target.value as CurriculumBoard | "")
+                }
+                className="mt-2 w-full rounded-2xl border-2 border-orange-100 px-4 py-3.5 outline-none focus:border-arjuna-primary"
+              >
+                <option value="">Pick board (optional)</option>
+                {BOARD_OPTIONS.map((opt) => (
+                  <option key={opt.value} value={opt.value}>
+                    {opt.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            <label className="block">
+              <span className="text-sm font-semibold text-arjuna-text">
+                Language at school
+              </span>
+              <select
+                value={medium}
+                onChange={(e) =>
+                  setMedium(e.target.value as MediumOfInstruction)
+                }
+                className="mt-2 w-full rounded-2xl border-2 border-orange-100 px-4 py-3.5 outline-none focus:border-arjuna-primary"
+              >
+                {MEDIUM_OPTIONS.map((opt) => (
+                  <option key={opt.value} value={opt.value}>
+                    {opt.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+          </>
+        )}
 
         {error && (
-          <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">
+          <p className="rounded-xl bg-red-50 px-3 py-2 text-sm text-red-700">
             {error}
           </p>
         )}
 
-        <button
-          type="submit"
-          disabled={submitting}
-          className="w-full rounded-xl bg-arjuna-primary px-4 py-3 font-semibold text-white transition hover:bg-arjuna-primaryDark disabled:opacity-60"
-        >
-          {submitting ? "Starting..." : "Start Arjuna"}
-        </button>
+        <div className="flex gap-2">
+          {step === 2 && (
+            <Button
+              type="button"
+              variant="secondary"
+              className="flex-1"
+              onClick={() => setStep(1)}
+            >
+              Back
+            </Button>
+          )}
+          <Button
+            type="submit"
+            size="lg"
+            disabled={submitting}
+            className="flex-1"
+          >
+            {submitting
+              ? "Starting…"
+              : step === 1
+                ? "Next"
+                : "Start Arjuna"}
+          </Button>
+        </div>
       </form>
-    </div>
+    </Card>
   );
 }

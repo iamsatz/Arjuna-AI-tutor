@@ -12,8 +12,15 @@ import {
   type CurriculumBoard,
   type MediumOfInstruction,
 } from "@/lib/childProfile";
-import { MEDIUM_OPTIONS } from "@/lib/profileOptions";
+import {
+  GRADE_OPTIONS,
+  MEDIUM_OPTIONS,
+  kidColor,
+  kidInitial,
+  type GradeOption,
+} from "@/lib/profileOptions";
 import { verifyParentPin } from "@/lib/settings";
+import { Button } from "@/components/ui/Button";
 
 type KidSwitcherProps = {
   onActiveChange?: (id: string) => void;
@@ -30,7 +37,7 @@ export function KidSwitcher({ onActiveChange }: KidSwitcherProps) {
   const [error, setError] = useState<string | null>(null);
 
   const [name, setName] = useState("");
-  const [grade, setGrade] = useState("");
+  const [grade, setGrade] = useState<GradeOption | "">("");
   const [board, setBoard] = useState<CurriculumBoard | "">("");
   const [medium, setMedium] = useState<MediumOfInstruction>("english_medium");
 
@@ -61,7 +68,7 @@ export function KidSwitcher({ onActiveChange }: KidSwitcherProps) {
     const created = addProfile({
       inviteCode: active.inviteCode,
       childName: name.trim(),
-      grade: grade.trim() || undefined,
+      grade: grade || undefined,
       board: board || undefined,
       schoolName: active.schoolName,
       medium,
@@ -93,32 +100,39 @@ export function KidSwitcher({ onActiveChange }: KidSwitcherProps) {
 
   return (
     <div className="mb-4">
-      <div className="flex flex-wrap items-center gap-2">
-        {profiles.map((p) => {
+      <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-arjuna-muted">
+        Who&apos;s learning?
+      </p>
+      <div className="flex flex-wrap items-end gap-3">
+        {profiles.map((p, index) => {
           const isActive = p.id === activeId;
           return (
-            <div key={p.id} className="flex items-center">
+            <div key={p.id} className="flex flex-col items-center">
               <button
                 type="button"
                 onClick={() => p.id && handleSwitch(p.id)}
-                className={`rounded-full px-3 py-1.5 text-sm font-semibold ${
-                  isActive
-                    ? "bg-arjuna-primary text-white"
-                    : "border border-arjuna-primary/30 bg-white text-arjuna-text"
+                className={`flex h-14 w-14 items-center justify-center rounded-full font-display text-xl font-bold text-white shadow-chunky transition ${
+                  kidColor(index)
+                } ${isActive ? "ring-4 ring-arjuna-primary ring-offset-2" : "opacity-80"}`}
+              >
+                {kidInitial(p.childName)}
+              </button>
+              <span
+                className={`mt-1 max-w-[4rem] truncate text-xs font-semibold ${
+                  isActive ? "text-arjuna-text" : "text-arjuna-muted"
                 }`}
               >
                 {p.childName}
-              </button>
+              </span>
               {isActive && profiles.length > 1 && (
                 <button
                   type="button"
                   onClick={() =>
                     setRemovingId((cur) => (cur === p.id ? null : p.id ?? null))
                   }
-                  aria-label={`Remove ${p.childName}`}
-                  className="ml-1 text-xs text-arjuna-muted"
+                  className="mt-0.5 text-[10px] text-arjuna-muted underline"
                 >
-                  ✕
+                  remove
                 </button>
               )}
             </div>
@@ -133,9 +147,9 @@ export function KidSwitcher({ onActiveChange }: KidSwitcherProps) {
               setRemovingId(null);
               setError(null);
             }}
-            className="rounded-full border border-dashed border-arjuna-primary/40 px-3 py-1.5 text-sm font-semibold text-arjuna-primaryDark"
+            className="flex h-14 w-14 items-center justify-center rounded-full border-2 border-dashed border-arjuna-primary/40 font-display text-2xl text-arjuna-primaryDark"
           >
-            + Add kid
+            +
           </button>
         )}
       </div>
@@ -143,25 +157,23 @@ export function KidSwitcher({ onActiveChange }: KidSwitcherProps) {
       {error && <p className="mt-2 text-xs text-red-600">{error}</p>}
 
       {removingId && (
-        <div className="mt-3 rounded-xl border border-amber-200 bg-amber-50 p-3">
-          <p className="text-xs text-amber-900">
-            Parent PIN to remove this kid (deletes their data on this device).
-          </p>
+        <div className="mt-3 rounded-2xl border-2 border-amber-200 bg-amber-50 p-3">
+          <p className="text-xs text-amber-900">Parent PIN to remove this kid</p>
           <div className="mt-2 flex gap-2">
             <input
               type="password"
               value={pin}
               onChange={(e) => setPin(e.target.value)}
               placeholder="PIN"
-              className="flex-1 rounded-lg border p-2 text-sm"
+              className="flex-1 rounded-xl border-2 border-orange-100 p-2 text-sm"
             />
-            <button
-              type="button"
+            <Button
+              variant="secondary"
+              className="!bg-red-600 !text-white"
               onClick={() => handleRemove(removingId)}
-              className="rounded-lg bg-red-600 px-3 py-2 text-sm font-semibold text-white"
             >
               Remove
-            </button>
+            </Button>
           </div>
         </div>
       )}
@@ -169,39 +181,31 @@ export function KidSwitcher({ onActiveChange }: KidSwitcherProps) {
       {adding && (
         <form
           onSubmit={handleAdd}
-          className="mt-3 space-y-2 rounded-xl border border-arjuna-primary/20 bg-white p-3"
+          className="mt-3 space-y-2 rounded-2xl border-2 border-orange-100 bg-white p-4"
         >
           <input
             type="text"
             value={name}
             onChange={(e) => setName(e.target.value)}
             placeholder="Kid's name"
-            className="w-full rounded-lg border p-2 text-sm"
+            className="w-full rounded-xl border-2 border-orange-100 p-3 text-sm"
           />
-          <div className="flex gap-2">
-            <input
-              type="text"
-              value={grade}
-              onChange={(e) => setGrade(e.target.value)}
-              placeholder="Grade (optional)"
-              className="flex-1 rounded-lg border p-2 text-sm"
-            />
-            <select
-              value={board}
-              onChange={(e) => setBoard(e.target.value as CurriculumBoard | "")}
-              className="rounded-lg border p-2 text-sm"
-            >
-              <option value="">Board</option>
-              <option value="CBSE">CBSE</option>
-              <option value="ICSE">ICSE</option>
-              <option value="IB">IB</option>
-              <option value="State">State</option>
-            </select>
-          </div>
+          <select
+            value={grade}
+            onChange={(e) => setGrade(e.target.value as GradeOption | "")}
+            className="w-full rounded-xl border-2 border-orange-100 p-3 text-sm"
+          >
+            <option value="">Pick grade</option>
+            {GRADE_OPTIONS.map((g) => (
+              <option key={g} value={g}>
+                {g}
+              </option>
+            ))}
+          </select>
           <select
             value={medium}
             onChange={(e) => setMedium(e.target.value as MediumOfInstruction)}
-            className="w-full rounded-lg border p-2 text-sm"
+            className="w-full rounded-xl border-2 border-orange-100 p-3 text-sm"
           >
             {MEDIUM_OPTIONS.map((opt) => (
               <option key={opt.value} value={opt.value}>
@@ -209,12 +213,9 @@ export function KidSwitcher({ onActiveChange }: KidSwitcherProps) {
               </option>
             ))}
           </select>
-          <button
-            type="submit"
-            className="w-full rounded-lg bg-arjuna-primary py-2 text-sm font-semibold text-white"
-          >
+          <Button type="submit" className="w-full">
             Add &amp; switch
-          </button>
+          </Button>
         </form>
       )}
     </div>

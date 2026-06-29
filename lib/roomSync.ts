@@ -1,4 +1,4 @@
-import type { AvatarState } from "@/hooks/useArjunaSession";
+import type { AvatarState } from "@/lib/avatar";
 
 export type RoomSyncState = {
   avatarState: AvatarState;

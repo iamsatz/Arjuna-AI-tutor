@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { ArjunaScreen } from "./ArjunaScreen";
 import { InviteRequired } from "./InviteRequired";
 import { LessonScreen } from "./LessonScreen";
 import { TvLessonScreen } from "./TvLessonScreen";
@@ -17,11 +16,9 @@ export function DeviceRouter() {
   const router = useRouter();
   const [profile, setProfile] = useState<ChildProfile | null>(null);
   const [ready, setReady] = useState(false);
-  const [alpha, setAlpha] = useState(false);
 
   useEffect(() => {
     setProfile(loadChildProfile());
-    setAlpha(process.env.NEXT_PUBLIC_ARJUNA_PHASE === "alpha");
     setReady(true);
   }, []);
 
@@ -38,7 +35,7 @@ export function DeviceRouter() {
   if (!ready) {
     return (
       <main className="mx-auto flex min-h-dvh max-w-md items-center justify-center bg-arjuna-bg px-6">
-        <p className="text-sm text-arjuna-muted">Loading…</p>
+        <p className="font-display text-sm text-arjuna-muted">Loading…</p>
       </main>
     );
   }
@@ -49,10 +46,6 @@ export function DeviceRouter() {
 
   if (!profile) {
     return <InviteRequired />;
-  }
-
-  if (!alpha) {
-    return <ArjunaScreen profile={profile} />;
   }
 
   return (

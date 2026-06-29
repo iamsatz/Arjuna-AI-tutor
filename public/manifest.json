@@ -1,7 +1,7 @@
 {
-  "name": "Arjuna",
+  "name": "Arjuna — Homework Tutor",
   "short_name": "Arjuna",
-  "description": "Voice-first homework tutor for kids",
+  "description": "Playful AI homework tutor for kids. Photo, speak, or type homework.",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#FFF8F0",

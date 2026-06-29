@@ -12,8 +12,16 @@ body {
 body {
   color: #2d2419;
   background: #fff8f0;
+  font-family: var(--font-inter), system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+h1,
+h2,
+h3,
+.font-display {
+  font-family: var(--font-fredoka), system-ui, sans-serif;
 }
 
 * {
@@ -25,4 +33,10 @@ body {
 .tv-focus:focus-visible {
   outline: 4px solid #e8872a;
   outline-offset: 4px;
+}
+
+@layer components {
+  .btn-chunky {
+    @apply rounded-2xl font-display font-semibold shadow-chunky transition active:translate-y-0.5 active:shadow-chunky-press;
+  }
 }

@@ -2,6 +2,9 @@
 
 import { FormEvent, useState } from "react";
 import { useRouter } from "next/navigation";
+import { ArjunaAvatar } from "@/components/ArjunaAvatar";
+import { Button } from "@/components/ui/Button";
+import { Card } from "@/components/ui/Card";
 
 export function InviteRequired() {
   const router = useRouter();
@@ -16,41 +19,47 @@ export function InviteRequired() {
 
   return (
     <main className="mx-auto flex min-h-dvh max-w-md flex-col justify-center bg-arjuna-bg px-6 py-10">
-      <div className="rounded-2xl bg-white/95 p-6 shadow-sm">
-        <p className="text-sm font-medium uppercase tracking-widest text-arjuna-muted">
-          Arjuna
-        </p>
-        <h1 className="mt-2 text-2xl font-semibold text-arjuna-text">
-          Enter your family code
-        </h1>
-        <p className="mt-3 text-sm text-arjuna-muted">
-          Type the family code you received to set up your child&apos;s profile
-          and start homework tutoring.
-        </p>
+      <Card>
+        <div className="flex flex-col items-center text-center">
+          <ArjunaAvatar state="idle" size="sm" />
+          <h1 className="mt-4 font-display text-2xl font-bold text-arjuna-text">
+            Welcome to Arjuna
+          </h1>
+          <p className="mt-2 text-sm text-arjuna-muted">
+            Your family gave you a code. Enter it to set up homework help for
+            your child.
+          </p>
+        </div>
 
         <form onSubmit={handleSubmit} className="mt-6 space-y-4">
-          <input
-            type="text"
-            value={code}
-            onChange={(e) => setCode(e.target.value)}
-            placeholder="Family code"
-            autoComplete="off"
-            autoCapitalize="none"
-            className="w-full rounded-xl border border-arjuna-primary/20 bg-white px-4 py-3 text-arjuna-text outline-none focus:border-arjuna-primary"
-          />
-          <button
+          <label className="block">
+            <span className="text-sm font-semibold text-arjuna-text">
+              Family code
+            </span>
+            <input
+              type="text"
+              value={code}
+              onChange={(e) => setCode(e.target.value)}
+              placeholder="e.g. family01"
+              autoComplete="off"
+              autoCapitalize="none"
+              className="mt-2 w-full rounded-2xl border-2 border-orange-100 bg-white px-4 py-3.5 font-semibold text-arjuna-text outline-none focus:border-arjuna-primary"
+            />
+          </label>
+          <Button
             type="submit"
+            size="lg"
             disabled={!code.trim()}
-            className="w-full rounded-xl bg-arjuna-primary px-4 py-3 font-semibold text-white transition hover:bg-arjuna-primaryDark disabled:opacity-60"
+            className="w-full"
           >
             Continue
-          </button>
+          </Button>
         </form>
 
-        <p className="mt-4 text-xs text-arjuna-muted">
-          No code? Open the invite link you received instead.
+        <p className="mt-4 text-center text-xs text-arjuna-muted">
+          Have an invite link? Open it directly — no code needed.
         </p>
-      </div>
+      </Card>
     </main>
   );
 }
