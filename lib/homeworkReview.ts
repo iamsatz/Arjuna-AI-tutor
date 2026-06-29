@@ -44,3 +44,33 @@ export function emptyManualTask(): ReviewableTask {
     selected: true,
   };
 }
+
+function taskKey(subject: string, task: string): string {
+  return `${subject.trim().toLowerCase()}|${task.trim().toLowerCase()}`;
+}
+
+/** Append incoming tasks, skipping duplicates by subject + task text. */
+export function mergeReviewTasks(
+  existing: ReviewableTask[],
+  incoming: ReviewableTask[],
+): ReviewableTask[] {
+  const seen = new Set(existing.map((t) => taskKey(t.subject, t.task)));
+  const merged = [...existing];
+  for (const row of incoming) {
+    const key = taskKey(row.subject, row.task);
+    if (!row.task.trim() || seen.has(key)) continue;
+    seen.add(key);
+    merged.push(row);
+  }
+  return merged;
+}
+
+export function tasksToReviewable(tasks: HomeworkTask[]): ReviewableTask[] {
+  return tasks.map((t) => ({
+    id: newReviewTaskId(),
+    subject: t.subject?.trim() || "Other",
+    task: t.task?.trim() || "",
+    notes: t.notes?.trim() || undefined,
+    selected: true,
+  }));
+}

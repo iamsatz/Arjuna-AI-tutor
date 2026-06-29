@@ -8,20 +8,26 @@ import { SUBJECT_OPTIONS } from "@/lib/profileOptions";
 type HomeworkTaskReviewProps = {
   tasks: ReviewableTask[];
   extractHint?: string;
+  editMode?: boolean;
   onChange: (tasks: ReviewableTask[]) => void;
   onAddManual: () => void;
+  onAddPage: () => void;
   onBack: () => void;
   onStart: () => void;
+  onDone?: () => void;
   starting?: boolean;
 };
 
 export function HomeworkTaskReview({
   tasks,
   extractHint,
+  editMode,
   onChange,
   onAddManual,
+  onAddPage,
   onBack,
   onStart,
+  onDone,
   starting,
 }: HomeworkTaskReviewProps) {
   const selectedCount = tasks.filter((t) => t.selected && t.task.trim()).length;
@@ -34,11 +40,14 @@ export function HomeworkTaskReview({
     <Card className="space-y-4">
       <div>
         <p className="font-display text-lg font-bold text-arjuna-text">
-          Review homework tasks
+          {editMode
+            ? "Edit homework tasks"
+            : "Here's what I read — fix anything that's wrong"}
         </p>
         <p className="mt-1 text-xs text-arjuna-muted">
-          Check each subject and question. Uncheck any you don&apos;t want to do
-          now.
+          {editMode
+            ? "Change subjects, add pages, or fix anything Arjuna got wrong."
+            : "Check each subject and question. Uncheck any you don't want to do now."}
         </p>
         {extractHint && (
           <p className="mt-2 rounded-xl bg-amber-50 px-3 py-2 text-xs text-amber-900">
@@ -107,24 +116,40 @@ export function HomeworkTaskReview({
         </ul>
       )}
 
-      <Button variant="secondary" className="w-full" onClick={onAddManual}>
-        + Add task manually
-      </Button>
+      <div className="flex flex-wrap gap-2">
+        <Button variant="secondary" className="flex-1" onClick={onAddPage}>
+          📷 Add another page
+        </Button>
+        <Button variant="secondary" className="flex-1" onClick={onAddManual}>
+          + Add task manually
+        </Button>
+      </div>
 
       <div className="flex gap-2">
         <Button variant="secondary" className="flex-1" onClick={onBack}>
-          Back
+          {editMode ? "Cancel" : "Back"}
         </Button>
-        <Button
-          size="lg"
-          className="flex-1"
-          disabled={selectedCount === 0 || starting}
-          onClick={onStart}
-        >
-          {starting
-            ? "Starting…"
-            : `Start selected (${selectedCount})`}
-        </Button>
+        {editMode ? (
+          <Button
+            size="lg"
+            className="flex-1"
+            disabled={selectedCount === 0 || starting}
+            onClick={onDone}
+          >
+            {starting ? "Updating…" : "Done"}
+          </Button>
+        ) : (
+          <Button
+            size="lg"
+            className="flex-1"
+            disabled={selectedCount === 0 || starting}
+            onClick={onStart}
+          >
+            {starting
+              ? "Starting…"
+              : `Start teaching (${selectedCount})`}
+          </Button>
+        )}
       </div>
     </Card>
   );

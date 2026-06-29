@@ -24,7 +24,9 @@ import { LessonProgress } from "@/components/ui/LessonProgress";
 import {
   emptyManualTask,
   homeworkToReviewable,
+  mergeReviewTasks,
   reviewableToHomework,
+  tasksToReviewable,
   type ReviewableTask,
 } from "@/lib/homeworkReview";
 import type { AvatarState } from "@/lib/avatar";
@@ -52,12 +54,10 @@ export function LessonScreen({
   const [recording, setRecording] = useState(false);
   const recorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
+  const addPageRef = useRef<HTMLInputElement>(null);
   const [hwPhase, setHwPhase] = useState<HwPhase>("capture");
-  const [captureFiles, setCaptureFiles] = useState<File[]>([]);
-  const [previewUrls, setPreviewUrls] = useState<string[]>([]);
-  const [diaryNote, setDiaryNote] = useState("");
-  const [spokenNote, setSpokenNote] = useState("");
   const [reviewTasks, setReviewTasks] = useState<ReviewableTask[]>([]);
+  const [reviewEditMode, setReviewEditMode] = useState(false);
   const [extractHint, setExtractHint] = useState<string | null>(null);
   const [startingLesson, setStartingLesson] = useState(false);
   const [upcomingExams, setUpcomingExams] = useState<StoredExam[]>([]);
@@ -113,6 +113,76 @@ export function LessonScreen({
     setTimeout(() => setAvatarOverride(null), 1200);
   }, [lesson]);
 
+  const runRead = useCallback(
+    async (input: {
+      files?: File[];
+      text?: string;
+      merge?: boolean;
+    }) => {
+      setHwPhase("extracting");
+      setExtractHint(null);
+
+      const result = await lesson.extractHomeworkForReview({
+        files: input.files,
+        text: input.text,
+      });
+
+      const rows =
+        result.tasks.length > 0 ? homeworkToReviewable(result.tasks) : [];
+
+      if (input.merge) {
+        setReviewTasks((prev) => mergeReviewTasks(prev, rows));
+        if (result.error) setExtractHint(result.error);
+        else if (rows.length === 0) {
+          setExtractHint("No new tasks found on that page.");
+        }
+        setHwPhase("review");
+        return;
+      }
+
+      setReviewTasks(rows);
+
+      if (result.error) {
+        setExtractHint(result.error);
+        setReviewEditMode(false);
+        setHwPhase("review");
+        return;
+      }
+
+      if (rows.length === 0 || result.confidence === "low") {
+        setExtractHint(
+          "Couldn't read it clearly — add or edit below.",
+        );
+        setReviewEditMode(false);
+        setHwPhase("review");
+        return;
+      }
+
+      const allSelected = rows.map((r) => ({ ...r, selected: true }));
+      const tasks = reviewableToHomework(allSelected);
+      setStartingLesson(true);
+      await lesson.startSelectedTasks(tasks);
+      setStartingLesson(false);
+      setReviewEditMode(false);
+      setHwPhase("capture");
+    },
+    [lesson],
+  );
+
+  function handleCapture(files: File[]) {
+    void runRead({ files: files.slice(0, MAX_PHOTOS) });
+  }
+
+  function handleReadText(text: string) {
+    void runRead({ text });
+  }
+
+  function handleAddPageFiles(fileList: FileList | null) {
+    if (!fileList?.length) return;
+    const files = Array.from(fileList).slice(0, MAX_PHOTOS);
+    void runRead({ files, merge: true });
+  }
+
   async function toggleMic() {
     if (recording) {
       const recorder = recorderRef.current;
@@ -126,7 +196,7 @@ export function LessonScreen({
       chunksRef.current = [];
       const text = await lesson.transcribeToText(blob);
       if (text) {
-        setSpokenNote((prev) => (prev ? `${prev}\n${text}` : text));
+        void runRead({ text });
       }
       return;
     }
@@ -146,62 +216,21 @@ export function LessonScreen({
     }
   }
 
-  function handleAddFiles(fileList: FileList | null) {
-    if (!fileList?.length) return;
-    const incoming = Array.from(fileList);
-    const room = MAX_PHOTOS - captureFiles.length;
-    if (room <= 0) return;
-    const next = incoming.slice(0, room);
-    setCaptureFiles((prev) => [...prev, ...next]);
-    setPreviewUrls((prev) => [
-      ...prev,
-      ...next.map((f) => URL.createObjectURL(f)),
-    ]);
+  function openEditTasks() {
+    const fromTeaching =
+      state.tasks.length > 0
+        ? tasksToReviewable(state.tasks)
+        : reviewTasks;
+    setReviewTasks(fromTeaching);
+    setReviewEditMode(true);
+    setExtractHint(null);
+    setHwPhase("review");
   }
 
-  function handleRemoveFile(index: number) {
-    setCaptureFiles((prev) => prev.filter((_, i) => i !== index));
-    setPreviewUrls((prev) => {
-      const url = prev[index];
-      if (url) URL.revokeObjectURL(url);
-      return prev.filter((_, i) => i !== index);
-    });
-  }
-
-  function clearCapture() {
-    previewUrls.forEach((url) => URL.revokeObjectURL(url));
-    setCaptureFiles([]);
-    setPreviewUrls([]);
-    setDiaryNote("");
-    setSpokenNote("");
-    setReviewTasks([]);
+  function closeReview() {
+    setReviewEditMode(false);
     setExtractHint(null);
     setHwPhase("capture");
-  }
-
-  async function handleReadHomework() {
-    setHwPhase("extracting");
-    setExtractHint(null);
-    const result = await lesson.extractHomeworkForReview({
-      files: captureFiles.length ? captureFiles : undefined,
-      diaryNote: diaryNote.trim() || undefined,
-      text: spokenNote.trim() || undefined,
-    });
-    const rows =
-      result.tasks.length > 0
-        ? homeworkToReviewable(result.tasks)
-        : [];
-    setReviewTasks(rows);
-    if (result.error) {
-      setExtractHint(result.error);
-    } else if (rows.length === 0) {
-      setExtractHint(
-        "Couldn't read tasks — add them manually below.",
-      );
-    } else if (result.confidence !== "high") {
-      setExtractHint("Some items may need fixing — check subjects and text.");
-    }
-    setHwPhase("review");
   }
 
   async function handleStartSelected() {
@@ -210,14 +239,28 @@ export function LessonScreen({
     setStartingLesson(true);
     await lesson.startSelectedTasks(selected);
     setStartingLesson(false);
+    setReviewEditMode(false);
+    setHwPhase("capture");
+  }
+
+  async function handleReviewDone() {
+    const selected = reviewableToHomework(reviewTasks);
+    if (!selected.length) return;
+    setStartingLesson(true);
+    await lesson.startSelectedTasks(selected);
+    setStartingLesson(false);
+    setReviewEditMode(false);
     setHwPhase("capture");
   }
 
   const showInput = state.phase === "input" && !readOnly;
+  const showReview = hwPhase === "review" && !readOnly;
+  const showCaptureHome = showInput && hwPhase === "capture";
   const showTeaching =
-    state.phase === "teaching" ||
-    state.phase === "task_intro" ||
-    state.phase === "doubt";
+    !showReview &&
+    (state.phase === "teaching" ||
+      state.phase === "task_intro" ||
+      state.phase === "doubt");
   const showParent =
     state.phase === "parent_needed" || state.phase === "parent_solution";
   const showSessionDone = state.phase === "session_done" && !readOnly;
@@ -258,7 +301,7 @@ export function LessonScreen({
             You&apos;re all set, {profile.childName}!
           </p>
           <p className="mt-1 text-sm text-arjuna-muted">
-            Pick Homework below, or install the app for the best experience.
+            Tap Scan homework below to get started.
           </p>
           <button
             type="button"
@@ -270,10 +313,53 @@ export function LessonScreen({
         </Card>
       )}
 
-      {showInput && <InstallPrompt />}
-      {showInput && <CurriculumNudge profile={profile} />}
+      {hwPhase === "extracting" && !readOnly && (
+        <LessonProgress step="reading" />
+      )}
 
-      {showInput && (
+      {showCaptureHome && (
+        <div className="mb-4">
+          <HomeworkCaptureTray
+            disabled={loading || startingLesson}
+            recording={recording}
+            onCapture={handleCapture}
+            onReadText={handleReadText}
+            onToggleMic={() => void toggleMic()}
+          />
+        </div>
+      )}
+
+      {showReview && (
+        <>
+          <HomeworkTaskReview
+            tasks={reviewTasks}
+            extractHint={extractHint ?? undefined}
+            editMode={reviewEditMode}
+            onChange={setReviewTasks}
+            onAddManual={() =>
+              setReviewTasks((prev) => [...prev, emptyManualTask()])
+            }
+            onAddPage={() => addPageRef.current?.click()}
+            onBack={closeReview}
+            onStart={() => void handleStartSelected()}
+            onDone={() => void handleReviewDone()}
+            starting={startingLesson}
+          />
+          <input
+            ref={addPageRef}
+            type="file"
+            accept="image/*"
+            capture="environment"
+            className="hidden"
+            onChange={(e) => {
+              handleAddPageFiles(e.target.files);
+              e.target.value = "";
+            }}
+          />
+        </>
+      )}
+
+      {showCaptureHome && (
         <>
           <Card className="mb-4">
             <div className="flex items-start gap-4">
@@ -323,40 +409,12 @@ export function LessonScreen({
               <p className="mt-1 text-xs text-arjuna-muted">Learn &amp; revise</p>
             </Link>
           </div>
-        </>
-      )}
 
-      {state.code && (
-        <PairingBadge
-          code={state.code}
-          tvLinked={settings.deviceMode === "phone_tv"}
-        />
-      )}
+          <InstallPrompt />
+          <CurriculumNudge profile={profile} />
 
-      {!showInput && (
-        <div className="flex flex-col items-center gap-4 py-4">
-          <ArjunaAvatar state={avatarState} showTarget />
-          <p className="max-w-xs text-center text-base font-medium text-arjuna-text">
-            {state.statusMessage}
-          </p>
-          {state.lastReply && state.phase !== "input" && (
-            <Card className="w-full py-4">
-              <p className="text-sm leading-relaxed text-arjuna-text">
-                {state.lastReply}
-              </p>
-            </Card>
-          )}
-        </div>
-      )}
-
-      {showInput && hwPhase === "extracting" && (
-        <LessonProgress step="reading" />
-      )}
-
-      {showInput && hwPhase === "capture" && (
-        <div className="space-y-3">
           {upcomingExams.length > 0 && (
-            <Card className="border-green-200 bg-green-50">
+            <Card className="mt-4 border-green-200 bg-green-50">
               <p className="font-display font-bold text-arjuna-text">
                 Coming up
               </p>
@@ -377,36 +435,30 @@ export function LessonScreen({
               </Link>
             </Card>
           )}
-
-          <HomeworkCaptureTray
-            files={captureFiles}
-            previewUrls={previewUrls}
-            diaryNote={diaryNote}
-            spokenNote={spokenNote}
-            recording={recording}
-            disabled={loading}
-            onDiaryNoteChange={setDiaryNote}
-            onAddFiles={handleAddFiles}
-            onRemoveFile={handleRemoveFile}
-            onReadHomework={() => void handleReadHomework()}
-            onToggleMic={() => void toggleMic()}
-            onClear={clearCapture}
-          />
-        </div>
+        </>
       )}
 
-      {showInput && hwPhase === "review" && (
-        <HomeworkTaskReview
-          tasks={reviewTasks}
-          extractHint={extractHint ?? undefined}
-          onChange={setReviewTasks}
-          onAddManual={() =>
-            setReviewTasks((prev) => [...prev, emptyManualTask()])
-          }
-          onBack={() => setHwPhase("capture")}
-          onStart={() => void handleStartSelected()}
-          starting={startingLesson}
+      {state.code && (
+        <PairingBadge
+          code={state.code}
+          tvLinked={settings.deviceMode === "phone_tv"}
         />
+      )}
+
+      {!showInput && !showReview && hwPhase !== "extracting" && (
+        <div className="flex flex-col items-center gap-4 py-4">
+          <ArjunaAvatar state={avatarState} showTarget />
+          <p className="max-w-xs text-center text-base font-medium text-arjuna-text">
+            {state.statusMessage}
+          </p>
+          {state.lastReply && state.phase !== "input" && (
+            <Card className="w-full py-4">
+              <p className="text-sm leading-relaxed text-arjuna-text">
+                {state.lastReply}
+              </p>
+            </Card>
+          )}
+        </div>
       )}
 
       {showTeaching && !readOnly && (
@@ -440,6 +492,13 @@ export function LessonScreen({
               </p>
             </Card>
           )}
+          <button
+            type="button"
+            onClick={openEditTasks}
+            className="w-full text-center text-xs font-semibold text-arjuna-primaryDark underline"
+          >
+            Edit / add page
+          </button>
           <div className="flex gap-2">
             <Button
               variant="success"

@@ -1,138 +1,114 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useRef, useState } from "react";
 import { Button } from "@/components/ui/Button";
-import { Card } from "@/components/ui/Card";
 
 const MAX_PHOTOS = 5;
 
 type HomeworkCaptureTrayProps = {
-  files: File[];
-  previewUrls: string[];
-  diaryNote: string;
-  spokenNote: string;
-  recording: boolean;
   disabled?: boolean;
-  onDiaryNoteChange: (v: string) => void;
-  onAddFiles: (files: FileList | null) => void;
-  onRemoveFile: (index: number) => void;
-  onReadHomework: () => void;
+  recording?: boolean;
+  onCapture: (files: File[]) => void;
+  onReadText: (text: string) => void;
   onToggleMic: () => void;
-  onClear: () => void;
 };
 
 export function HomeworkCaptureTray({
-  files,
-  previewUrls,
-  diaryNote,
-  spokenNote,
-  recording,
   disabled,
-  onDiaryNoteChange,
-  onAddFiles,
-  onRemoveFile,
-  onReadHomework,
+  recording,
+  onCapture,
+  onReadText,
   onToggleMic,
-  onClear,
 }: HomeworkCaptureTrayProps) {
-  const fileRef = useRef<HTMLInputElement>(null);
+  const cameraRef = useRef<HTMLInputElement>(null);
   const galleryRef = useRef<HTMLInputElement>(null);
+  const [showTypeInput, setShowTypeInput] = useState(false);
+  const [typedNote, setTypedNote] = useState("");
 
-  useEffect(() => {
-    return () => {
-      previewUrls.forEach((url) => URL.revokeObjectURL(url));
-    };
-  }, [previewUrls]);
+  function handleFiles(fileList: FileList | null) {
+    if (!fileList?.length || disabled) return;
+    const files = Array.from(fileList).slice(0, MAX_PHOTOS);
+    onCapture(files);
+  }
 
-  const canRead =
-    files.length > 0 || diaryNote.trim().length > 0 || spokenNote.trim().length > 0;
+  function handleTypedSubmit() {
+    const text = typedNote.trim();
+    if (!text || disabled) return;
+    onReadText(text);
+    setTypedNote("");
+    setShowTypeInput(false);
+  }
 
   return (
-    <Card className="space-y-4">
-      <p className="font-display text-sm font-bold text-arjuna-text">
-        Add homework
-      </p>
-      <p className="text-xs text-arjuna-muted">
-        Type the teacher&apos;s diary note and/or add photos from the diary or
-        textbook (up to {MAX_PHOTOS} photos).
+    <div className="space-y-3">
+      <Button
+        size="lg"
+        className="w-full !py-5 text-lg"
+        disabled={disabled}
+        onClick={() => cameraRef.current?.click()}
+      >
+        📷 Scan homework
+      </Button>
+      <p className="text-center text-xs text-arjuna-muted">
+        Point your camera at the homework diary or book page. Arjuna will read
+        it.
       </p>
 
-      <label className="block">
-        <span className="text-xs font-semibold text-arjuna-text">
-          Teacher diary note
-        </span>
-        <textarea
-          value={diaryNote}
-          onChange={(e) => onDiaryNoteChange(e.target.value)}
-          placeholder="e.g. Maths page 12 Q1-5, English read paragraph…"
-          className="mt-1 w-full rounded-2xl border-2 border-orange-100 p-3 text-sm"
-          rows={3}
+      <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1 text-xs font-semibold">
+        <button
+          type="button"
           disabled={disabled}
-        />
-      </label>
-
-      {spokenNote && (
-        <div className="rounded-xl bg-sky-50 p-3 text-sm text-sky-900">
-          <p className="text-xs font-semibold">From your voice</p>
-          <p className="mt-1">{spokenNote}</p>
-        </div>
-      )}
-
-      {previewUrls.length > 0 && (
-        <div className="flex flex-wrap gap-2">
-          {previewUrls.map((url, i) => (
-            <div key={url} className="relative">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={url}
-                alt={`Homework page ${i + 1}`}
-                className="h-20 w-20 rounded-xl border-2 border-orange-100 object-cover"
-              />
-              <button
-                type="button"
-                onClick={() => onRemoveFile(i)}
-                className="absolute -right-1 -top-1 flex h-6 w-6 items-center justify-center rounded-full bg-red-500 text-xs text-white"
-                aria-label="Remove photo"
-              >
-                ×
-              </button>
-            </div>
-          ))}
-        </div>
-      )}
-
-      <div className="flex flex-wrap gap-2">
-        <Button
-          variant="secondary"
-          disabled={disabled || files.length >= MAX_PHOTOS}
-          onClick={() => fileRef.current?.click()}
-        >
-          📷 Camera
-        </Button>
-        <Button
-          variant="secondary"
-          disabled={disabled || files.length >= MAX_PHOTOS}
           onClick={() => galleryRef.current?.click()}
+          className="text-arjuna-primaryDark underline disabled:opacity-50"
         >
-          🖼 Add photos
-        </Button>
-        <Button
-          variant="secondary"
+          Choose photo
+        </button>
+        <button
+          type="button"
+          disabled={disabled}
+          onClick={() => setShowTypeInput((v) => !v)}
+          className="text-arjuna-primaryDark underline disabled:opacity-50"
+        >
+          Type instead
+        </button>
+        <button
+          type="button"
           disabled={disabled}
           onClick={onToggleMic}
+          className="text-arjuna-primaryDark underline disabled:opacity-50"
         >
-          {recording ? "⏹ Stop" : "🎤 Speak"}
-        </Button>
+          {recording ? "⏹ Stop speaking" : "Speak"}
+        </button>
       </div>
 
+      {showTypeInput && (
+        <div className="space-y-2 rounded-2xl border-2 border-orange-100 bg-white p-3">
+          <textarea
+            value={typedNote}
+            onChange={(e) => setTypedNote(e.target.value)}
+            placeholder="Type the teacher's diary note…"
+            className="w-full rounded-xl border-2 border-orange-100 p-3 text-sm"
+            rows={3}
+            disabled={disabled}
+          />
+          <Button
+            className="w-full"
+            disabled={disabled || !typedNote.trim()}
+            onClick={handleTypedSubmit}
+          >
+            Read this
+          </Button>
+        </div>
+      )}
+
       <input
-        ref={fileRef}
+        ref={cameraRef}
         type="file"
         accept="image/*"
         capture="environment"
         className="hidden"
         onChange={(e) => {
-          onAddFiles(e.target.files);
+          handleFiles(e.target.files);
           e.target.value = "";
         }}
       />
@@ -143,29 +119,11 @@ export function HomeworkCaptureTray({
         multiple
         className="hidden"
         onChange={(e) => {
-          onAddFiles(e.target.files);
+          handleFiles(e.target.files);
           e.target.value = "";
         }}
       />
-
-      <Button
-        size="lg"
-        className="w-full"
-        disabled={disabled || !canRead}
-        onClick={onReadHomework}
-      >
-        Read homework
-      </Button>
-      {(files.length > 0 || diaryNote || spokenNote) && (
-        <button
-          type="button"
-          onClick={onClear}
-          className="w-full text-center text-xs text-arjuna-muted underline"
-        >
-          Clear and start over
-        </button>
-      )}
-    </Card>
+    </div>
   );
 }
 

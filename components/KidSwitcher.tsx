@@ -130,6 +130,11 @@ export function KidSwitcher({ onActiveChange }: KidSwitcherProps) {
               >
                 {p.childName}
               </span>
+              {p.grade && (
+                <span className="max-w-[4rem] truncate text-[10px] text-arjuna-muted">
+                  {p.grade}
+                </span>
+              )}
               {isActive && profiles.length > 1 && (
                 <button
                   type="button"

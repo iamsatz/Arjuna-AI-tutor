@@ -275,11 +275,25 @@ export function useLessonSession({
             method: "POST",
             body: form,
           });
-          if (!res.ok) {
-            const err = (await res.json()) as { message?: string };
-            throw new Error(err.message ?? "extract failed");
+          const body = (await res.json()) as {
+            tasks?: HomeworkTask[];
+            confidence?: string;
+            reason?: string;
+            error?: string;
+            message?: string;
+          };
+          if (!res.ok && !body.tasks) {
+            return {
+              tasks: [],
+              confidence: "low",
+              error: body.message ?? body.error ?? "Could not read homework.",
+            };
           }
-          result = await res.json();
+          result = {
+            tasks: body.tasks ?? [],
+            confidence: body.confidence ?? "medium",
+            reason: body.reason,
+          };
         } else {
           const combined = [input.diaryNote, input.text]
             .filter(Boolean)
@@ -300,11 +314,25 @@ export function useLessonSession({
               diaryNote: input.diaryNote?.trim(),
             }),
           });
-          if (!res.ok) {
-            const err = (await res.json()) as { message?: string };
-            throw new Error(err.message ?? "extract failed");
+          const body = (await res.json()) as {
+            tasks?: HomeworkTask[];
+            confidence?: string;
+            reason?: string;
+            error?: string;
+            message?: string;
+          };
+          if (!res.ok && !body.tasks) {
+            return {
+              tasks: [],
+              confidence: "low",
+              error: body.message ?? body.error ?? "Could not read homework.",
+            };
           }
-          result = await res.json();
+          result = {
+            tasks: body.tasks ?? [],
+            confidence: body.confidence ?? "medium",
+            reason: body.reason,
+          };
         }
 
         void track("homework_input", {

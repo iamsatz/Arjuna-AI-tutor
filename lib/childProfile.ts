@@ -114,6 +114,18 @@ function writeStore(store: ProfileStore): void {
   localStorage.setItem(PROFILES_KEY, JSON.stringify(store));
 }
 
+function dedupeProfiles(profiles: ChildProfile[]): ChildProfile[] {
+  const seen = new Set<string>();
+  const out: ChildProfile[] = [];
+  for (const p of profiles) {
+    const key = `${p.inviteCode}|${p.childName.trim().toLowerCase()}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    out.push(p);
+  }
+  return out;
+}
+
 function readStore(): ProfileStore {
   const empty: ProfileStore = { profiles: [], activeId: "" };
   if (typeof window === "undefined") return empty;
@@ -122,12 +134,18 @@ function readStore(): ProfileStore {
     const raw = localStorage.getItem(PROFILES_KEY);
     if (raw) {
       const parsed = JSON.parse(raw) as ProfileStore;
-      const profiles = (parsed.profiles ?? []).filter(isValidProfile);
+      const profiles = dedupeProfiles(
+        (parsed.profiles ?? []).filter(isValidProfile),
+      );
       let activeId = parsed.activeId;
       if (!profiles.some((p) => p.id === activeId)) {
         activeId = profiles[0]?.id ?? "";
       }
-      return { profiles, activeId };
+      const store = { profiles, activeId };
+      if (profiles.length !== (parsed.profiles ?? []).filter(isValidProfile).length) {
+        writeStore(store);
+      }
+      return store;
     }
 
     // One-time migration from the old single-profile key.

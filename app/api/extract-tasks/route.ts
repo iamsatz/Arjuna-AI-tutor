@@ -71,6 +71,11 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(result);
   } catch (error) {
     const message = error instanceof Error ? error.message : "Extract failed";
-    return NextResponse.json({ error: "extract_failed", message }, { status: 502 });
+    return NextResponse.json({
+      tasks: [],
+      confidence: "low",
+      reason: "extract_failed",
+      error: message,
+    });
   }
 }
