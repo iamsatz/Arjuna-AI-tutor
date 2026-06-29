@@ -256,10 +256,10 @@ export default function OwnerDashboardPage() {
             Analytics
           </a>
           <a
-            href="/"
+            href="/roadmap"
             className="rounded-xl border border-arjuna-primary/20 px-4 py-2 text-sm font-medium text-arjuna-text"
           >
-            Open Arjuna app
+            Backlog (after MVP)
           </a>
         </div>
       </section>

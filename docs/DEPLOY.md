@@ -6,7 +6,7 @@ Open [Supabase SQL editor](https://supabase.com/dashboard/project/shikwtguxfhefz
 
 `supabase/migrations/001_arjuna_mvp.sql`
 
-Creates `arjuna_events`, `arjuna_rooms`, and `arjuna_exams` tables + Realtime.
+Creates `arjuna_events`, `arjuna_rooms`, `arjuna_exams`, `arjuna_invites`, `arjuna_curricula`, `arjuna_memory`, `arjuna_student_memory` tables + Realtime.
 
 ## 2. Environment variables
 

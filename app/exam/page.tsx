@@ -1,10 +1,9 @@
 "use client";
 
+import { Suspense, useEffect, useState } from "react";
 import { ExamHub } from "@/components/ExamHub";
 import { InviteRequired } from "@/components/InviteRequired";
-import { loadChildProfile } from "@/lib/childProfile";
-import { useEffect, useState } from "react";
-import type { ChildProfile } from "@/lib/childProfile";
+import { loadChildProfile, type ChildProfile } from "@/lib/childProfile";
 
 export default function ExamPage() {
   const [profile, setProfile] = useState<ChildProfile | null>(null);
@@ -27,5 +26,15 @@ export default function ExamPage() {
     return <InviteRequired />;
   }
 
-  return <ExamHub profile={profile} />;
+  return (
+    <Suspense
+      fallback={
+        <main className="flex min-h-dvh items-center justify-center bg-arjuna-bg">
+          <p className="text-sm text-arjuna-muted">Loading…</p>
+        </main>
+      }
+    >
+      <ExamHub profile={profile} />
+    </Suspense>
+  );
 }

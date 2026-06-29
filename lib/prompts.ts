@@ -1,5 +1,31 @@
 import type { LanguageMode } from "@/lib/settings";
-import type { CurriculumBoard } from "@/lib/childProfile";
+import type {
+  CurriculumBoard,
+  MediumOfInstruction,
+  TeachingMethod,
+} from "@/lib/childProfile";
+import { bridgeSubjectFor } from "@/lib/childProfile";
+import { bridgeSpeechLanguage } from "@/lib/bridgeSubject";
+
+const METHOD_GUIDANCE: Record<TeachingMethod, string> = {
+  nep_ncf:
+    "NEP 2020 / NCF competency-based: focus on understanding and real-life competencies, not rote.",
+  activity_based:
+    "Activity-Based Learning: teach through small hands-on activities the child can do.",
+  montessori:
+    "Montessori: self-paced, concrete materials first, let the child discover the rule.",
+  inquiry_ib:
+    "IB inquiry-based: start with a question, let the child explore and conclude.",
+  play_way: "Play-Way: teach through play, games and stories.",
+  experiential:
+    "Experiential / real-life: use everyday objects (fingers, peanuts, toys, home items).",
+  traditional:
+    "Traditional/textbook: clear step-by-step explanation in the school's standard way.",
+};
+
+export function methodGuidance(method?: TeachingMethod): string {
+  return METHOD_GUIDANCE[method ?? "experiential"];
+}
 
 export function buildGreeting(
   childName: string,
@@ -32,12 +58,36 @@ function languageRules(languageMode: LanguageMode): string {
   }
 }
 
+export function buildBridgeSubjectRules(
+  subject: string | undefined,
+  medium: MediumOfInstruction | undefined,
+): string {
+  if (!subject?.trim()) return "";
+  const bridge = bridgeSubjectFor(medium);
+  if (subject.trim().toLowerCase() !== bridge.toLowerCase()) return "";
+
+  const bridgeLang = bridgeSpeechLanguage(medium);
+  const scriptHint =
+    bridgeLang === "hi-IN"
+      ? "Devanagari script for Hindi words"
+      : "English spelling for English words";
+
+  return `
+# Bridge subject: ${bridge}
+- Explain in simple Telugu + English (Telugu-medium kids at home cannot pronounce ${bridge} correctly).
+- Wrap EVERY ${bridge} word or short phrase in speech markers: [[${bridgeLang}]]${scriptHint}[[/]]
+- Right after each marked word, add Telugu transliteration in parentheses and a short Telugu meaning.
+- Example: [[hi-IN]]नमस्ते[[/]] (namaste) ante hello.
+- Keep explanations concept-first; the marked part is what must be spoken in correct ${bridge} pronunciation.`;
+}
+
 export function buildSystemPrompt(
   childName: string,
   languageMode: LanguageMode,
   grade?: string,
   teachingNotes?: string[],
   board?: CurriculumBoard,
+  bridgeRules?: string,
 ): string {
   const gradeLine = grade
     ? `They are in ${grade}.`
@@ -78,6 +128,7 @@ Never give the final answer. After several tries, suggest asking a parent.
 2. Stay on homework topics only.
 3. NEVER shame them.
 4. Session cap is 25 minutes.
+${bridgeRules ?? ""}
 ${notesBlock}
 Respond with ONLY what Arjuna says aloud — no stage directions, no markdown.`;
 }
@@ -138,6 +189,13 @@ Extract each subject exam as JSON only, no markdown:
 
 If not a timetable, return {"exams":[],"confidence":"low"}`;
 
+export const CURRICULUM_EXTRACTION_PROMPT = `You read a school term plan, syllabus, or curriculum document (PDF pages or photos).
+Extract the structured syllabus for ONE term. Do not invent subjects or topics not present in the document.
+Return JSON only, no markdown:
+{"term":"Term 1 or First Term or similar","subjects":[{"subject":"English|Maths|Telugu|EVS|Science|Hindi|Social|Other","topics":[{"name":"topic name","resources":"optional pages/chapters/notes from doc"}]}],"confidence":"high|medium|low","notes":""}
+
+If unreadable or not a curriculum document, return {"term":"","subjects":[],"confidence":"low","notes":"reason"}`;
+
 export function buildExamRevisionPrompt(
   board: CurriculumBoard | undefined,
   grade: string | undefined,
@@ -192,4 +250,45 @@ Rules:
 
 Return JSON only:
 {"questions":[{"id":"q1","type":"mcq","prompt":"...","options":["A","B","C","D"],"correctIndex":0,"concept":"..."},{"id":"q5","type":"gamified","prompt":"...","options":["A","B","C","D"],"correctIndex":1,"concept":"..."}]}`;
+}
+
+export function buildTeachingPlanPrompt(
+  board: CurriculumBoard | undefined,
+  method: TeachingMethod | undefined,
+  grade: string | undefined,
+  subject: string,
+  topic: string,
+  medium?: MediumOfInstruction,
+): string {
+  const boardLine = board ? `${board} board` : "the school's board";
+  const gradeLine = grade ? grade : "the appropriate grade";
+  const bridge = bridgeSubjectFor(medium);
+  const isBridge = subject.trim().toLowerCase() === bridge.toLowerCase();
+
+  const bridgeBlock = isBridge
+    ? `
+This is a BRIDGE subject (${bridge}): parents at home often cannot pronounce it.
+Include in the plan:
+- "bridgeWords": [{"script":"word in ${bridge === "Hindi" ? "Devanagari" : "English"}","teluguTranslit":"...","meaningTe":"..."}]
+- Teach concept-first; explain in Telugu+English; mark words for ${bridgeSpeechLanguage(medium)} voice.`
+    : "";
+
+  return `You are an expert teacher researching how to teach ONE topic, ONCE, so any tutor can reuse it.
+
+Topic: "${topic}" (subject: ${subject})
+Audience: a ${gradeLine} child following ${boardLine}.
+Teaching method to follow: ${methodGuidance(method)}
+${bridgeBlock}
+
+Write a compact, reusable teaching plan that teaches the CONCEPT (never just the answer), in the style above, using real-life framing kids relate to.
+
+Return JSON only, no markdown:
+{
+  "topic": "${topic}",
+  "summary": "one plain sentence: what the child must understand",
+  "realLifeHooks": ["2-3 everyday examples/analogies"],
+  "steps": ["3-5 short teaching steps, concept-first"],
+  "commonMistakes": ["2-3 typical errors kids make"],
+  "checkQuestions": ["2-3 simple questions to check understanding (no answers)"]${isBridge ? ',\n  "bridgeWords": [{"script":"...","teluguTranslit":"...","meaningTe":"..."}]' : ""}
+}`;
 }

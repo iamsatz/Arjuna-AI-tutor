@@ -87,3 +87,59 @@ alter table public.arjuna_invites enable row level security;
 drop policy if exists "arjuna_invites_all" on public.arjuna_invites;
 create policy "arjuna_invites_all" on public.arjuna_invites
   for all to anon, authenticated using (true) with check (true);
+
+create table if not exists public.arjuna_curricula (
+  id uuid primary key default gen_random_uuid(),
+  school_key text not null unique,
+  school_name text not null,
+  grade text not null,
+  board text,
+  term text,
+  subjects jsonb not null default '[]'::jsonb,
+  raw_text text,
+  created_at timestamptz not null default now()
+);
+
+create index if not exists arjuna_curricula_school_key_idx on public.arjuna_curricula (school_key);
+
+alter table public.arjuna_curricula enable row level security;
+
+drop policy if exists "arjuna_curricula_all" on public.arjuna_curricula;
+create policy "arjuna_curricula_all" on public.arjuna_curricula
+  for all to anon, authenticated using (true) with check (true);
+
+create table if not exists public.arjuna_memory (
+  id uuid primary key default gen_random_uuid(),
+  school_key text not null,
+  kind text not null,
+  topic_key text not null,
+  content jsonb not null default '{}'::jsonb,
+  created_at timestamptz not null default now()
+);
+
+create unique index if not exists arjuna_memory_lookup_idx
+  on public.arjuna_memory (school_key, kind, topic_key);
+
+alter table public.arjuna_memory enable row level security;
+
+drop policy if exists "arjuna_memory_all" on public.arjuna_memory;
+create policy "arjuna_memory_all" on public.arjuna_memory
+  for all to anon, authenticated using (true) with check (true);
+
+create table if not exists public.arjuna_student_memory (
+  student_key text primary key,
+  invite_code text,
+  child_name text,
+  school_key text,
+  profile jsonb not null default '{}'::jsonb,
+  updated_at timestamptz not null default now()
+);
+
+create index if not exists arjuna_student_memory_invite_idx
+  on public.arjuna_student_memory (invite_code);
+
+alter table public.arjuna_student_memory enable row level security;
+
+drop policy if exists "arjuna_student_memory_all" on public.arjuna_student_memory;
+create policy "arjuna_student_memory_all" on public.arjuna_student_memory
+  for all to anon, authenticated using (true) with check (true);

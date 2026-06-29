@@ -8,7 +8,8 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: "inviteCode required" }, { status: 400 });
   }
 
-  const exams = await listExamsByInvite(inviteCode);
+  const childName = request.nextUrl.searchParams.get("childName") ?? undefined;
+  const exams = await listExamsByInvite(inviteCode, childName);
   return NextResponse.json({ exams });
 }
 
@@ -21,6 +22,8 @@ export async function POST(request: NextRequest) {
     grade?: string;
     examDate?: string;
     topics?: string[];
+    conceptNotes?: string;
+    status?: "draft" | "ready";
   };
 
   if (!body.inviteCode || !body.childName || !body.subject) {
@@ -38,7 +41,8 @@ export async function POST(request: NextRequest) {
     grade: body.grade,
     examDate: body.examDate,
     topics: body.topics ?? [],
-    status: "draft",
+    conceptNotes: body.conceptNotes,
+    status: body.status ?? "draft",
   });
 
   if (!exam) {

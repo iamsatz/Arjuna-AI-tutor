@@ -2,11 +2,19 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { ArjunaAvatar } from "./ArjunaAvatar";
-import type { ChildProfile } from "@/lib/childProfile";
+import {
+  buildSchoolKey,
+  buildStudentKey,
+  type ChildProfile,
+} from "@/lib/childProfile";
 import type { StoredExam } from "@/lib/examTypes";
+import { topicsToConceptNotes, type StoredCurriculum } from "@/lib/curriculumTypes";
 import { loadSettings, verifyParentPin } from "@/lib/settings";
 import { track } from "@/lib/analytics";
+import { playSpeech } from "@/lib/clientSpeech";
+import { stripSpeechMarkers } from "@/lib/bridgeSubject";
 import type { ChatMessage } from "@/lib/types";
 import type { ExamQuizQuestion } from "@/lib/examTypes";
 
@@ -14,10 +22,15 @@ type ExamHubProps = {
   profile: ChildProfile;
 };
 
-type PrepMode = "list" | "create" | "upload" | "revise" | "quiz";
+type PrepMode = "list" | "create" | "curriculum" | "upload" | "revise" | "quiz";
 
 export function ExamHub({ profile }: ExamHubProps) {
+  const searchParams = useSearchParams();
   const settings = loadSettings();
+  const schoolKey = buildSchoolKey(profile.schoolName, profile.grade, profile.board);
+  const studentKey = profile.id
+    ? buildStudentKey(profile.inviteCode, profile.id)
+    : undefined;
   const [exams, setExams] = useState<StoredExam[]>([]);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
@@ -44,11 +57,16 @@ export function ExamHub({ profile }: ExamHubProps) {
   const [pinInput, setPinInput] = useState("");
   const [showAnswers, setShowAnswers] = useState(false);
 
+  const [curriculum, setCurriculum] = useState<StoredCurriculum | null>(null);
+  const [curriculumSubject, setCurriculumSubject] = useState("");
+  const [selectedTopicNames, setSelectedTopicNames] = useState<string[]>([]);
+  const prefilledRef = useRef(false);
+
   const loadExams = useCallback(async () => {
     setLoading(true);
     try {
       const res = await fetch(
-        `/api/exam?inviteCode=${encodeURIComponent(profile.inviteCode)}`,
+        `/api/exam?inviteCode=${encodeURIComponent(profile.inviteCode)}&childName=${encodeURIComponent(profile.childName)}`,
       );
       if (!res.ok) throw new Error("load failed");
       const data = (await res.json()) as { exams: StoredExam[] };
@@ -64,28 +82,109 @@ export function ExamHub({ profile }: ExamHubProps) {
     void loadExams();
   }, [loadExams]);
 
+  const loadCurriculum = useCallback(async () => {
+    if (!schoolKey) return;
+    try {
+      const res = await fetch(
+        `/api/curriculum?schoolKey=${encodeURIComponent(schoolKey)}`,
+      );
+      if (!res.ok) return;
+      const data = (await res.json()) as { curriculum: StoredCurriculum | null };
+      setCurriculum(data.curriculum ?? null);
+    } catch {
+      // ignore
+    }
+  }, [schoolKey]);
+
+  useEffect(() => {
+    void loadCurriculum();
+  }, [loadCurriculum]);
+
+  useEffect(() => {
+    if (prefilledRef.current) return;
+    const subjectParam = searchParams.get("subject");
+    const topicParam = searchParams.get("topic");
+    if (!subjectParam) return;
+    prefilledRef.current = true;
+    setSubject(subjectParam);
+    if (topicParam) {
+      setTopicsText(topicParam);
+      setSelectedTopicNames([topicParam]);
+    }
+    setCurriculumSubject(subjectParam);
+    if (curriculum) {
+      setMode("curriculum");
+    } else {
+      setMode("create");
+    }
+  }, [searchParams, curriculum]);
+
   async function speak(text: string) {
-    setLastReply(text);
+    setLastReply(stripSpeechMarkers(text));
     setAvatarState("loading");
     try {
-      const response = await fetch("/api/speak", {
+      setAvatarState("speaking");
+      await playSpeech(text, {
+        speaker: "shubh",
+        languageMode: settings.languageMode,
+      });
+    } catch {
+      // ignore
+    } finally {
+      setAvatarState("idle");
+    }
+  }
+
+  async function handleCreateFromCurriculum() {
+    if (!curriculum || !curriculumSubject) return;
+    const subj = curriculum.subjects.find(
+      (s) => s.subject.toLowerCase() === curriculumSubject.toLowerCase(),
+    );
+    if (!subj) {
+      setError("Subject not found in curriculum.");
+      return;
+    }
+
+    const pickedTopics = subj.topics.filter((t) =>
+      selectedTopicNames.includes(t.name),
+    );
+    const topics =
+      pickedTopics.length > 0 ? pickedTopics : subj.topics.slice(0, 5);
+    const topicNames = topics.map((t) => t.name);
+    const conceptNotes = topicsToConceptNotes(subj.subject, topics);
+
+    setBusy(true);
+    setError(null);
+    try {
+      const res = await fetch("/api/exam", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          text,
-          speaker: "shubh",
-          languageMode: settings.languageMode,
+          inviteCode: profile.inviteCode,
+          childName: profile.childName,
+          subject: subj.subject,
+          board: profile.board,
+          grade: profile.grade,
+          examDate: examDate || undefined,
+          topics: topicNames,
+          conceptNotes,
+          status: "ready",
         }),
       });
-      if (!response.ok) return;
-      const blob = await response.blob();
-      const url = URL.createObjectURL(blob);
-      const audio = new Audio(url);
-      audio.onplay = () => setAvatarState("speaking");
-      audio.onended = () => setAvatarState("idle");
-      await audio.play();
+      if (!res.ok) throw new Error("create failed");
+      const data = (await res.json()) as { exam: StoredExam };
+      void track("exam_created", {
+        subject: subj.subject,
+        examId: data.exam.id,
+        source: "curriculum",
+      });
+      setSelectedExam(data.exam);
+      await loadExams();
+      void startRevision(data.exam);
     } catch {
-      setAvatarState("idle");
+      setError("Could not start from curriculum.");
+    } finally {
+      setBusy(false);
     }
   }
 
@@ -203,6 +302,7 @@ export function ExamHub({ profile }: ExamHubProps) {
           childName: profile.childName,
           messages: [],
           languageMode: settings.languageMode,
+          schoolKey: schoolKey ?? undefined,
         }),
       });
       if (!res.ok) throw new Error("revise failed");
@@ -235,6 +335,8 @@ export function ExamHub({ profile }: ExamHubProps) {
           messages: nextMessages,
           contextNote: note,
           languageMode: settings.languageMode,
+          schoolKey: schoolKey ?? undefined,
+          studentKey,
         }),
       });
       if (!res.ok) throw new Error("revise failed");
@@ -269,6 +371,7 @@ export function ExamHub({ profile }: ExamHubProps) {
         body: JSON.stringify({
           examId: exam.id,
           languageMode: settings.languageMode,
+          schoolKey: schoolKey ?? undefined,
         }),
       });
       if (!res.ok) throw new Error("quiz failed");
@@ -299,6 +402,7 @@ export function ExamHub({ profile }: ExamHubProps) {
           languageMode: settings.languageMode,
           revealAnswers: true,
           pin: pinInput,
+          schoolKey: schoolKey ?? undefined,
         }),
       });
       if (!res.ok) throw new Error("reveal failed");
@@ -323,10 +427,10 @@ export function ExamHub({ profile }: ExamHubProps) {
     <main className="mx-auto flex min-h-dvh max-w-md flex-col bg-arjuna-bg px-6 py-8">
       <div className="mb-4 flex items-center justify-between">
         <p className="text-sm font-medium uppercase tracking-widest text-arjuna-muted">
-          Arjuna · Exam prep
+          Arjuna · Learn &amp; Exam Prep
         </p>
         <Link href="/" className="text-sm text-arjuna-primaryDark underline">
-          Home
+          Homework
         </Link>
       </div>
 
@@ -346,7 +450,7 @@ export function ExamHub({ profile }: ExamHubProps) {
       {mode === "list" && (
         <div className="space-y-4">
           <h1 className="text-xl font-semibold text-arjuna-text">
-            {profile.childName}&apos;s exams
+            {profile.childName}&apos;s learning
           </h1>
           {profile.board && (
             <p className="text-sm text-arjuna-muted">
@@ -354,7 +458,7 @@ export function ExamHub({ profile }: ExamHubProps) {
             </p>
           )}
 
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
             <button
               type="button"
               onClick={() => {
@@ -364,6 +468,25 @@ export function ExamHub({ profile }: ExamHubProps) {
               className="flex-1 rounded-xl bg-arjuna-primary py-3 text-sm font-semibold text-white"
             >
               + New exam
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                if (!curriculum) {
+                  setError(
+                    "No curriculum loaded. Ask parent to upload term plan in Settings.",
+                  );
+                  return;
+                }
+                setMode("curriculum");
+                setCurriculumSubject(curriculum.subjects[0]?.subject ?? "");
+                setSelectedTopicNames([]);
+                setError(null);
+              }}
+              disabled={busy}
+              className="flex-1 rounded-xl border border-green-600/40 bg-white py-3 text-sm font-semibold text-green-800"
+            >
+              📚 From curriculum
             </button>
             <button
               type="button"
@@ -452,6 +575,83 @@ export function ExamHub({ profile }: ExamHubProps) {
               </li>
             ))}
           </ul>
+        </div>
+      )}
+
+      {mode === "curriculum" && curriculum && (
+        <div className="space-y-4">
+          <h2 className="text-lg font-semibold">Prepare from curriculum</h2>
+          {curriculum.term && (
+            <p className="text-sm text-arjuna-muted">{curriculum.term}</p>
+          )}
+          <label className="block text-sm">
+            Subject
+            <select
+              value={curriculumSubject}
+              onChange={(e) => {
+                setCurriculumSubject(e.target.value);
+                setSelectedTopicNames([]);
+              }}
+              className="mt-1 w-full rounded-xl border p-3"
+            >
+              {curriculum.subjects.map((s) => (
+                <option key={s.subject} value={s.subject}>
+                  {s.subject}
+                </option>
+              ))}
+            </select>
+          </label>
+          <div>
+            <p className="text-sm font-medium">Topics (tap to pick, or use all)</p>
+            <ul className="mt-2 max-h-48 space-y-2 overflow-y-auto">
+              {curriculum.subjects
+                .find((s) => s.subject === curriculumSubject)
+                ?.topics.map((t) => {
+                  const checked = selectedTopicNames.includes(t.name);
+                  return (
+                    <li key={t.name}>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setSelectedTopicNames((prev) =>
+                            checked
+                              ? prev.filter((n) => n !== t.name)
+                              : [...prev, t.name],
+                          )
+                        }
+                        className={`w-full rounded-lg border px-3 py-2 text-left text-sm ${
+                          checked
+                            ? "border-green-600 bg-green-50"
+                            : "border-arjuna-primary/20 bg-white"
+                        }`}
+                      >
+                        {t.name}
+                      </button>
+                    </li>
+                  );
+                })}
+            </ul>
+          </div>
+          <label className="block text-sm">
+            Exam date (optional — turns on exam mode)
+            <input
+              type="date"
+              value={examDate}
+              onChange={(e) => setExamDate(e.target.value)}
+              className="mt-1 w-full rounded-xl border p-3"
+            />
+          </label>
+          <button
+            type="button"
+            disabled={busy || !curriculumSubject}
+            onClick={() => void handleCreateFromCurriculum()}
+            className="w-full rounded-xl bg-green-600 py-3 font-semibold text-white disabled:opacity-50"
+          >
+            Start learning these concepts
+          </button>
+          <button type="button" onClick={() => setMode("list")} className="w-full text-sm underline">
+            Cancel
+          </button>
         </div>
       )}
 

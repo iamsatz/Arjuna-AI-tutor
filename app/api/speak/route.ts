@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { synthesizeSpeech, DEFAULT_GREETING } from "@/lib/sarvam";
 
-function ttsLanguage(languageMode?: string): string {
+function ttsLanguage(languageMode?: string, languageCode?: string): string {
+  if (languageCode) return languageCode;
   if (languageMode === "pure_telugu" || languageMode === "mixed") return "te-IN";
   return "en-IN";
 }
@@ -15,11 +16,13 @@ export async function POST(request: NextRequest) {
     text?: string;
     speaker?: string;
     languageMode?: string;
+    languageCode?: string;
   };
   return handleSpeak(
     body.text ?? DEFAULT_GREETING,
     body.speaker,
     body.languageMode,
+    body.languageCode,
   );
 }
 
@@ -27,6 +30,7 @@ async function handleSpeak(
   text: string,
   speaker?: string,
   languageMode?: string,
+  languageCode?: string,
 ) {
   const apiKey = process.env.SARVAM_API_KEY;
 
@@ -44,7 +48,7 @@ async function handleSpeak(
     const { audioBase64, mimeType } = await synthesizeSpeech(apiKey, {
       text,
       speaker,
-      languageCode: ttsLanguage(languageMode),
+      languageCode: ttsLanguage(languageMode, languageCode),
     });
     const audioBuffer = Buffer.from(audioBase64, "base64");
 

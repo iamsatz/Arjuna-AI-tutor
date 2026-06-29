@@ -6,7 +6,11 @@ import { ArjunaScreen } from "./ArjunaScreen";
 import { InviteRequired } from "./InviteRequired";
 import { LessonScreen } from "./LessonScreen";
 import { TvLessonScreen } from "./TvLessonScreen";
-import { loadChildProfile, type ChildProfile } from "@/lib/childProfile";
+import {
+  getActiveProfile,
+  loadChildProfile,
+  type ChildProfile,
+} from "@/lib/childProfile";
 import { isTvDevice } from "@/lib/platform";
 
 export function DeviceRouter() {
@@ -20,6 +24,10 @@ export function DeviceRouter() {
     setAlpha(process.env.NEXT_PUBLIC_ARJUNA_PHASE === "alpha");
     setReady(true);
   }, []);
+
+  function handleActiveChange() {
+    setProfile(getActiveProfile());
+  }
 
   useEffect(() => {
     if (isTvDevice() && window.location.pathname === "/") {
@@ -47,5 +55,12 @@ export function DeviceRouter() {
     return <ArjunaScreen profile={profile} />;
   }
 
-  return <LessonScreen profile={profile} controller="phone" />;
+  return (
+    <LessonScreen
+      key={profile.id ?? profile.childName}
+      profile={profile}
+      controller="phone"
+      onActiveChange={handleActiveChange}
+    />
+  );
 }

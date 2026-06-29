@@ -1,16 +1,19 @@
 import type { LanguageMode } from "@/lib/settings";
-import type { CurriculumBoard } from "@/lib/childProfile";
+import type { CurriculumBoard, MediumOfInstruction, TeachingMethod } from "@/lib/childProfile";
 import {
   buildExamQuizPrompt,
   buildExamRevisionPrompt,
   buildParentSolutionPrompt,
   buildSystemPrompt,
+  buildTeachingPlanPrompt,
   CONCEPT_EXTRACTION_PROMPT,
   PHOTO_EXTRACTION_PROMPT,
   SUMMARY_PROMPT,
   TEXT_EXTRACTION_PROMPT,
   TIMETABLE_EXTRACTION_PROMPT,
+  CURRICULUM_EXTRACTION_PROMPT,
 } from "./prompts";
+import type { CurriculumSubject } from "./curriculumTypes";
 import type { ExamQuizQuestion } from "./examTypes";
 import type { ChatMessage, HomeworkTask } from "./types";
 
@@ -73,6 +76,8 @@ export async function chatWithArjuna(
   languageMode: LanguageMode,
   grade?: string,
   board?: CurriculumBoard,
+  teachingNotes?: string[],
+  bridgeRules?: string,
 ): Promise<string> {
   const history = messages
     .map((m) => `${m.role === "user" ? childName : "Arjuna"}: ${m.content}`)
@@ -85,7 +90,7 @@ export async function chatWithArjuna(
   return geminiGenerate(
     apiKey,
     [{ text: prompt }],
-    buildSystemPrompt(childName, languageMode, grade, undefined, board),
+    buildSystemPrompt(childName, languageMode, grade, teachingNotes, board, bridgeRules),
   );
 }
 
@@ -300,4 +305,123 @@ export async function generateExamQuiz(
 
   const parsed = parseJson<{ questions: ExamQuizQuestion[] }>(raw);
   return { questions: parsed.questions ?? [] };
+}
+
+export type TeachingPlan = {
+  topic: string;
+  summary: string;
+  realLifeHooks: string[];
+  steps: string[];
+  commonMistakes: string[];
+  checkQuestions: string[];
+};
+
+export async function generateTeachingPlan(
+  apiKey: string,
+  params: {
+    board?: CurriculumBoard;
+    method?: TeachingMethod;
+    grade?: string;
+    subject: string;
+    topic: string;
+    medium?: MediumOfInstruction;
+  },
+): Promise<TeachingPlan> {
+  const raw = await geminiGenerate(
+    apiKey,
+    [
+      {
+        text: buildTeachingPlanPrompt(
+          params.board,
+          params.method,
+          params.grade,
+          params.subject,
+          params.topic,
+          params.medium,
+        ),
+      },
+    ],
+    undefined,
+    1536,
+  );
+
+  const parsed = parseJson<Partial<TeachingPlan>>(raw);
+  return {
+    topic: parsed.topic ?? params.topic,
+    summary: parsed.summary ?? "",
+    realLifeHooks: parsed.realLifeHooks ?? [],
+    steps: parsed.steps ?? [],
+    commonMistakes: parsed.commonMistakes ?? [],
+    checkQuestions: parsed.checkQuestions ?? [],
+  };
+}
+
+export async function extractCurriculum(
+  apiKey: string,
+  files: { base64: string; mimeType: string }[],
+): Promise<{
+  term: string;
+  subjects: CurriculumSubject[];
+  confidence: string;
+  notes: string;
+  rawText: string;
+}> {
+  const BATCH_SIZE = 4;
+  const subjectMap = new Map<string, CurriculumSubject>();
+  let term = "";
+  let confidence = "low";
+  let notes = "";
+  const rawParts: string[] = [];
+
+  for (let i = 0; i < files.length; i += BATCH_SIZE) {
+    const batch = files.slice(i, i + BATCH_SIZE);
+    const parts: GeminiPart[] = [
+      {
+        text: `${CURRICULUM_EXTRACTION_PROMPT}\n\nPages ${i + 1}-${i + batch.length} of ${files.length}.`,
+      },
+      ...batch.map((img) => ({
+        inline_data: { mime_type: img.mimeType, data: img.base64 },
+      })),
+    ];
+
+    const raw = await geminiGenerate(apiKey, parts, undefined, 4096);
+    rawParts.push(raw);
+
+    const parsed = parseJson<{
+      term?: string;
+      subjects?: CurriculumSubject[];
+      confidence?: string;
+      notes?: string;
+    }>(raw);
+
+    if (parsed.term && !term) term = parsed.term;
+    if (parsed.confidence) confidence = parsed.confidence;
+    if (parsed.notes) notes = parsed.notes;
+
+    for (const subj of parsed.subjects ?? []) {
+      const key = subj.subject.toLowerCase().trim();
+      const existing = subjectMap.get(key);
+      if (!existing) {
+        subjectMap.set(key, {
+          subject: subj.subject,
+          topics: [...(subj.topics ?? [])],
+        });
+        continue;
+      }
+      for (const topic of subj.topics ?? []) {
+        const dup = existing.topics.some(
+          (t) => t.name.toLowerCase() === topic.name.toLowerCase(),
+        );
+        if (!dup) existing.topics.push(topic);
+      }
+    }
+  }
+
+  return {
+    term,
+    subjects: Array.from(subjectMap.values()),
+    confidence,
+    notes,
+    rawText: rawParts.join("\n---\n"),
+  };
 }

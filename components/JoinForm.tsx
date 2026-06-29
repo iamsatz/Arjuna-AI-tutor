@@ -2,7 +2,13 @@
 
 import { FormEvent, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { saveChildProfile, type CurriculumBoard } from "@/lib/childProfile";
+import {
+  addProfile,
+  type CurriculumBoard,
+  type MediumOfInstruction,
+  type TeachingMethod,
+} from "@/lib/childProfile";
+import { MEDIUM_OPTIONS, METHOD_OPTIONS } from "@/lib/profileOptions";
 
 type JoinFormProps = {
   code: string;
@@ -13,6 +19,8 @@ export function JoinForm({ code }: JoinFormProps) {
   const [childName, setChildName] = useState("");
   const [grade, setGrade] = useState("");
   const [board, setBoard] = useState<CurriculumBoard | "">("");
+  const [medium, setMedium] = useState<MediumOfInstruction>("english_medium");
+  const [method, setMethod] = useState<TeachingMethod>("experiential");
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -40,11 +48,13 @@ export function JoinForm({ code }: JoinFormProps) {
         setLabel(data.invite.label ?? null);
 
         if (data.invite.claimed && data.invite.childName) {
-          saveChildProfile({
+          addProfile({
             inviteCode: code,
             childName: data.invite.childName,
             grade: data.invite.grade,
             board: data.invite.board,
+            medium: "english_medium",
+            method: "experiential",
           });
           router.replace("/");
           return;
@@ -76,11 +86,13 @@ export function JoinForm({ code }: JoinFormProps) {
         return;
       }
 
-      saveChildProfile({
+      addProfile({
         inviteCode: code,
         childName: childName.trim(),
         grade: grade.trim() || undefined,
         board: board || undefined,
+        medium,
+        method,
       });
       router.replace("/");
     } catch {
@@ -165,6 +177,42 @@ export function JoinForm({ code }: JoinFormProps) {
             <option value="ICSE">ICSE</option>
             <option value="IB">IB</option>
             <option value="State">State</option>
+          </select>
+        </label>
+
+        <label className="block">
+          <span className="text-sm font-medium text-arjuna-text">
+            Medium of instruction
+          </span>
+          <select
+            value={medium}
+            onChange={(e) =>
+              setMedium(e.target.value as MediumOfInstruction)
+            }
+            className="mt-2 w-full rounded-xl border border-arjuna-primary/20 bg-white px-4 py-3 text-arjuna-text outline-none focus:border-arjuna-primary"
+          >
+            {MEDIUM_OPTIONS.map((opt) => (
+              <option key={opt.value} value={opt.value}>
+                {opt.label}
+              </option>
+            ))}
+          </select>
+        </label>
+
+        <label className="block">
+          <span className="text-sm font-medium text-arjuna-text">
+            How their school teaches
+          </span>
+          <select
+            value={method}
+            onChange={(e) => setMethod(e.target.value as TeachingMethod)}
+            className="mt-2 w-full rounded-xl border border-arjuna-primary/20 bg-white px-4 py-3 text-arjuna-text outline-none focus:border-arjuna-primary"
+          >
+            {METHOD_OPTIONS.map((opt) => (
+              <option key={opt.value} value={opt.value}>
+                {opt.label}
+              </option>
+            ))}
           </select>
         </label>
 

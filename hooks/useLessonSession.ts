@@ -1,13 +1,19 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import type { ChildProfile } from "@/lib/childProfile";
+import {
+  buildScopeKey,
+  buildStudentKey,
+  type ChildProfile,
+} from "@/lib/childProfile";
 import { buildGreeting, buildExplainAgainPrompt } from "@/lib/prompts";
 import type { LessonState } from "@/lib/lessonTypes";
 import { createInitialLessonState } from "@/lib/lessonTypes";
 import { loadSettings, verifyParentPin, type DeviceMode, type LanguageMode } from "@/lib/settings";
 import type { HomeworkTask } from "@/lib/types";
 import { track, setAnalyticsContext } from "@/lib/analytics";
+import { playSpeech } from "@/lib/clientSpeech";
+import { stripSpeechMarkers } from "@/lib/bridgeSubject";
 import {
   createSupabaseRoomClient,
   useSupabaseRoomPublisher,
@@ -44,8 +50,37 @@ export function useLessonSession({
   const [doubtInput, setDoubtInput] = useState("");
   const [pinInput, setPinInput] = useState("");
   const [loading, setLoading] = useState(false);
-  const audioRef = useRef<HTMLAudioElement | null>(null);
   const sessionTrackedRef = useRef(false);
+
+  const studentKey = profile.id
+    ? buildStudentKey(profile.inviteCode, profile.id)
+    : undefined;
+  const scopeKey = buildScopeKey(profile);
+
+  const recordStudentOutcome = useCallback(
+    (
+      result: "understood" | "struggled" | "doubt",
+      task: { subject: string; task: string } | undefined,
+      note?: string,
+    ) => {
+      if (!studentKey || !task) return;
+      void fetch("/api/student/outcome", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          studentKey,
+          inviteCode: profile.inviteCode,
+          childName: profile.childName,
+          schoolKey: scopeKey,
+          subject: task.subject,
+          topic: task.task,
+          result,
+          note,
+        }),
+      }).catch(() => {});
+    },
+    [studentKey, scopeKey, profile.inviteCode, profile.childName],
+  );
 
   const activeState = externalState ?? state;
   const { pushState } = useSupabaseRoomPublisher(activeState.code);
@@ -73,36 +108,17 @@ export function useLessonSession({
 
   const speak = useCallback(
     async (text: string) => {
-      patchState({ avatarState: "loading", lastReply: text });
+      const display = stripSpeechMarkers(text);
+      patchState({ avatarState: "loading", lastReply: display });
       try {
-        const response = await fetch("/api/speak", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            text,
-            speaker: "shubh",
-            languageMode: settings.languageMode,
-          }),
-        });
-        if (!response.ok) throw new Error("speak failed");
-        const blob = await response.blob();
-        const url = URL.createObjectURL(blob);
-        if (audioRef.current) {
-          audioRef.current.pause();
-          URL.revokeObjectURL(audioRef.current.src);
-        }
-        const audio = new Audio(url);
-        audioRef.current = audio;
-        await new Promise<void>((resolve, reject) => {
-          audio.onplay = () => patchState({ avatarState: "speaking" });
-          audio.onended = () => {
-            patchState({ avatarState: "idle" });
-            resolve();
-          };
-          audio.onerror = () => reject(new Error("audio error"));
-          void audio.play();
+        patchState({ avatarState: "speaking" });
+        await playSpeech(text, {
+          speaker: "shubh",
+          languageMode: settings.languageMode,
         });
       } catch {
+        // ignore playback errors
+      } finally {
         patchState({ avatarState: "idle" });
       }
     },
@@ -142,17 +158,25 @@ export function useLessonSession({
             childName: profile.childName,
             grade: profile.grade,
             board: profile.board,
+            method: profile.method,
+            medium: profile.medium ?? "english_medium",
             languageMode: settings.languageMode,
+            studentKey,
+            scopeKey,
+            subject: task.subject,
+            topic: task.task,
           }),
         });
         if (!response.ok) throw new Error("chat failed");
         const data = (await response.json()) as { reply: string };
         const reply = data.reply || intro;
+        const displayReply = stripSpeechMarkers(reply);
 
         patchState({
           messages: [...messages, { role: "assistant", content: reply }],
-          currentExplanation: reply,
-          statusMessage: reply,
+          currentExplanation: displayReply,
+          statusMessage: displayReply,
+          lastReply: displayReply,
           phase: "teaching",
         });
         await speak(reply);
@@ -175,8 +199,12 @@ export function useLessonSession({
       profile.childName,
       profile.grade,
       profile.board,
+      profile.method,
+      profile.medium,
       settings.languageMode,
       speak,
+      studentKey,
+      scopeKey,
     ],
   );
 
@@ -295,13 +323,29 @@ export function useLessonSession({
   const handleDoubt = useCallback(async () => {
     if (!doubtInput.trim()) return;
     void track("doubt_submitted", { doubt: doubtInput.slice(0, 200) });
+    recordStudentOutcome(
+      "doubt",
+      activeState.tasks[activeState.currentTaskIndex],
+      doubtInput.slice(0, 200),
+    );
     patchState({ phase: "doubt", doubtText: doubtInput });
     await teachCurrentTask(`Student doubt: ${doubtInput}`);
     setDoubtInput("");
-  }, [doubtInput, patchState, teachCurrentTask]);
+  }, [
+    doubtInput,
+    patchState,
+    teachCurrentTask,
+    recordStudentOutcome,
+    activeState.tasks,
+    activeState.currentTaskIndex,
+  ]);
 
   const handleUnderstood = useCallback(async () => {
     void track("understood", { attempt: activeState.attemptCount + 1 });
+    recordStudentOutcome(
+      "understood",
+      activeState.tasks[activeState.currentTaskIndex],
+    );
     const nextIndex = activeState.currentTaskIndex + 1;
     if (nextIndex >= activeState.tasks.length) {
       patchState({ phase: "session_done", statusMessage: "All done! Great job!" });
@@ -323,16 +367,22 @@ export function useLessonSession({
   }, [
     activeState.attemptCount,
     activeState.currentTaskIndex,
+    activeState.tasks,
     activeState.tasks.length,
     patchState,
     settings.languageMode,
     speak,
     startTask,
+    recordStudentOutcome,
   ]);
 
   const handleNotUnderstood = useCallback(async () => {
     const nextAttempt = activeState.attemptCount + 1;
     if (nextAttempt >= MAX_ATTEMPTS) {
+      recordStudentOutcome(
+        "struggled",
+        activeState.tasks[activeState.currentTaskIndex],
+      );
       patchState({
         phase: "parent_needed",
         statusMessage:
@@ -348,7 +398,16 @@ export function useLessonSession({
       return;
     }
     await handleExplainAgain();
-  }, [activeState.attemptCount, handleExplainAgain, patchState, settings.languageMode, speak]);
+  }, [
+    activeState.attemptCount,
+    activeState.tasks,
+    activeState.currentTaskIndex,
+    handleExplainAgain,
+    patchState,
+    settings.languageMode,
+    speak,
+    recordStudentOutcome,
+  ]);
 
   const unlockParentSolution = useCallback(async () => {
     if (!verifyParentPin(pinInput)) {

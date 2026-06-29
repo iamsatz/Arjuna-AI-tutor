@@ -143,7 +143,7 @@ export function TvLessonScreen() {
           Connect TV
         </button>
         <Link href="/roadmap" className="text-arjuna-muted underline">
-          Coming soon
+          Roadmap & backlog
         </Link>
       </main>
     );

@@ -4,6 +4,7 @@ import { useRef, useState, useEffect } from "react";
 import Link from "next/link";
 import { ArjunaAvatar } from "./ArjunaAvatar";
 import { PairingBadge } from "./PairingBadge";
+import { KidSwitcher } from "./KidSwitcher";
 import type { ChildProfile } from "@/lib/childProfile";
 import { useLessonSession } from "@/hooks/useLessonSession";
 import { loadSettings } from "@/lib/settings";
@@ -15,6 +16,7 @@ type LessonScreenProps = {
   externalState?: ReturnType<typeof useLessonSession>["state"] | null;
   readOnly?: boolean;
   onStateChange?: (state: ReturnType<typeof useLessonSession>["state"]) => void;
+  onActiveChange?: (id: string) => void;
 };
 
 export function LessonScreen({
@@ -23,6 +25,7 @@ export function LessonScreen({
   externalState,
   readOnly,
   onStateChange,
+  onActiveChange,
 }: LessonScreenProps) {
   const fileRef = useRef<HTMLInputElement>(null);
   const [textInput, setTextInput] = useState("");
@@ -35,7 +38,7 @@ export function LessonScreen({
     async function loadExams() {
       try {
         const res = await fetch(
-          `/api/exam?inviteCode=${encodeURIComponent(profile.inviteCode)}`,
+          `/api/exam?inviteCode=${encodeURIComponent(profile.inviteCode)}&childName=${encodeURIComponent(profile.childName)}`,
         );
         if (!res.ok) return;
         const data = (await res.json()) as { exams: StoredExam[] };
@@ -47,7 +50,7 @@ export function LessonScreen({
       }
     }
     void loadExams();
-  }, [profile.inviteCode]);
+  }, [profile.inviteCode, profile.childName]);
 
   const lesson = useLessonSession({
     profile,
@@ -97,21 +100,39 @@ export function LessonScreen({
     state.phase === "task_intro" ||
     state.phase === "doubt";
   const showParent = state.phase === "parent_needed" || state.phase === "parent_solution";
+  const showSessionDone = state.phase === "session_done" && !readOnly;
+  const lastTask = state.tasks[state.tasks.length - 1];
 
   return (
     <main className="mx-auto flex min-h-dvh max-w-md flex-col bg-arjuna-bg px-6 py-8">
       <div className="mb-4 flex items-center justify-between">
         <p className="text-sm font-medium uppercase tracking-widest text-arjuna-muted">
-          Arjuna · {profile.childName}
+          Arjuna · Homework
         </p>
         <div className="flex gap-3">
           <Link href="/exam" className="text-sm text-arjuna-primaryDark underline">
-            Exams
+            Learn &amp; Exam Prep
           </Link>
           <Link href="/settings" className="text-sm text-arjuna-primaryDark underline">
             Settings
           </Link>
         </div>
+      </div>
+
+      {controller === "phone" && !readOnly && (
+        <KidSwitcher onActiveChange={onActiveChange} />
+      )}
+
+      <div className="mb-4 grid grid-cols-2 gap-2">
+        <div className="rounded-xl bg-arjuna-primary py-2.5 text-center text-sm font-semibold text-white">
+          📚 Homework
+        </div>
+        <Link
+          href="/exam"
+          className="rounded-xl border border-arjuna-primary/30 bg-white py-2.5 text-center text-sm font-semibold text-arjuna-text"
+        >
+          🎯 Learn &amp; Exam Prep
+        </Link>
       </div>
 
       {state.code && (
@@ -149,7 +170,7 @@ export function LessonScreen({
                 href="/exam"
                 className="mt-3 block rounded-xl bg-green-600 py-2 text-center text-sm font-semibold text-white"
               >
-                Prepare for exam
+                Go to Learn &amp; Exam Prep
               </Link>
             </div>
           )}
@@ -241,6 +262,26 @@ export function LessonScreen({
         </div>
       )}
 
+      {showSessionDone && lastTask && (
+        <div className="mt-auto space-y-3 pb-4">
+          <p className="rounded-xl bg-green-50 p-4 text-sm text-green-900">
+            All homework done! Want to strengthen what you learned?
+          </p>
+          <Link
+            href={`/exam?subject=${encodeURIComponent(lastTask.subject)}&topic=${encodeURIComponent(lastTask.task)}`}
+            className="block w-full rounded-xl bg-green-600 py-3 text-center font-semibold text-white"
+          >
+            Strengthen this concept
+          </Link>
+          <Link
+            href="/exam"
+            className="block w-full rounded-xl border py-3 text-center text-sm font-semibold"
+          >
+            Open Learn &amp; Exam Prep
+          </Link>
+        </div>
+      )}
+
       {showParent && (
         <div className="mt-auto space-y-3 pb-4">
           {state.phase === "parent_solution" && state.parentSolution ? (
@@ -272,7 +313,7 @@ export function LessonScreen({
 
       <div className="mt-4 text-center">
         <Link href="/roadmap" className="text-xs text-arjuna-muted underline">
-          Coming soon features
+          Roadmap & backlog (after MVP)
         </Link>
       </div>
     </main>

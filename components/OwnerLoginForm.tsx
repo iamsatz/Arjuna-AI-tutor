@@ -28,7 +28,17 @@ export function OwnerLoginForm() {
       });
 
       if (!response.ok) {
-        setError("Wrong password. Try again.");
+        const data = (await response.json().catch(() => null)) as {
+          error?: string;
+          message?: string;
+        } | null;
+        if (data?.error === "missing_config") {
+          setError(
+            "Owner password not set on server. Add OWNER_PASSWORD in Vercel env vars and redeploy.",
+          );
+        } else {
+          setError("Wrong password. Try again.");
+        }
         return;
       }
 

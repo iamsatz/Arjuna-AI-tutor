@@ -51,14 +51,20 @@ export async function createExam(input: CreateExamInput): Promise<StoredExam | n
   return mapRow(data);
 }
 
-export async function listExamsByInvite(inviteCode: string): Promise<StoredExam[]> {
+export async function listExamsByInvite(
+  inviteCode: string,
+  childName?: string,
+): Promise<StoredExam[]> {
   const sb = getSupabaseServer();
   if (!sb) return [];
 
-  const { data, error } = await sb
-    .from("arjuna_exams")
-    .select("*")
-    .eq("invite_code", inviteCode)
+  let query = sb.from("arjuna_exams").select("*").eq("invite_code", inviteCode);
+
+  if (childName?.trim()) {
+    query = query.eq("child_name", childName.trim());
+  }
+
+  const { data, error } = await query
     .order("exam_date", { ascending: true, nullsFirst: false })
     .order("created_at", { ascending: false });
 
