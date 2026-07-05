@@ -3,22 +3,29 @@ import {
   extractHomeworkFromPhotos,
   extractHomeworkFromText,
 } from "@/lib/gemini";
+import { cacheDiaryTermPlan } from "@/lib/diaryTermPlan";
+import { buildSchoolKey, type CurriculumBoard } from "@/lib/childProfile";
+import { geminiKeyFromValue, resolveGeminiKey } from "@/lib/resolveApiKey";
 import { missingGeminiExtractResponse } from "@/lib/userErrors";
 
 export async function POST(request: NextRequest) {
-  const apiKey = process.env.GEMINI_API_KEY;
-  if (!apiKey) {
-    return missingGeminiExtractResponse();
-  }
-
   const contentType = request.headers.get("content-type") ?? "";
 
   try {
     if (contentType.includes("multipart/form-data")) {
+      const apiKey = resolveGeminiKey(request);
+      if (!apiKey) {
+        return missingGeminiExtractResponse();
+      }
+
       const form = await request.formData();
       const photos = form.getAll("photo").filter((p): p is File => p instanceof File);
       const diaryNote = String(form.get("diaryNote") ?? "").trim() || undefined;
       const text = String(form.get("text") ?? "").trim() || undefined;
+      const schoolName = String(form.get("schoolName") ?? "").trim() || undefined;
+      const grade = String(form.get("grade") ?? "").trim() || undefined;
+      const boardRaw = String(form.get("board") ?? "").trim();
+      const board = (boardRaw || undefined) as CurriculumBoard | undefined;
 
       if (photos.length === 0 && !diaryNote && !text) {
         return NextResponse.json(
@@ -41,6 +48,24 @@ export async function POST(request: NextRequest) {
           diaryNote,
           extraText: text,
         });
+
+        if (
+          result.termPlan?.subjects?.length &&
+          schoolName &&
+          grade
+        ) {
+          const schoolKey = buildSchoolKey(schoolName, grade, board);
+          if (schoolKey) {
+            await cacheDiaryTermPlan({
+              schoolKey,
+              schoolName,
+              grade,
+              board,
+              termPlan: result.termPlan,
+            });
+          }
+        }
+
         return NextResponse.json(result);
       }
 
@@ -52,7 +77,18 @@ export async function POST(request: NextRequest) {
     const body = (await request.json()) as {
       text?: string;
       diaryNote?: string;
+      geminiApiKey?: string;
+      schoolName?: string;
+      grade?: string;
+      board?: CurriculumBoard;
     };
+
+    const apiKey =
+      geminiKeyFromValue(body.geminiApiKey) ?? resolveGeminiKey(request);
+    if (!apiKey) {
+      return missingGeminiExtractResponse();
+    }
+
     const text = body.text?.trim();
     const diaryNote = body.diaryNote?.trim();
 

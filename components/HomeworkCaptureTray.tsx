@@ -9,8 +9,9 @@ type HomeworkCaptureTrayProps = {
   disabled?: boolean;
   recording?: boolean;
   onCapture: (files: File[]) => void;
-  onReadText: (text: string) => void;
-  onToggleMic: () => void;
+  onReadText?: (text: string) => void;
+  onToggleMic?: () => void;
+  mode?: "homework" | "answer";
 };
 
 export function HomeworkCaptureTray({
@@ -19,21 +20,23 @@ export function HomeworkCaptureTray({
   onCapture,
   onReadText,
   onToggleMic,
+  mode = "homework",
 }: HomeworkCaptureTrayProps) {
   const cameraRef = useRef<HTMLInputElement>(null);
   const galleryRef = useRef<HTMLInputElement>(null);
   const [showTypeInput, setShowTypeInput] = useState(false);
   const [typedNote, setTypedNote] = useState("");
+  const isAnswer = mode === "answer";
 
   function handleFiles(fileList: FileList | null) {
     if (!fileList?.length || disabled) return;
-    const files = Array.from(fileList).slice(0, MAX_PHOTOS);
+    const files = Array.from(fileList).slice(0, isAnswer ? 1 : MAX_PHOTOS);
     onCapture(files);
   }
 
   function handleTypedSubmit() {
     const text = typedNote.trim();
-    if (!text || disabled) return;
+    if (!text || disabled || !onReadText) return;
     onReadText(text);
     setTypedNote("");
     setShowTypeInput(false);
@@ -47,41 +50,55 @@ export function HomeworkCaptureTray({
         disabled={disabled}
         onClick={() => cameraRef.current?.click()}
       >
-        📷 Scan homework
+        {isAnswer ? "📷 Photo of my answer" : "📷 Scan homework"}
       </Button>
       <p className="text-center text-xs text-arjuna-muted">
-        Point your camera at the homework diary or book page. Arjuna will read
-        it.
+        {isAnswer
+          ? "Make sure your full written answer is visible."
+          : "Point your camera at the homework diary or book page. Arjuna will read it."}
       </p>
 
-      <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1 text-xs font-semibold">
+      {!isAnswer && (
+        <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1 text-xs font-semibold">
+          <button
+            type="button"
+            disabled={disabled}
+            onClick={() => galleryRef.current?.click()}
+            className="text-arjuna-primaryDark underline disabled:opacity-50"
+          >
+            Choose photo
+          </button>
+          <button
+            type="button"
+            disabled={disabled}
+            onClick={() => setShowTypeInput((v) => !v)}
+            className="text-arjuna-primaryDark underline disabled:opacity-50"
+          >
+            Type instead
+          </button>
+          <button
+            type="button"
+            disabled={disabled}
+            onClick={onToggleMic}
+            className="text-arjuna-primaryDark underline disabled:opacity-50"
+          >
+            {recording ? "⏹ Stop speaking" : "Speak"}
+          </button>
+        </div>
+      )}
+
+      {isAnswer && (
         <button
           type="button"
           disabled={disabled}
           onClick={() => galleryRef.current?.click()}
-          className="text-arjuna-primaryDark underline disabled:opacity-50"
+          className="block w-full text-center text-xs font-semibold text-arjuna-primaryDark underline disabled:opacity-50"
         >
-          Choose photo
+          Choose from gallery
         </button>
-        <button
-          type="button"
-          disabled={disabled}
-          onClick={() => setShowTypeInput((v) => !v)}
-          className="text-arjuna-primaryDark underline disabled:opacity-50"
-        >
-          Type instead
-        </button>
-        <button
-          type="button"
-          disabled={disabled}
-          onClick={onToggleMic}
-          className="text-arjuna-primaryDark underline disabled:opacity-50"
-        >
-          {recording ? "⏹ Stop speaking" : "Speak"}
-        </button>
-      </div>
+      )}
 
-      {showTypeInput && (
+      {!isAnswer && showTypeInput && (
         <div className="space-y-2 rounded-2xl border-2 border-orange-100 bg-white p-3">
           <textarea
             value={typedNote}
@@ -104,7 +121,7 @@ export function HomeworkCaptureTray({
       <input
         ref={cameraRef}
         type="file"
-        accept="image/*"
+        accept="image/*,application/pdf"
         capture="environment"
         className="hidden"
         onChange={(e) => {
@@ -115,8 +132,8 @@ export function HomeworkCaptureTray({
       <input
         ref={galleryRef}
         type="file"
-        accept="image/*"
-        multiple
+        accept="image/*,application/pdf"
+        multiple={!isAnswer}
         className="hidden"
         onChange={(e) => {
           handleFiles(e.target.files);

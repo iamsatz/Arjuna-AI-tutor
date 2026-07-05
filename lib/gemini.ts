@@ -6,6 +6,7 @@ import {
   buildParentSolutionPrompt,
   buildSystemPrompt,
   buildTeachingPlanPrompt,
+  buildVerifyAnswerPrompt,
   CONCEPT_EXTRACTION_PROMPT,
   PHOTO_EXTRACTION_PROMPT,
   SUMMARY_PROMPT,
@@ -78,6 +79,7 @@ export async function chatWithArjuna(
   board?: CurriculumBoard,
   teachingNotes?: string[],
   bridgeRules?: string,
+  method?: TeachingMethod,
 ): Promise<string> {
   const history = messages
     .map((m) => `${m.role === "user" ? childName : "Arjuna"}: ${m.content}`)
@@ -90,9 +92,30 @@ export async function chatWithArjuna(
   return geminiGenerate(
     apiKey,
     [{ text: prompt }],
-    buildSystemPrompt(childName, languageMode, grade, teachingNotes, board, bridgeRules),
+    buildSystemPrompt(
+      childName,
+      languageMode,
+      grade,
+      teachingNotes,
+      board,
+      bridgeRules,
+      method,
+    ),
   );
 }
+
+export type DiaryTermPlan = {
+  term?: string;
+  subjects: { subject: string; topics: string[] }[];
+};
+
+export type DiaryExtractionResult = {
+  tasks: HomeworkTask[];
+  confidence: string;
+  reason?: string;
+  termPlan?: DiaryTermPlan | null;
+  teacherNote?: string;
+};
 
 export async function extractHomeworkFromPhoto(
   apiKey: string,
@@ -110,7 +133,7 @@ export async function extractHomeworkFromPhotos(
   apiKey: string,
   images: HomeworkImageInput[],
   options?: { diaryNote?: string; extraText?: string },
-): Promise<{ tasks: HomeworkTask[]; confidence: string; reason?: string }> {
+): Promise<DiaryExtractionResult> {
   const parts: GeminiPart[] = [{ text: PHOTO_EXTRACTION_PROMPT }];
 
   if (options?.diaryNote?.trim()) {
@@ -129,7 +152,55 @@ export async function extractHomeworkFromPhotos(
   }
 
   const raw = await geminiGenerate(apiKey, parts, undefined, 2048);
-  return parseJson(raw);
+  const parsed = parseJson<{
+    termPlan?: DiaryTermPlan | null;
+    todayTasks?: HomeworkTask[];
+    tasks?: HomeworkTask[];
+    teacherNote?: string;
+    confidence?: string;
+    reason?: string;
+  }>(raw);
+
+  const tasks = parsed.todayTasks ?? parsed.tasks ?? [];
+  return {
+    tasks,
+    confidence: parsed.confidence ?? (tasks.length ? "medium" : "low"),
+    reason: parsed.reason,
+    termPlan: parsed.termPlan ?? null,
+    teacherNote: parsed.teacherNote,
+  };
+}
+
+export type VerifyAnswerResult = {
+  correct: boolean;
+  feedback: string;
+  hint?: string;
+};
+
+export async function verifyAnswerFromPhoto(
+  apiKey: string,
+  image: HomeworkImageInput,
+  subject: string,
+  task: string,
+  languageMode: LanguageMode,
+  grade?: string,
+): Promise<VerifyAnswerResult> {
+  const prompt = buildVerifyAnswerPrompt(subject, task, grade, languageMode);
+  const raw = await geminiGenerate(
+    apiKey,
+    [
+      { text: prompt },
+      { inline_data: { mime_type: image.mimeType, data: image.data } },
+    ],
+    undefined,
+    512,
+  );
+  const parsed = parseJson<VerifyAnswerResult>(raw);
+  return {
+    correct: Boolean(parsed.correct),
+    feedback: parsed.feedback?.trim() || "Let me look again.",
+    hint: parsed.hint?.trim(),
+  };
 }
 
 export async function extractHomeworkFromText(

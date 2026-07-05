@@ -1,52 +1,17 @@
 [
-  {
-    "code": "family01",
-    "label": "Family 1",
-    "createdAt": "2026-06-28T16:00:00.000Z"
-  },
-  {
-    "code": "family02",
-    "label": "Family 2",
-    "createdAt": "2026-06-28T16:00:00.000Z"
-  },
-  {
-    "code": "family03",
-    "label": "Family 3",
-    "createdAt": "2026-06-28T16:00:00.000Z"
-  },
-  {
-    "code": "family04",
-    "label": "Family 4",
-    "createdAt": "2026-06-28T16:00:00.000Z"
-  },
-  {
-    "code": "family05",
-    "label": "Family 5",
-    "createdAt": "2026-06-28T16:00:00.000Z"
-  },
-  {
-    "code": "family06",
-    "label": "Family 6",
-    "createdAt": "2026-06-29T12:00:00.000Z"
-  },
-  {
-    "code": "family07",
-    "label": "Family 7",
-    "createdAt": "2026-06-29T12:00:00.000Z"
-  },
-  {
-    "code": "family08",
-    "label": "Family 8",
-    "createdAt": "2026-06-29T12:00:00.000Z"
-  },
-  {
-    "code": "family09",
-    "label": "Family 9",
-    "createdAt": "2026-06-29T12:00:00.000Z"
-  },
-  {
-    "code": "family10",
-    "label": "Family 10",
-    "createdAt": "2026-06-29T12:00:00.000Z"
-  }
+  { "code": "family01", "label": "Family 1", "createdAt": "2026-06-28T16:00:00.000Z" },
+  { "code": "family02", "label": "Family 2", "createdAt": "2026-06-28T16:00:00.000Z" },
+  { "code": "family03", "label": "Family 3", "createdAt": "2026-06-28T16:00:00.000Z" },
+  { "code": "family04", "label": "Family 4", "createdAt": "2026-06-28T16:00:00.000Z" },
+  { "code": "family05", "label": "Family 5", "createdAt": "2026-06-28T16:00:00.000Z" },
+  { "code": "family06", "label": "Family 6", "createdAt": "2026-06-29T12:00:00.000Z" },
+  { "code": "family07", "label": "Family 7", "createdAt": "2026-06-29T12:00:00.000Z" },
+  { "code": "family08", "label": "Family 8", "createdAt": "2026-06-29T12:00:00.000Z" },
+  { "code": "family09", "label": "Family 9", "createdAt": "2026-06-29T12:00:00.000Z" },
+  { "code": "family10", "label": "Family 10", "createdAt": "2026-06-29T12:00:00.000Z" },
+  { "code": "family11", "label": "Family 11", "createdAt": "2026-06-29T14:00:00.000Z" },
+  { "code": "family12", "label": "Family 12", "createdAt": "2026-06-29T14:00:00.000Z" },
+  { "code": "family13", "label": "Family 13", "createdAt": "2026-06-29T14:00:00.000Z" },
+  { "code": "family14", "label": "Family 14", "createdAt": "2026-06-29T14:00:00.000Z" },
+  { "code": "family15", "label": "Family 15", "createdAt": "2026-06-29T14:00:00.000Z" }
 ]

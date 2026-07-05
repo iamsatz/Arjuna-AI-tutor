@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { generateExamQuiz } from "@/lib/gemini";
+import { geminiKeyFromValue, resolveGeminiKey } from "@/lib/resolveApiKey";
 import { missingGeminiResponse } from "@/lib/userErrors";
 import { getExamById } from "@/lib/examStore";
 import { getOrCreate } from "@/lib/memory";
@@ -9,18 +10,20 @@ import type { LanguageMode } from "@/lib/settings";
 import type { CurriculumBoard } from "@/lib/childProfile";
 
 export async function POST(request: NextRequest) {
-  const apiKey = process.env.GEMINI_API_KEY;
-  if (!apiKey) {
-    return missingGeminiResponse();
-  }
-
   const body = (await request.json()) as {
     examId?: string;
     languageMode?: LanguageMode;
     revealAnswers?: boolean;
     pin?: string;
     schoolKey?: string;
+    geminiApiKey?: string;
   };
+
+  const apiKey =
+    geminiKeyFromValue(body.geminiApiKey) ?? resolveGeminiKey(request);
+  if (!apiKey) {
+    return missingGeminiResponse();
+  }
 
   if (!body.examId) {
     return NextResponse.json({ error: "examId required" }, { status: 400 });

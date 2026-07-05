@@ -11,6 +11,7 @@ export type AnalyticsEventType =
   | "doubt_submitted"
   | "example_given"
   | "understood"
+  | "answer_verified"
   | "parent_unlock"
   | "task_completed"
   | "session_completed"

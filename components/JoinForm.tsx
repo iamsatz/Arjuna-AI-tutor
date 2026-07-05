@@ -1,9 +1,11 @@
 "use client";
 
 import { FormEvent, useEffect, useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
-  addProfile,
+  listProfiles,
+  setActiveProfile,
   tryAddProfile,
   type CurriculumBoard,
   type MediumOfInstruction,
@@ -17,24 +19,44 @@ import {
 import { ArjunaAvatar } from "@/components/ArjunaAvatar";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
-import { StepDots } from "@/components/ui/StepDots";
 
 type JoinFormProps = {
   code: string;
 };
 
+type FamilyChild = {
+  id: string;
+  childName: string;
+  grade?: string;
+  board?: CurriculumBoard;
+};
+
+type JoinMode = "loading" | "setup" | "pick_kid" | "add_kid";
+
+function DownloadHint() {
+  return (
+    <p className="mt-4 text-center text-xs text-arjuna-muted">
+      Need the app on TV or Android?{" "}
+      <Link href="/download" className="font-semibold text-indigo-700 underline">
+        Get the app
+      </Link>
+    </p>
+  );
+}
+
 export function JoinForm({ code }: JoinFormProps) {
   const router = useRouter();
-  const [step, setStep] = useState(1);
+  const [mode, setMode] = useState<JoinMode>("loading");
+  const [showDetails, setShowDetails] = useState(false);
   const [childName, setChildName] = useState("");
   const [grade, setGrade] = useState<GradeOption | "">("");
   const [board, setBoard] = useState<CurriculumBoard | "">("");
   const [medium, setMedium] = useState<MediumOfInstruction>("english_medium");
-  const [loading, setLoading] = useState(true);
   const [inviteValid, setInviteValid] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [label, setLabel] = useState<string | null>(null);
+  const [serverChildren, setServerChildren] = useState<FamilyChild[]>([]);
 
   useEffect(() => {
     async function loadInvite() {
@@ -42,118 +64,217 @@ export function JoinForm({ code }: JoinFormProps) {
         const response = await fetch(`/api/invite/${code}`);
         if (!response.ok) {
           setError(
-            "This invite link is not valid. Open the full link from Copy link (not the family name).",
+            "This link is not valid. Ask your family for the full link from WhatsApp.",
           );
+          setMode("loading");
           return;
         }
 
         const data = (await response.json()) as {
           invite: {
             label?: string;
-            childName?: string;
-            grade?: string;
-            board?: CurriculumBoard;
-            claimed: boolean;
+            setupComplete?: boolean;
+            children?: FamilyChild[];
           };
         };
 
         setLabel(data.invite.label ?? null);
         setInviteValid(true);
+        setServerChildren(data.invite.children ?? []);
 
-        if (data.invite.claimed && data.invite.childName) {
-          const result = tryAddProfile({
-            inviteCode: code,
-            childName: data.invite.childName,
-            grade: data.invite.grade,
-            board: data.invite.board,
-            medium: "english_medium",
-          });
-          if (result.ok) router.replace("/?welcome=1");
-          return;
-        }
+        const localForInvite = listProfiles().filter(
+          (p) => p.inviteCode === code,
+        );
+        const hasKids =
+          (data.invite.children?.length ?? 0) > 0 ||
+          localForInvite.length > 0 ||
+          data.invite.setupComplete;
+
+        setMode(hasKids ? "pick_kid" : "setup");
       } catch {
-        setError("Could not load invite link.");
-      } finally {
-        setLoading(false);
+        setError("Could not load your link. Check your internet and try again.");
       }
     }
 
     void loadInvite();
-  }, [code, router]);
+  }, [code]);
+
+  function saveLocalAndGo(
+    child: FamilyChild,
+    mediumValue: MediumOfInstruction = "english_medium",
+  ) {
+    const existing = listProfiles().find(
+      (p) =>
+        p.inviteCode === code &&
+        p.childName.trim().toLowerCase() === child.childName.trim().toLowerCase(),
+    );
+    if (existing?.id) {
+      setActiveProfile(existing.id);
+      router.replace("/?welcome=1");
+      return;
+    }
+
+    const result = tryAddProfile({
+      inviteCode: code,
+      childName: child.childName,
+      grade: child.grade,
+      board: child.board,
+      medium: mediumValue,
+    });
+    if (!result.ok) {
+      setError(
+        result.reason === "duplicate_name"
+          ? `${child.childName} is already on this phone.`
+          : "Could not save profile. Try again.",
+      );
+      return;
+    }
+    router.replace("/?welcome=1");
+  }
 
   async function finishSetup() {
     setSubmitting(true);
     setError(null);
 
-    const profileInput = {
-      inviteCode: code,
-      childName: childName.trim(),
-      grade: grade || undefined,
-      board: board || undefined,
-      medium,
-    };
+    const trimmedName = childName.trim();
+    if (!trimmedName) {
+      setError("What's your child's name?");
+      setSubmitting(false);
+      return;
+    }
 
     try {
-      const response = await fetch(`/api/invite/${code}`, {
+      const response = await fetch(`/api/family/${code}/setup`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          childName: profileInput.childName,
-          grade: profileInput.grade,
-          board: profileInput.board,
+          childName: trimmedName,
+          grade: grade || undefined,
+          board: board || undefined,
         }),
       });
 
-      if (!response.ok && !inviteValid) {
-        setError("Could not save profile. Try again.");
+      const body = (await response.json()) as {
+        ok?: boolean;
+        child?: FamilyChild;
+        error?: string;
+        message?: string;
+      };
+
+      if (!response.ok) {
+        if (
+          body.error === "database_unavailable" ||
+          body.error === "save_failed"
+        ) {
+          const local = tryAddProfile({
+            inviteCode: code,
+            childName: trimmedName,
+            grade: grade || undefined,
+            board: board || undefined,
+            medium,
+          });
+          if (local.ok) {
+            router.replace("/?welcome=1");
+            return;
+          }
+        }
+        setError(body.message ?? "Could not set up. Try again.");
         return;
       }
 
-      const result = tryAddProfile(profileInput);
-      if (!result.ok) {
-        setError(
-          result.reason === "duplicate_name"
-            ? `A child named ${childName.trim()} already exists in this family. Use a different name.`
-            : "Could not save profile. Try again.",
-        );
-        return;
-      }
-      router.replace("/?welcome=1");
+      const child = body.child ?? {
+        id: "",
+        childName: trimmedName,
+        grade: grade || undefined,
+        board: board || undefined,
+      };
+
+      saveLocalAndGo(child, medium);
     } catch {
-      if (inviteValid) {
-        const result = tryAddProfile(profileInput);
-        if (!result.ok) {
-          setError(
-            result.reason === "duplicate_name"
-              ? `A child named ${childName.trim()} already exists in this family. Use a different name.`
-              : "Could not save profile. Try again.",
-          );
-          return;
-        }
+      const local = tryAddProfile({
+        inviteCode: code,
+        childName: trimmedName,
+        grade: grade || undefined,
+        board: board || undefined,
+        medium,
+      });
+      if (local.ok) {
         router.replace("/?welcome=1");
         return;
       }
-      setError("Could not save profile. Try again.");
+      setError("Could not set up. Try again.");
     } finally {
       setSubmitting(false);
     }
   }
 
-  function handleNext(event: FormEvent) {
-    event.preventDefault();
+  async function addKidOnServer() {
+    setSubmitting(true);
     setError(null);
-    if (step === 1) {
-      if (!childName.trim()) {
-        setError("What's your child's name?");
+    try {
+      const response = await fetch(`/api/family/${code}/children`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          childName: childName.trim(),
+          grade: grade || undefined,
+          board: board || undefined,
+        }),
+      });
+      const body = (await response.json()) as {
+        child?: FamilyChild;
+        error?: string;
+      };
+      if (!response.ok) {
+        if (body.error === "duplicate_name") {
+          saveLocalAndGo({
+            id: "",
+            childName: childName.trim(),
+            grade: grade || undefined,
+            board: board || undefined,
+          });
+          return;
+        }
+        setError(
+          body.error === "max_children"
+            ? "This family already has 3 children."
+            : "Could not add child. Try again.",
+        );
         return;
       }
-      setStep(2);
-      return;
+      if (body.child) {
+        saveLocalAndGo(body.child, medium);
+      }
+    } catch {
+      saveLocalAndGo({
+        id: "",
+        childName: childName.trim(),
+        grade: grade || undefined,
+        board: board || undefined,
+      });
+    } finally {
+      setSubmitting(false);
     }
+  }
+
+  function handleSetupSubmit(event: FormEvent) {
+    event.preventDefault();
     void finishSetup();
   }
 
-  if (loading) {
+  function kidsForPicker(): FamilyChild[] {
+    if (serverChildren.length > 0) return serverChildren;
+    return listProfiles()
+      .filter((p) => p.inviteCode === code)
+      .map((p) => ({
+        id: p.id ?? p.childName,
+        childName: p.childName,
+        grade: p.grade,
+        board: p.board,
+      }));
+  }
+
+  if (mode === "loading" && !error) {
     return (
       <Card>
         <p className="text-center text-sm text-arjuna-muted">Loading…</p>
@@ -161,10 +282,124 @@ export function JoinForm({ code }: JoinFormProps) {
     );
   }
 
-  if (error && !childName && !inviteValid) {
+  if (error && !inviteValid && mode === "loading") {
     return (
       <Card>
         <p className="text-sm text-red-700">{error}</p>
+        <DownloadHint />
+      </Card>
+    );
+  }
+
+  if (mode === "pick_kid") {
+    const kids = kidsForPicker();
+    const localNames = new Set(
+      listProfiles()
+        .filter((p) => p.inviteCode === code)
+        .map((p) => p.childName.trim().toLowerCase()),
+    );
+
+    return (
+      <Card>
+        <div className="flex flex-col items-center text-center">
+          <ArjunaAvatar state="idle" size="sm" />
+          <h1 className="mt-3 font-display text-2xl font-bold text-arjuna-text">
+            Who is using this phone?
+          </h1>
+          {label && (
+            <p className="mt-1 text-sm text-arjuna-muted">Family: {label}</p>
+          )}
+          <p className="mt-2 text-sm text-arjuna-muted">
+            Tap a name to start homework.
+          </p>
+        </div>
+        <div className="mt-4 space-y-2">
+          {kids.map((child) => (
+            <Button
+              key={child.id || child.childName}
+              size="lg"
+              className="w-full"
+              variant={
+                localNames.has(child.childName.trim().toLowerCase())
+                  ? "secondary"
+                  : "primary"
+              }
+              onClick={() => saveLocalAndGo(child)}
+            >
+              {child.childName}
+              {child.grade ? ` · ${child.grade}` : ""}
+            </Button>
+          ))}
+          {kids.length < 3 && (
+            <Button
+              variant="secondary"
+              className="w-full"
+              onClick={() => {
+                setChildName("");
+                setGrade("");
+                setBoard("");
+                setMode("add_kid");
+              }}
+            >
+              Add another child
+            </Button>
+          )}
+        </div>
+        {error && (
+          <p className="mt-3 rounded-xl bg-red-50 px-3 py-2 text-sm text-red-700">
+            {error}
+          </p>
+        )}
+        <DownloadHint />
+      </Card>
+    );
+  }
+
+  if (mode === "add_kid") {
+    return (
+      <Card>
+        <h1 className="font-display text-xl font-bold text-arjuna-text">
+          Add a child
+        </h1>
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            if (!childName.trim()) {
+              setError("Enter a name.");
+              return;
+            }
+            void addKidOnServer();
+          }}
+          className="mt-4 space-y-4"
+        >
+          <input
+            type="text"
+            value={childName}
+            onChange={(e) => setChildName(e.target.value)}
+            placeholder="Child's name"
+            autoComplete="given-name"
+            className="w-full rounded-2xl border-2 border-orange-100 px-4 py-3.5 text-lg outline-none focus:border-arjuna-primary"
+          />
+          {error && (
+            <p className="rounded-xl bg-red-50 px-3 py-2 text-sm text-red-700">
+              {error}
+            </p>
+          )}
+          <div className="flex gap-2">
+            <Button
+              type="button"
+              variant="secondary"
+              className="flex-1"
+              onClick={() => setMode("pick_kid")}
+            >
+              Back
+            </Button>
+            <Button type="submit" className="flex-1" disabled={submitting}>
+              {submitting ? "Adding…" : "Start homework"}
+            </Button>
+          </div>
+        </form>
+        <DownloadHint />
       </Card>
     );
   }
@@ -174,51 +409,50 @@ export function JoinForm({ code }: JoinFormProps) {
       <div className="flex flex-col items-center text-center">
         <ArjunaAvatar state="idle" size="sm" />
         <h1 className="mt-3 font-display text-2xl font-bold text-arjuna-text">
-          {step === 1 ? "Who are we helping?" : "Almost done!"}
+          Who are we helping?
         </h1>
         {label && (
           <p className="mt-1 text-sm text-arjuna-muted">Family: {label}</p>
         )}
         <p className="mt-2 text-sm text-arjuna-muted">
-          {step === 1
-            ? "Tell us your child's name to get started."
-            : "Pick grade and school details — we'll use your syllabus later."}
+          Enter your child&apos;s name — then straight to homework.
         </p>
       </div>
 
-      <StepDots current={step} total={2} />
+      <form onSubmit={handleSetupSubmit} className="mt-4 space-y-4">
+        <label className="block">
+          <span className="text-sm font-semibold text-arjuna-text">
+            Child&apos;s name
+          </span>
+          <input
+            type="text"
+            value={childName}
+            onChange={(e) => setChildName(e.target.value)}
+            required
+            autoComplete="given-name"
+            placeholder="e.g. Aadya"
+            className="mt-2 w-full rounded-2xl border-2 border-orange-100 px-4 py-3.5 text-lg font-semibold outline-none focus:border-arjuna-primary"
+          />
+        </label>
 
-      <form onSubmit={handleNext} className="space-y-4">
-        {step === 1 && (
-          <label className="block">
-            <span className="text-sm font-semibold text-arjuna-text">
-              Child&apos;s name
-            </span>
-            <input
-              type="text"
-              value={childName}
-              onChange={(e) => setChildName(e.target.value)}
-              required
-              autoComplete="given-name"
-              placeholder="e.g. Aadya"
-              className="mt-2 w-full rounded-2xl border-2 border-orange-100 px-4 py-3.5 text-lg font-semibold outline-none focus:border-arjuna-primary"
-            />
-          </label>
-        )}
+        <button
+          type="button"
+          onClick={() => setShowDetails((v) => !v)}
+          className="text-sm font-semibold text-indigo-700 underline"
+        >
+          {showDetails ? "Hide details" : "More details (grade, board — optional)"}
+        </button>
 
-        {step === 2 && (
+        {showDetails && (
           <>
             <label className="block">
-              <span className="text-sm font-semibold text-arjuna-text">
-                Grade
-              </span>
+              <span className="text-sm font-semibold text-arjuna-text">Grade</span>
               <select
                 value={grade}
                 onChange={(e) => setGrade(e.target.value as GradeOption | "")}
-                required
-                className="mt-2 w-full rounded-2xl border-2 border-orange-100 px-4 py-3.5 text-base outline-none focus:border-arjuna-primary"
+                className="mt-2 w-full rounded-2xl border-2 border-orange-100 px-4 py-3.5 outline-none focus:border-arjuna-primary"
               >
-                <option value="">Pick a grade</option>
+                <option value="">Pick a grade (optional)</option>
                 {GRADE_OPTIONS.map((g) => (
                   <option key={g} value={g}>
                     {g}
@@ -228,9 +462,7 @@ export function JoinForm({ code }: JoinFormProps) {
             </label>
 
             <label className="block">
-              <span className="text-sm font-semibold text-arjuna-text">
-                Board
-              </span>
+              <span className="text-sm font-semibold text-arjuna-text">Board</span>
               <select
                 value={board}
                 onChange={(e) =>
@@ -274,31 +506,16 @@ export function JoinForm({ code }: JoinFormProps) {
           </p>
         )}
 
-        <div className="flex gap-2">
-          {step === 2 && (
-            <Button
-              type="button"
-              variant="secondary"
-              className="flex-1"
-              onClick={() => setStep(1)}
-            >
-              Back
-            </Button>
-          )}
-          <Button
-            type="submit"
-            size="lg"
-            disabled={submitting}
-            className="flex-1"
-          >
-            {submitting
-              ? "Starting…"
-              : step === 1
-                ? "Next"
-                : "Start Arjuna"}
-          </Button>
-        </div>
+        <Button
+          type="submit"
+          size="lg"
+          disabled={submitting || !childName.trim()}
+          className="w-full"
+        >
+          {submitting ? "Starting…" : "Start homework"}
+        </Button>
       </form>
+      <DownloadHint />
     </Card>
   );
 }

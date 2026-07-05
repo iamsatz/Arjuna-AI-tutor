@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { extractHomeworkFromPhoto } from "@/lib/gemini";
+import { resolveGeminiKey } from "@/lib/resolveApiKey";
 import { missingGeminiExtractResponse } from "@/lib/userErrors";
 
 export async function POST(request: NextRequest) {
-  const apiKey = process.env.GEMINI_API_KEY;
+  const apiKey = resolveGeminiKey(request);
   if (!apiKey) {
     return missingGeminiExtractResponse();
   }

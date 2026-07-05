@@ -6,12 +6,14 @@ import {
   buildStudentKey,
   type ChildProfile,
 } from "@/lib/childProfile";
-import { buildGreeting, buildExplainAgainPrompt } from "@/lib/prompts";
+import { buildGreeting, buildExplainAgainPrompt, buildHintOnlyPrompt } from "@/lib/prompts";
 import type { LessonState } from "@/lib/lessonTypes";
 import { createInitialLessonState } from "@/lib/lessonTypes";
 import { loadSettings, verifyParentPin, type DeviceMode, type LanguageMode } from "@/lib/settings";
 import type { HomeworkTask } from "@/lib/types";
 import { track, setAnalyticsContext } from "@/lib/analytics";
+import { arjunaFetch, getGeminiKeyHeader } from "@/lib/apiClient";
+import { normalizeTeachingMethod } from "@/lib/teachingMethods";
 import { playSpeech } from "@/lib/clientSpeech";
 import { stripSpeechMarkers } from "@/lib/bridgeSubject";
 import {
@@ -19,9 +21,60 @@ import {
   useSupabaseRoomPublisher,
 } from "@/hooks/useSupabaseRoom";
 import { isTvDevice } from "@/lib/platform";
-import { friendlyExtractError } from "@/lib/userErrors";
+import { friendlyExtractError, MISSING_AI_KEY_MESSAGE } from "@/lib/userErrors";
 
 const MAX_ATTEMPTS = 4;
+const MAX_VERIFY_ATTEMPTS = 3;
+
+function localizedCopy(
+  languageMode: LanguageMode,
+  key:
+    | "ask_explain"
+    | "ask_help_mode"
+    | "try_self"
+    | "capture_answer"
+    | "verify_correct"
+    | "verify_wrong",
+): string {
+  const table: Record<
+    typeof key,
+    Record<LanguageMode, string>
+  > = {
+    ask_explain: {
+      pure_telugu:
+        "Nenu ee question explain cheyala? Ledante nuvve try chestava?",
+      english: "Do you want me to explain this question, or will you try yourself?",
+      mixed:
+        "Do you want me to explain this question? Ledante nuvve try chestava?",
+    },
+    ask_help_mode: {
+      pure_telugu: "Hint kavala, full explain kavala, leka nuvve try chestava?",
+      english: "Want a hint, a full explanation, or will you try yourself?",
+      mixed: "Hint kavala, full ga explain cheyala, leka nuvve try chestava?",
+    },
+    try_self: {
+      pure_telugu: "Baga! Answer raasi aipoyaka photo teesi chupinchu.",
+      english: "Great! Do the answer, then take a photo when you're done.",
+      mixed: "Try cheyyi! Aipoyaka answer photo teesi chupinchu.",
+    },
+    capture_answer: {
+      pure_telugu: "Nee answer photo teesi chupinchu.",
+      english: "Take a photo of your written answer.",
+      mixed: "Nee answer photo capture cheyyi.",
+    },
+    verify_correct: {
+      pure_telugu: "Baga chesav! Correct!",
+      english: "Well done! That's correct!",
+      mixed: "Super! Correct answer!",
+    },
+    verify_wrong: {
+      pure_telugu: "Inka konchem — malli try cheyyi.",
+      english: "Not quite — try again with this hint.",
+      mixed: "Inka konchem — hint tho malli try cheyyi.",
+    },
+  };
+  return table[key][languageMode] ?? table[key].mixed;
+}
 
 type UseLessonSessionOptions = {
   profile: ChildProfile;
@@ -118,7 +171,10 @@ export function useLessonSession({
           languageMode: settings.languageMode,
         });
       } catch {
-        // ignore playback errors
+        patchState({
+          statusMessage:
+            "Voice is not working right now. Try typing your homework instead.",
+        });
       } finally {
         patchState({ avatarState: "idle" });
       }
@@ -127,7 +183,12 @@ export function useLessonSession({
   );
 
   const teachCurrentTask = useCallback(
-    async (contextNote?: string, taskIndex?: number, tasksList?: HomeworkTask[]) => {
+    async (
+      contextNote?: string,
+      taskIndex?: number,
+      tasksList?: HomeworkTask[],
+      teachMode: "full" | "hint" = "full",
+    ) => {
       const list = tasksList ?? activeState.tasks;
       const idx = taskIndex ?? activeState.currentTaskIndex;
       const task = list[idx];
@@ -139,9 +200,11 @@ export function useLessonSession({
       const noteLine = task.notes?.trim()
         ? `Child/parent note: ${task.notes.trim()}. `
         : "";
+      const hintRule =
+        teachMode === "hint" ? `${buildHintOnlyPrompt(settings.languageMode)} ` : "";
       const baseContext =
         contextNote ??
-        `${noteLine}Teach this task: ${task.subject} — ${task.task}`;
+        `${noteLine}${hintRule}Teach this task: ${task.subject} — ${task.task}`;
       const chatContext = `${noteLine}Current task: ${task.subject} — ${task.task}`;
 
       const intro =
@@ -160,25 +223,35 @@ export function useLessonSession({
       ];
 
       try {
-        const response = await fetch("/api/chat", {
+        const response = await arjunaFetch("/api/chat", {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
+          json: {
             messages,
             contextNote: chatContext,
             childName: profile.childName,
             grade: profile.grade,
             board: profile.board,
-            method: profile.method,
+            method: normalizeTeachingMethod(profile.method),
             medium: profile.medium ?? "english_medium",
             languageMode: settings.languageMode,
             studentKey,
             scopeKey,
             subject: task.subject,
             topic: task.task,
-          }),
+          },
         });
-        if (!response.ok) throw new Error("chat failed");
+        if (!response.ok) {
+          const errBody = (await response.json().catch(() => ({}))) as {
+            error?: string;
+          };
+          patchState({
+            statusMessage:
+              errBody.error === "missing_api_key"
+                ? MISSING_AI_KEY_MESSAGE
+                : "Something went wrong. Try again.",
+          });
+          return;
+        }
         const data = (await response.json()) as { reply: string };
         const reply = data.reply || intro;
         const displayReply = stripSpeechMarkers(reply);
@@ -225,15 +298,18 @@ export function useLessonSession({
       const task = list[index];
       if (!task) return;
       void track("task_started", { subject: task.subject, task: task.task });
+      const askMsg = localizedCopy(settings.languageMode, "ask_explain");
       patchState({
         currentTaskIndex: index,
         attemptCount: 0,
-        phase: "task_intro",
-        statusMessage: `Task ${index + 1} of ${list.length}: ${task.subject}`,
+        verifyAttemptCount: 0,
+        phase: "ask_explain",
+        statusMessage: askMsg,
+        lastReply: askMsg,
       });
-      await teachCurrentTask(undefined, index, list);
+      await speak(askMsg);
     },
-    [activeState.tasks, patchState, teachCurrentTask],
+    [activeState.tasks, patchState, settings.languageMode, speak],
   );
 
   const startTask = useCallback(async () => {
@@ -272,8 +348,18 @@ export function useLessonSession({
           if (input.text?.trim()) {
             form.append("text", input.text.trim());
           }
+          if (profile.schoolName?.trim()) {
+            form.append("schoolName", profile.schoolName.trim());
+          }
+          if (profile.grade?.trim()) {
+            form.append("grade", profile.grade.trim());
+          }
+          if (profile.board) {
+            form.append("board", profile.board);
+          }
           const res = await fetch("/api/extract-tasks", {
             method: "POST",
+            headers: getGeminiKeyHeader(),
             body: form,
           });
           const body = (await res.json()) as {
@@ -314,13 +400,12 @@ export function useLessonSession({
               error: "Add photos or type the diary note first.",
             };
           }
-          const res = await fetch("/api/extract-tasks", {
+          const res = await arjunaFetch("/api/extract-tasks", {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
+            json: {
               text: combined,
               diaryNote: input.diaryNote?.trim(),
-            }),
+            },
           });
           const body = (await res.json()) as {
             tasks?: HomeworkTask[];
@@ -440,10 +525,25 @@ export function useLessonSession({
     const form = new FormData();
     form.append("audio", blob, "recording.webm");
     const res = await fetch("/api/transcribe", { method: "POST", body: form });
-    if (!res.ok) return null;
+    if (!res.ok) {
+      const errBody = (await res.json().catch(() => ({}))) as { error?: string };
+      patchState({
+        statusMessage:
+          errBody.error === "missing_api_key"
+            ? MISSING_AI_KEY_MESSAGE
+            : "Could not hear you. Try again or type your homework.",
+      });
+      return null;
+    }
     const data = (await res.json()) as { transcript: string };
-    return data.transcript?.trim() || null;
-  }, []);
+    const text = data.transcript?.trim() || null;
+    if (!text) {
+      patchState({
+        statusMessage: "Could not hear you. Try again or type your homework.",
+      });
+    }
+    return text;
+  }, [patchState]);
 
   const handleExplainAgain = useCallback(async () => {
     void track("explain_again", { attempt: activeState.attemptCount + 1 });
@@ -473,6 +573,183 @@ export function useLessonSession({
     activeState.currentTaskIndex,
   ]);
 
+  const handleExplainChoice = useCallback(
+    async (wantsExplain: boolean) => {
+      if (wantsExplain) {
+        const msg = localizedCopy(settings.languageMode, "ask_help_mode");
+        patchState({
+          phase: "ask_help_mode",
+          statusMessage: msg,
+          lastReply: msg,
+        });
+        await speak(msg);
+        return;
+      }
+      const msg = localizedCopy(settings.languageMode, "try_self");
+      patchState({
+        phase: "try_self",
+        statusMessage: msg,
+        lastReply: msg,
+      });
+      await speak(msg);
+    },
+    [patchState, settings.languageMode, speak],
+  );
+
+  const handleHelpMode = useCallback(
+    async (mode: "hint" | "explain" | "try_self") => {
+      if (mode === "try_self") {
+        const msg = localizedCopy(settings.languageMode, "try_self");
+        patchState({
+          phase: "try_self",
+          statusMessage: msg,
+          lastReply: msg,
+        });
+        await speak(msg);
+        return;
+      }
+      await teachCurrentTask(
+        undefined,
+        activeState.currentTaskIndex,
+        activeState.tasks,
+        mode === "hint" ? "hint" : "full",
+      );
+    },
+    [
+      activeState.currentTaskIndex,
+      activeState.tasks,
+      patchState,
+      settings.languageMode,
+      speak,
+      teachCurrentTask,
+    ],
+  );
+
+  const handleReadyToTry = useCallback(async () => {
+    const msg = localizedCopy(settings.languageMode, "try_self");
+    patchState({
+      phase: "try_self",
+      statusMessage: msg,
+      lastReply: msg,
+    });
+    await speak(msg);
+  }, [patchState, settings.languageMode, speak]);
+
+  const handleStartAnswerCapture = useCallback(async () => {
+    const msg = localizedCopy(settings.languageMode, "capture_answer");
+    patchState({
+      phase: "capture_answer",
+      statusMessage: msg,
+      lastReply: msg,
+    });
+    await speak(msg);
+  }, [patchState, settings.languageMode, speak]);
+
+  const handleVerifyAnswer = useCallback(
+    async (file: File) => {
+      const task = activeState.tasks[activeState.currentTaskIndex];
+      if (!task) return;
+
+      setLoading(true);
+      patchState({ avatarState: "loading", statusMessage: "Checking your answer…" });
+
+      try {
+        const form = new FormData();
+        form.append("photo", file);
+        form.append("subject", task.subject);
+        form.append("task", task.task);
+        form.append("languageMode", settings.languageMode);
+        if (profile.grade) form.append("grade", profile.grade);
+
+        const res = await fetch("/api/verify-answer", {
+          method: "POST",
+          headers: getGeminiKeyHeader(),
+          body: form,
+        });
+        const data = (await res.json()) as {
+          correct?: boolean;
+          feedback?: string;
+          hint?: string;
+          error?: string;
+        };
+
+        if (!res.ok || data.error === "missing_api_key") {
+          patchState({
+            phase: "try_self",
+            statusMessage: MISSING_AI_KEY_MESSAGE,
+            avatarState: "idle",
+          });
+          return;
+        }
+
+        if (data.correct) {
+          const msg = data.feedback || localizedCopy(settings.languageMode, "verify_correct");
+          patchState({
+            phase: "verify_result",
+            lastVerifyCorrect: true,
+            statusMessage: msg,
+            lastReply: msg,
+            avatarState: "idle",
+          });
+          await speak(msg);
+          void track("answer_verified", { correct: true, subject: task.subject });
+          return;
+        }
+
+        const nextVerify = (activeState.verifyAttemptCount ?? 0) + 1;
+        if (nextVerify >= MAX_VERIFY_ATTEMPTS) {
+          recordStudentOutcome("struggled", task);
+          patchState({
+            phase: "parent_needed",
+            verifyAttemptCount: nextVerify,
+            statusMessage:
+              settings.languageMode === "pure_telugu"
+                ? "తల్లిదండ్రులను pilavandi"
+                : "Call your parent for help",
+            avatarState: "idle",
+          });
+          await speak(
+            settings.languageMode === "pure_telugu"
+              ? "Inka kastam. Amma or Nanna ni pilavandi."
+              : "Still stuck? Call your parent.",
+          );
+          return;
+        }
+
+        const hintLine = data.hint ?? data.feedback;
+        const msg = `${localizedCopy(settings.languageMode, "verify_wrong")} ${hintLine}`;
+        patchState({
+          phase: "try_self",
+          verifyAttemptCount: nextVerify,
+          statusMessage: msg,
+          lastReply: msg,
+          lastVerifyCorrect: false,
+          avatarState: "idle",
+        });
+        await speak(msg);
+        void track("answer_verified", { correct: false, subject: task.subject });
+      } catch {
+        patchState({
+          phase: "try_self",
+          statusMessage: "Could not check. Try a clearer photo.",
+          avatarState: "idle",
+        });
+      } finally {
+        setLoading(false);
+      }
+    },
+    [
+      activeState.currentTaskIndex,
+      activeState.tasks,
+      activeState.verifyAttemptCount,
+      patchState,
+      profile.grade,
+      recordStudentOutcome,
+      settings.languageMode,
+      speak,
+    ],
+  );
+
   const handleUnderstood = useCallback(async () => {
     void track("understood", { attempt: activeState.attemptCount + 1 });
     recordStudentOutcome(
@@ -494,6 +771,7 @@ export function useLessonSession({
     patchState({
       currentTaskIndex: nextIndex,
       attemptCount: 0,
+      verifyAttemptCount: 0,
       phase: "task_intro",
     });
     await startTask();
@@ -554,15 +832,14 @@ export function useLessonSession({
     void track("parent_unlock", { subject: task.subject });
 
     try {
-      const res = await fetch("/api/solution", {
+      const res = await arjunaFetch("/api/solution", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
+        json: {
           pin: pinInput,
           subject: task.subject,
           task: task.task,
           languageMode: settings.languageMode,
-        }),
+        },
       });
       if (!res.ok) throw new Error("solution failed");
       const data = (await res.json()) as { solution: string };
@@ -605,19 +882,6 @@ export function useLessonSession({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  useEffect(() => {
-    if (
-      controller !== "tv" ||
-      activeState.phase !== "task_intro" ||
-      !activeState.tasks.length ||
-      activeState.currentExplanation
-    ) {
-      return;
-    }
-    void startTask();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [controller, activeState.code, activeState.tasks.length]);
-
   return {
     state: activeState,
     loading,
@@ -629,6 +893,11 @@ export function useLessonSession({
     startSelectedTasks,
     jumpToTask,
     transcribeToText,
+    handleExplainChoice,
+    handleHelpMode,
+    handleReadyToTry,
+    handleStartAnswerCapture,
+    handleVerifyAnswer,
     handleExplainAgain,
     handleDoubt,
     handleUnderstood,

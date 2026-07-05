@@ -15,6 +15,7 @@ import { BadgePill } from "@/components/ui/BadgePill";
 import type { ChildProfile } from "@/lib/childProfile";
 import { useLessonSession } from "@/hooks/useLessonSession";
 import { loadSettings } from "@/lib/settings";
+import { GeminiStatusPill } from "@/components/GeminiStatusPill";
 import type { StoredExam } from "@/lib/examTypes";
 import { getStreak, recordConceptMastered } from "@/lib/streak";
 import { getBadges } from "@/lib/badges";
@@ -52,7 +53,9 @@ export function LessonScreen({
 }: LessonScreenProps) {
   const searchParams = useSearchParams();
   const [recording, setRecording] = useState(false);
+  const [transcribing, setTranscribing] = useState(false);
   const recorderRef = useRef<MediaRecorder | null>(null);
+  const micStreamRef = useRef<MediaStream | null>(null);
   const chunksRef = useRef<Blob[]>([]);
   const addPageRef = useRef<HTMLInputElement>(null);
   const [hwPhase, setHwPhase] = useState<HwPhase>("capture");
@@ -183,18 +186,28 @@ export function LessonScreen({
     void runRead({ files, merge: true });
   }
 
+  function stopMicStream() {
+    micStreamRef.current?.getTracks().forEach((track) => track.stop());
+    micStreamRef.current = null;
+  }
+
   async function toggleMic() {
-    if (recording) {
+    if (transcribing || recording) {
+      if (!recording) return;
       const recorder = recorderRef.current;
       if (!recorder) return;
+      setTranscribing(true);
       await new Promise<void>((resolve) => {
         recorder.onstop = () => resolve();
         recorder.stop();
       });
       setRecording(false);
+      stopMicStream();
+      recorderRef.current = null;
       const blob = new Blob(chunksRef.current, { type: "audio/webm" });
       chunksRef.current = [];
       const text = await lesson.transcribeToText(blob);
+      setTranscribing(false);
       if (text) {
         void runRead({ text });
       }
@@ -203,6 +216,7 @@ export function LessonScreen({
 
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      micStreamRef.current = stream;
       const recorder = new MediaRecorder(stream);
       chunksRef.current = [];
       recorder.ondataavailable = (e) => {
@@ -212,7 +226,10 @@ export function LessonScreen({
       recorderRef.current = recorder;
       setRecording(true);
     } catch {
-      alert("Please allow microphone access in your browser settings.");
+      stopMicStream();
+      setExtractHint(
+        "Microphone blocked. Allow mic in browser settings, or type your homework.",
+      );
     }
   }
 
@@ -256,11 +273,18 @@ export function LessonScreen({
   const showInput = state.phase === "input" && !readOnly;
   const showReview = hwPhase === "review" && !readOnly;
   const showCaptureHome = showInput && hwPhase === "capture";
+  const showGuided =
+    !readOnly &&
+    !showReview &&
+    (state.phase === "ask_explain" ||
+      state.phase === "ask_help_mode" ||
+      state.phase === "try_self" ||
+      state.phase === "capture_answer" ||
+      state.phase === "verify_result");
   const showTeaching =
     !showReview &&
-    (state.phase === "teaching" ||
-      state.phase === "task_intro" ||
-      state.phase === "doubt");
+    !showGuided &&
+    (state.phase === "teaching" || state.phase === "doubt");
   const showParent =
     state.phase === "parent_needed" || state.phase === "parent_solution";
   const showSessionDone = state.phase === "session_done" && !readOnly;
@@ -279,10 +303,13 @@ export function LessonScreen({
 
   return (
     <main className="mx-auto flex min-h-dvh max-w-md flex-col bg-arjuna-bg px-5 py-6">
-      <header className="mb-4 flex items-center justify-between">
-        <p className="font-display text-lg font-bold text-arjuna-text">
-          Arjuna
-        </p>
+      <header className="mb-4 flex items-center justify-between gap-2">
+        <div className="flex flex-col gap-1">
+          <p className="font-display text-lg font-bold text-arjuna-text">
+            Arjuna
+          </p>
+          <GeminiStatusPill />
+        </div>
         <Link
           href="/settings"
           className="rounded-full bg-white px-3 py-1.5 text-sm font-semibold text-arjuna-primaryDark shadow-sm"
@@ -445,18 +472,132 @@ export function LessonScreen({
         />
       )}
 
-      {!showInput && !showReview && hwPhase !== "extracting" && (
+      {(showGuided ||
+        (!showInput && !showReview && hwPhase !== "extracting")) && (
         <div className="flex flex-col items-center gap-4 py-4">
           <ArjunaAvatar state={avatarState} showTarget />
           <p className="max-w-xs text-center text-base font-medium text-arjuna-text">
             {state.statusMessage}
           </p>
-          {state.lastReply && state.phase !== "input" && (
+          {state.lastReply &&
+            state.phase !== "input" &&
+            state.phase !== "capture_answer" && (
             <Card className="w-full py-4">
               <p className="text-sm leading-relaxed text-arjuna-text">
                 {state.lastReply}
               </p>
             </Card>
+          )}
+        </div>
+      )}
+
+      {showGuided && state.tasks[state.currentTaskIndex] && (
+        <div className="mt-auto space-y-3 pb-4">
+          <Card className="border-orange-200 bg-orange-50 py-3">
+            <p className="text-xs font-semibold uppercase text-arjuna-muted">
+              Task {state.currentTaskIndex + 1} of {state.tasks.length}
+            </p>
+            <p className="mt-1 font-display font-bold text-arjuna-text">
+              {state.tasks[state.currentTaskIndex].subject}:{" "}
+              {state.tasks[state.currentTaskIndex].task}
+            </p>
+          </Card>
+
+          {state.phase === "ask_explain" && (
+            <div className="flex gap-2">
+              <Button
+                size="lg"
+                className="flex-1"
+                onClick={() => void lesson.handleExplainChoice(true)}
+              >
+                Yes, explain
+              </Button>
+              <Button
+                size="lg"
+                variant="secondary"
+                className="flex-1"
+                onClick={() => void lesson.handleExplainChoice(false)}
+              >
+                I&apos;ll try
+              </Button>
+            </div>
+          )}
+
+          {state.phase === "ask_help_mode" && (
+            <div className="space-y-2">
+              <Button
+                size="lg"
+                className="w-full"
+                onClick={() => void lesson.handleHelpMode("hint")}
+              >
+                Give a hint
+              </Button>
+              <Button
+                size="lg"
+                variant="secondary"
+                className="w-full"
+                onClick={() => void lesson.handleHelpMode("explain")}
+              >
+                Explain fully
+              </Button>
+              <Button
+                size="lg"
+                variant="ghost"
+                className="w-full"
+                onClick={() => void lesson.handleHelpMode("try_self")}
+              >
+                I&apos;ll try myself
+              </Button>
+            </div>
+          )}
+
+          {state.phase === "try_self" && (
+            <div className="space-y-2">
+              <Button
+                size="lg"
+                variant="success"
+                className="w-full"
+                onClick={() => void lesson.handleStartAnswerCapture()}
+              >
+                I finished — check my answer
+              </Button>
+              <textarea
+                value={doubtInput}
+                onChange={(e) => setDoubtInput(e.target.value)}
+                placeholder="Ask a question…"
+                className="w-full rounded-2xl border-2 border-orange-100 p-3 text-sm"
+                rows={2}
+              />
+              <Button
+                variant="secondary"
+                className="w-full"
+                disabled={!doubtInput.trim()}
+                onClick={() => void lesson.handleDoubt()}
+              >
+                Ask Arjuna
+              </Button>
+            </div>
+          )}
+
+          {state.phase === "capture_answer" && (
+            <HomeworkCaptureTray
+              mode="answer"
+              disabled={loading}
+              onCapture={(files) => {
+                if (files[0]) void lesson.handleVerifyAnswer(files[0]);
+              }}
+            />
+          )}
+
+          {state.phase === "verify_result" && (
+            <Button
+              size="lg"
+              variant="success"
+              className="w-full"
+              onClick={() => void onUnderstood()}
+            >
+              {state.lastVerifyCorrect ? "Correct — next!" : "Continue"}
+            </Button>
           )}
         </div>
       )}
@@ -504,7 +645,7 @@ export function LessonScreen({
               variant="success"
               size="lg"
               className="flex-1"
-              onClick={() => void onUnderstood()}
+              onClick={() => void lesson.handleReadyToTry()}
             >
               Got it!
             </Button>

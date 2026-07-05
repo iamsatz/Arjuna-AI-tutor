@@ -1,6 +1,7 @@
 "use client";
 
 import { FormEvent, useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ArjunaAvatar } from "@/components/ArjunaAvatar";
 import { Button } from "@/components/ui/Button";
@@ -26,8 +27,8 @@ export function InviteRequired() {
             Welcome to Arjuna
           </h1>
           <p className="mt-2 text-sm text-arjuna-muted">
-            Your family gave you a code. Enter it to set up homework help for
-            your child.
+            Open the link your family sent on WhatsApp — or enter your family
+            code below.
           </p>
         </div>
 
@@ -40,7 +41,7 @@ export function InviteRequired() {
               type="text"
               value={code}
               onChange={(e) => setCode(e.target.value)}
-              placeholder="Paste the code from your link (e.g. a1b2c3d4)"
+              placeholder="e.g. family01"
               autoComplete="off"
               autoCapitalize="none"
               className="mt-2 w-full rounded-2xl border-2 border-orange-100 bg-white px-4 py-3.5 font-semibold text-arjuna-text outline-none focus:border-arjuna-primary"
@@ -57,7 +58,10 @@ export function InviteRequired() {
         </form>
 
         <p className="mt-4 text-center text-xs text-arjuna-muted">
-          Have an invite link? Open it directly — no code needed.
+          Need the app on TV or Android?{" "}
+          <Link href="/download" className="font-semibold text-indigo-700 underline">
+            Get the app
+          </Link>
         </p>
       </Card>
     </main>

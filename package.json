@@ -9,7 +9,9 @@
     "lint": "next lint",
     "cap:sync": "cap sync android",
     "cap:open": "cap open android",
-    "cap:android": "cap sync android && cap open android"
+    "cap:android": "cap sync android && cap open android",
+    "release": "node scripts/release.mjs",
+    "supabase:setup": "node --env-file=.env.local scripts/run-supabase-setup.mjs"
   },
   "dependencies": {
     "@capacitor/android": "^7.4.2",

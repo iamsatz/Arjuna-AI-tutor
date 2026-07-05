@@ -4,19 +4,22 @@ import { generateSessionSummary } from "@/lib/gemini";
 import { missingGeminiResponse } from "@/lib/userErrors";
 import { appendSession } from "@/lib/sessionsStore";
 import { sendWhatsAppText } from "@/lib/whatsapp";
+import { geminiKeyFromValue, resolveGeminiKey } from "@/lib/resolveApiKey";
 
 export async function POST(request: NextRequest) {
-  const geminiKey = process.env.GEMINI_API_KEY;
-  if (!geminiKey) {
-    return missingGeminiResponse();
-  }
-
   const body = (await request.json()) as {
     transcript: string;
     durationMin?: number;
     childName?: string;
     inviteCode?: string;
+    geminiApiKey?: string;
   };
+
+  const geminiKey =
+    geminiKeyFromValue(body.geminiApiKey) ?? resolveGeminiKey(request);
+  if (!geminiKey) {
+    return missingGeminiResponse();
+  }
   if (!body.transcript?.trim()) {
     return NextResponse.json({ error: "transcript required" }, { status: 400 });
   }

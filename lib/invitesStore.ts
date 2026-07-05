@@ -142,10 +142,9 @@ export async function getInviteByCode(
 
     if (error) {
       console.error("getInviteByCode supabase", error);
-      return null;
+    } else if (data) {
+      return mapRow(data);
     }
-    if (data) return mapRow(data);
-    return null;
   }
 
   const invites = await readInvitesFromFile();

@@ -4,6 +4,8 @@ import { missingGeminiResponse } from "@/lib/userErrors";
 import { getTeachingPlan, teachingPlanToNotes } from "@/lib/schoolAgent";
 import { buildStudentNotes, getStudentMemory } from "@/lib/studentAgent";
 import { buildBridgeSubjectRules } from "@/lib/prompts";
+import { geminiKeyFromValue, resolveGeminiKey } from "@/lib/resolveApiKey";
+import { normalizeTeachingMethod } from "@/lib/teachingMethods";
 import type { ChatMessage } from "@/lib/types";
 import type {
   CurriculumBoard,
@@ -12,11 +14,6 @@ import type {
 } from "@/lib/childProfile";
 
 export async function POST(request: NextRequest) {
-  const apiKey = process.env.GEMINI_API_KEY;
-  if (!apiKey) {
-    return missingGeminiResponse();
-  }
-
   const body = (await request.json()) as {
     messages: ChatMessage[];
     contextNote?: string;
@@ -30,7 +27,14 @@ export async function POST(request: NextRequest) {
     scopeKey?: string;
     subject?: string;
     topic?: string;
+    geminiApiKey?: string;
   };
+
+  const apiKey =
+    geminiKeyFromValue(body.geminiApiKey) ?? resolveGeminiKey(request);
+  if (!apiKey) {
+    return missingGeminiResponse();
+  }
 
   if (!body.messages?.length) {
     return NextResponse.json({ error: "messages required" }, { status: 400 });
@@ -78,6 +82,7 @@ export async function POST(request: NextRequest) {
       body.board,
       teachingNotes.length ? teachingNotes : undefined,
       bridgeRules || undefined,
+      normalizeTeachingMethod(body.method),
     );
     return NextResponse.json({ reply });
   } catch (error) {

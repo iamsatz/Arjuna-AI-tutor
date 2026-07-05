@@ -1,5 +1,9 @@
 import { NextResponse } from "next/server";
 
+/** Parent-friendly copy when AI key is missing. */
+export const MISSING_AI_KEY_MESSAGE =
+  "Ask Amma or Nanna to add the AI key in Settings.";
+
 /** Map server/API errors to parent-friendly copy (never show .env.local). */
 export function friendlyExtractError(
   error?: string | null,
@@ -7,7 +11,7 @@ export function friendlyExtractError(
 ): string {
   const raw = `${error ?? ""} ${message ?? ""}`.toLowerCase();
   if (raw.includes("missing_api_key") || raw.includes(".env.local")) {
-    return "Photo reading isn't set up yet. Add tasks manually for now.";
+    return MISSING_AI_KEY_MESSAGE;
   }
   if (raw.includes("extract_failed") || raw.includes("gemini failed")) {
     return "Couldn't read the photo clearly — add or fix tasks below.";

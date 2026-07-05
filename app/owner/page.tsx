@@ -5,6 +5,16 @@ import { useRouter } from "next/navigation";
 import { getAppPhase } from "@/lib/phase";
 import type { StoredInvite } from "@/lib/invitesStore";
 import type { StoredSession } from "@/lib/sessionsStore";
+import type { FeedbackAnalysis } from "@/lib/feedback";
+
+type FeedbackRow = {
+  id: string;
+  created_at: string;
+  submitted_by: string;
+  child_name: string | null;
+  raw_text: string;
+  analysis: FeedbackAnalysis;
+};
 
 export default function OwnerDashboardPage() {
   const router = useRouter();
@@ -16,13 +26,15 @@ export default function OwnerDashboardPage() {
   const [inviteLabel, setInviteLabel] = useState("");
   const [creatingInvite, setCreatingInvite] = useState(false);
   const [copiedCode, setCopiedCode] = useState<string | null>(null);
+  const [feedback, setFeedback] = useState<FeedbackRow[]>([]);
 
   useEffect(() => {
     async function loadData() {
       try {
-        const [sessionsRes, invitesRes] = await Promise.all([
+        const [sessionsRes, invitesRes, feedbackRes] = await Promise.all([
           fetch("/api/owner/sessions"),
           fetch("/api/owner/invites"),
+          fetch("/api/owner/feedback"),
         ]);
 
         if (!sessionsRes.ok || !invitesRes.ok) {
@@ -35,9 +47,13 @@ export default function OwnerDashboardPage() {
         const invitesData = (await invitesRes.json()) as {
           invites: StoredInvite[];
         };
+        const feedbackData = feedbackRes.ok
+          ? ((await feedbackRes.json()) as { feedback: FeedbackRow[] })
+          : { feedback: [] };
 
         setSessions(sessionsData.sessions ?? []);
         setInvites(invitesData.invites ?? []);
+        setFeedback(feedbackData.feedback ?? []);
       } catch {
         setError("Could not load dashboard data.");
       } finally {
@@ -193,7 +209,7 @@ export default function OwnerDashboardPage() {
                 </code>{" "}
                 in <code className="text-arjuna-primaryDark">.env.local</code>
               </li>
-              <li>Add <code className="text-arjuna-primaryDark">GEMINI_API_KEY</code></li>
+              <li>Add Gemini key in app Settings, or set <code className="text-arjuna-primaryDark">GEMINI_API_KEY</code> in env</li>
               <li>Restart the dev server</li>
             </ol>
           </div>
@@ -201,6 +217,59 @@ export default function OwnerDashboardPage() {
           <p className="mt-4 rounded-xl bg-green-50 px-4 py-3 text-sm text-green-800">
             Alpha is active. Talk and Photo are unlocked for all invite users.
           </p>
+        )}
+      </section>
+
+      <section className="mb-6 rounded-2xl bg-white/95 p-5 shadow-sm">
+        <h2 className="text-lg font-semibold text-arjuna-text">
+          Parent feedback (AI analyzed)
+        </h2>
+        <p className="mt-1 text-sm text-arjuna-muted">
+          Session notes from Amma/Nanna in Settings — Gemini digest below.
+        </p>
+        {feedback.length === 0 ? (
+          <p className="mt-3 text-sm text-arjuna-muted">No feedback yet.</p>
+        ) : (
+          <ul className="mt-4 space-y-3">
+            {feedback.map((row) => (
+              <li
+                key={row.id}
+                className="rounded-xl border border-teal-100 bg-teal-50/30 px-4 py-3"
+              >
+                <div className="flex flex-wrap items-center gap-2 text-xs text-arjuna-muted">
+                  <span className="font-semibold capitalize text-arjuna-text">
+                    {row.submitted_by}
+                  </span>
+                  {row.child_name && <span>· {row.child_name}</span>}
+                  <span>· {new Date(row.created_at).toLocaleString()}</span>
+                  {row.analysis?.priority && (
+                    <span className="rounded-full bg-white px-2 py-0.5 font-semibold uppercase">
+                      {row.analysis.priority}
+                    </span>
+                  )}
+                </div>
+                <p className="mt-2 text-sm font-medium text-arjuna-text">
+                  {row.analysis?.summary ?? row.raw_text}
+                </p>
+                {row.analysis?.action_items?.length > 0 && (
+                  <ul className="mt-2 list-disc pl-5 text-xs text-arjuna-muted">
+                    {row.analysis.action_items.map((item) => (
+                      <li key={item}>{item}</li>
+                    ))}
+                  </ul>
+                )}
+                {row.analysis?.tags?.length > 0 && (
+                  <p className="mt-2 text-xs text-teal-800">
+                    Tags: {row.analysis.tags.join(", ")}
+                  </p>
+                )}
+                <details className="mt-2 text-xs text-arjuna-muted">
+                  <summary className="cursor-pointer">Raw note</summary>
+                  <p className="mt-1 whitespace-pre-wrap">{row.raw_text}</p>
+                </details>
+              </li>
+            ))}
+          </ul>
         )}
       </section>
 

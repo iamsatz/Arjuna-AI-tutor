@@ -88,6 +88,7 @@ export function buildSystemPrompt(
   teachingNotes?: string[],
   board?: CurriculumBoard,
   bridgeRules?: string,
+  method?: TeachingMethod,
 ): string {
   const gradeLine = grade
     ? `They are in ${grade}.`
@@ -101,6 +102,16 @@ export function buildSystemPrompt(
     teachingNotes && teachingNotes.length > 0
       ? `\n# Parent teaching notes\n${teachingNotes.map((n) => `- ${n}`).join("\n")}\n`
       : "";
+
+  const methodBlock =
+    method === "experiential" || !method
+      ? `
+# Interactive diary tutor (Method 1)
+- One micro-task at a time. Confirm the task before teaching.
+- Ask questions back — never lecture. Check: "Tell me in your words what we did."
+- When stuck: nudge → worked example with different numbers → tiny story with ${childName} as hero → suggest asking a parent.
+- Use diary/term context when available. Focus on understanding the concept, not finishing fast.`
+      : `\n# Teaching method\n${methodGuidance(method)}`;
 
   return `# Identity
 
@@ -121,6 +132,7 @@ ${languageRules(languageMode)}
 
 When stuck: nudge → simple example from daily life → ask a small question.
 Never give the final answer. After several tries, suggest asking a parent.
+${methodBlock}
 
 # Sacred rules
 
@@ -162,13 +174,24 @@ export function buildParentSolutionPrompt(languageMode: LanguageMode): string {
   return `You are helping a PARENT (not the child). Give the FULL worked solution and brief coaching on how to guide the child without giving the answer directly next time. Language: ${lang}. Be clear and step-by-step.`;
 }
 
-export const PHOTO_EXTRACTION_PROMPT = `You read school homework: diary pages, book pages, or worksheet photos.
-Extract EVERY separate homework item as its own task. If one page has Maths, English, Telugu and EVS, return FOUR tasks with correct subjects.
-Number items in the task text when the page has numbers (e.g. "Q1: …", "Q2: …"). If there are no numbers, describe each item clearly.
-Return JSON only, no markdown:
-{"tasks":[{"subject":"Maths|English|Telugu|Hindi|EVS|Science|Social Studies|Computer|Other","task":"short description with question number if visible","notes":""}],"confidence":"high|medium|low"}
+export const PHOTO_EXTRACTION_PROMPT = `You read a student's school DIARY or homework pages (photos or PDF pages).
+Extract BOTH:
+1) termPlan — subjects/topics listed for the term (if visible on these pages; else null)
+2) todayTasks — tonight's homework items
 
-If partially readable, return what you can with confidence medium/low. Only return empty tasks if completely unreadable.`;
+Return JSON only, no markdown:
+{
+  "termPlan": {
+    "term": "Term 1 or similar",
+    "subjects": [{"subject":"Maths|English|Telugu|Hindi|EVS|Science|Other","topics":["topic1","topic2"]}]
+  } | null,
+  "todayTasks": [{"subject":"Maths|English|Telugu|Hindi|EVS|Science|Other","task":"short description","notes":""}],
+  "teacherNote": "optional note from teacher",
+  "confidence": "high|medium|low"
+}
+
+If only daily homework is visible, set termPlan to null and fill todayTasks.
+If partially readable, return what you can with confidence medium/low.`;
 
 export const TEXT_EXTRACTION_PROMPT = `The student or parent described homework in text (diary note, spoken transcript, or typed list).
 Extract EVERY separate homework item as its own task with the correct subject.
@@ -294,4 +317,41 @@ Return JSON only, no markdown:
   "commonMistakes": ["2-3 typical errors kids make"],
   "checkQuestions": ["2-3 simple questions to check understanding (no answers)"]${isBridge ? ',\n  "bridgeWords": [{"script":"...","teluguTranslit":"...","meaningTe":"..."}]' : ""}
 }`;
+}
+
+export function buildVerifyAnswerPrompt(
+  subject: string,
+  task: string,
+  grade: string | undefined,
+  languageMode: LanguageMode,
+): string {
+  const lang =
+    languageMode === "pure_telugu"
+      ? "Telugu"
+      : languageMode === "english"
+        ? "English"
+        : "English with simple Telugu";
+
+  return `You are Arjuna, a homework tutor checking a child's written work.
+
+Homework question (${subject}${grade ? `, ${grade}` : ""}):
+${task}
+
+Read the student's handwritten/typed answer in the image. Decide if their work is CORRECT for this question (allow minor notation differences; focus on the right method and final answer).
+
+Rules:
+- Do NOT reveal the full correct solution in feedback.
+- If wrong, give a SHORT hint pointing to the mistake — not the final answer.
+- Be encouraging. Language: ${lang}.
+
+Return JSON only:
+{"correct":true|false,"feedback":"2-3 sentences to the child","hint":"only if wrong — one small nudge"}`;
+}
+
+export function buildHintOnlyPrompt(languageMode: LanguageMode): string {
+  return languageMode === "pure_telugu"
+    ? "Give ONLY a very short hint in Telugu+English. Do NOT give the final answer or full solution."
+    : languageMode === "english"
+      ? "Give ONLY a very short hint. Do NOT give the final answer or full solution."
+      : "Give ONLY a chinna hint in Telugu+English. Final answer ivvakandi.";
 }

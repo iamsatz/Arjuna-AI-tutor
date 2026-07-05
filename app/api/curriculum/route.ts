@@ -6,6 +6,7 @@ import {
 } from "@/lib/curriculumStore";
 import { extractCurriculum } from "@/lib/gemini";
 import { missingGeminiResponse } from "@/lib/userErrors";
+import { resolveGeminiKey } from "@/lib/resolveApiKey";
 
 export async function GET(request: NextRequest) {
   const schoolKey = request.nextUrl.searchParams.get("schoolKey");
@@ -22,13 +23,14 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
-  const apiKey = process.env.GEMINI_API_KEY;
+  const apiKey = resolveGeminiKey(request);
 
   const form = await request.formData();
   const schoolName = String(form.get("schoolName") ?? "").trim();
   const grade = String(form.get("grade") ?? "").trim();
   const boardRaw = String(form.get("board") ?? "").trim();
   const board = (boardRaw || undefined) as CurriculumBoard | undefined;
+  const replace = String(form.get("replace") ?? "") === "true";
 
   if (!schoolName || !grade) {
     return NextResponse.json(
@@ -43,14 +45,17 @@ export async function POST(request: NextRequest) {
   }
 
   const existing = await getCurriculumBySchoolKey(schoolKey);
-  if (existing) {
+  if (existing && !replace) {
     return NextResponse.json({ curriculum: existing, reused: true });
   }
 
   const files = form.getAll("pages").filter((f): f is File => f instanceof File);
   if (!files.length) {
     return NextResponse.json(
-      { error: "pages required", message: "Upload term plan PDF or photos" },
+      {
+        error: "pages required",
+        message: "Upload diary term pages, PDF or photos (optional fallback)",
+      },
       { status: 400 },
     );
   }
@@ -95,9 +100,32 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "save_failed" }, { status: 502 });
     }
 
-    return NextResponse.json({ curriculum, reused: false });
+    return NextResponse.json({ curriculum, reused: false, replaced: replace });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Curriculum upload failed";
     return NextResponse.json({ error: "extract_failed", message }, { status: 502 });
   }
+}
+
+export async function DELETE(request: NextRequest) {
+  const schoolKey = request.nextUrl.searchParams.get("schoolKey");
+  if (!schoolKey) {
+    return NextResponse.json({ error: "schoolKey required" }, { status: 400 });
+  }
+
+  const sb = (await import("@/lib/supabase/server")).getSupabaseServer();
+  if (!sb) {
+    return NextResponse.json({ error: "missing_config" }, { status: 503 });
+  }
+
+  const { error } = await sb
+    .from("arjuna_curricula")
+    .delete()
+    .eq("school_key", schoolKey);
+
+  if (error) {
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+
+  return NextResponse.json({ ok: true });
 }

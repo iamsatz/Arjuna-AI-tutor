@@ -1,12 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { extractConceptNotesFromImages } from "@/lib/gemini";
+import { resolveGeminiKey } from "@/lib/resolveApiKey";
 import { missingGeminiResponse } from "@/lib/userErrors";
 import { getExamById, updateExam } from "@/lib/examStore";
 
 const SOFT_PAGE_CAP = 30;
 
 export async function POST(request: NextRequest) {
-  const apiKey = process.env.GEMINI_API_KEY;
+  const apiKey = resolveGeminiKey(request);
   if (!apiKey) {
     return missingGeminiResponse();
   }

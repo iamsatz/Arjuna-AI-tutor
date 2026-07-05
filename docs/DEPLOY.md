@@ -1,35 +1,46 @@
-# Deploy Arjuna APK for testing
+# Deploy Arjuna web + APK
 
-## 1. Run Supabase migration
+## Quick release script
+
+```bash
+cd arjuna
+node scripts/release.mjs
+```
+
+Then follow the printed checklist (Vercel deploy, cap sync, APK copy).
+
+## 1. Run Supabase migrations
 
 Open [Supabase SQL editor](https://supabase.com/dashboard/project/shikwtguxfhefzvfkedo/sql) and run:
 
-`supabase/migrations/001_arjuna_mvp.sql`
+- `supabase/migrations/001_arjuna_mvp.sql`
+- `supabase/migrations/002_arjuna_feedback.sql`
 
-Creates `arjuna_events`, `arjuna_rooms`, `arjuna_exams`, `arjuna_invites`, `arjuna_curricula`, `arjuna_memory`, `arjuna_student_memory` tables + Realtime.
+Creates events, rooms, exams, curricula, memory, and **parent feedback** tables.
 
 ## 2. Environment variables
 
-In `arjuna/.env.local`:
+In `arjuna/.env.local` (server / Vercel):
 
 ```
 NEXT_PUBLIC_ARJUNA_PHASE=alpha
-GEMINI_API_KEY=your_key
+GEMINI_API_KEY=your_key          # optional if families paste key in Settings
 SARVAM_API_KEY=your_key
 NEXT_PUBLIC_SUPABASE_URL=https://shikwtguxfhefzvfkedo.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your_anon_key
 OWNER_PASSWORD=your_owner_password
-CAPACITOR_SERVER_URL=https://YOUR_VERCEL_URL
+CAPACITOR_SERVER_URL=https://arjuna-ai-tutor.vercel.app
 ```
 
 Optional: `SUPABASE_SERVICE_ROLE_KEY` for server writes if RLS blocks inserts.
+
+**Family phones:** paste Gemini key in **Settings → Gemini AI key** (no server restart needed).
 
 ## 3. Deploy web app
 
 ```bash
 cd arjuna
 npm run build
-# Deploy to Vercel (or any HTTPS host)
 vercel --prod
 ```
 
@@ -43,21 +54,24 @@ npx cap sync android
 npx cap open android
 ```
 
-In Android Studio: **Build → Build Bundle(s) / APK(s) → Build APK(s)**
+Android Studio: **Build → Build Bundle(s) / APK(s) → Build APK(s)**
 
-Install on phone and Android TV (same APK — Leanback launcher supported).
+Copy APK to `public/Arjuna-latest.apk` and redeploy web so `/download` serves the latest build.
 
-## 5. Test the three modes
+**Note:** APK loads the live Vercel URL. Web updates apply without reinstall unless native config changes.
 
-| Mode | Settings | Flow |
-|---|---|---|
-| Phone only | Device mode → Phone only | Photo/mic/type on phone |
-| Phone + TV | Device mode → Phone upload → TV | Phone uploads, enter code on TV |
-| TV only | Device mode → TV only | Mic/type on TV (no camera) |
+## 5. Verify on phone
 
-## 6. View analytics
+| Check | Pass |
+|---|---|
+| Settings → Gemini test | Green |
+| Lesson → photo diary | Tasks extracted |
+| Settings → parent feedback | Appears on `/owner` |
+| Download APK | Same URL loads |
 
-- **Owner dashboard:** `/owner/login` → `/owner/analytics`
-- **Raw data:** Supabase → Table Editor → `arjuna_events`
+## 6. Owner dashboard
+
+- `/owner/login` → sessions, **parent feedback (AI analyzed)**, invites
+- `/owner/analytics` → event counts
 
 Owner password: `OWNER_PASSWORD` in `.env.local`.

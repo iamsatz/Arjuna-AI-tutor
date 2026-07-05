@@ -7,6 +7,7 @@ export type AppSettings = {
   languageMode: LanguageMode;
   deviceMode: DeviceMode;
   parentPin: string;
+  geminiApiKey?: string;
 };
 
 const DEFAULT_SETTINGS: AppSettings = {
@@ -34,4 +35,11 @@ export function saveSettings(partial: Partial<AppSettings>): AppSettings {
 
 export function verifyParentPin(pin: string): boolean {
   return pin === loadSettings().parentPin;
+}
+
+export function maskApiKey(key?: string): string {
+  if (!key?.trim()) return "";
+  const k = key.trim();
+  if (k.length <= 4) return "••••";
+  return `••••${k.slice(-4)}`;
 }
