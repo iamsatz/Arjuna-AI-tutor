@@ -18,13 +18,24 @@ import type { CurriculumSubject } from "./curriculumTypes";
 import type { ExamQuizQuestion } from "./examTypes";
 import type { ChatMessage, HomeworkTask } from "./types";
 
-const GEMINI_URL =
-  "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent";
+const GEMINI_MODELS = ["gemini-2.0-flash", "gemini-2.5-flash"] as const;
 
 type GeminiPart = {
   text?: string;
   inline_data?: { mime_type: string; data: string };
 };
+
+function normalizeExtractedTasks(tasks: HomeworkTask[]): HomeworkTask[] {
+  return tasks.map((t) => ({
+    ...t,
+    subject: t.subject?.trim() || "Other",
+    task: t.task?.trim() || "",
+    notes: t.notes?.trim() || undefined,
+    subjectUncertain:
+      t.subjectUncertain ??
+      (!t.subject?.trim() || t.subject.trim() === "Other"),
+  }));
+}
 
 async function geminiGenerate(
   apiKey: string,
@@ -44,27 +55,34 @@ async function geminiGenerate(
     body.systemInstruction = { parts: [{ text: systemInstruction }] };
   }
 
-  const response = await fetch(GEMINI_URL, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "x-goog-api-key": apiKey,
-    },
-    body: JSON.stringify(body),
-  });
+  let lastError = "";
+  for (const model of GEMINI_MODELS) {
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`;
+    const response = await fetch(url, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-goog-api-key": apiKey,
+      },
+      body: JSON.stringify(body),
+    });
 
-  if (!response.ok) {
+    if (response.ok) {
+      const data = (await response.json()) as {
+        candidates?: { content?: { parts?: { text?: string }[] } }[];
+      };
+      const text = data.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
+      if (!text) throw new Error("Gemini returned empty response");
+      return text;
+    }
+
     const detail = await response.text();
-    throw new Error(`Gemini failed (${response.status}): ${detail}`);
+    lastError = `Gemini failed (${response.status}): ${detail}`;
+    if (response.status === 404 || response.status === 503) continue;
+    throw new Error(lastError);
   }
 
-  const data = (await response.json()) as {
-    candidates?: { content?: { parts?: { text?: string }[] } }[];
-  };
-
-  const text = data.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
-  if (!text) throw new Error("Gemini returned empty response");
-  return text;
+  throw new Error(lastError || "Gemini failed");
 }
 
 function parseJson<T>(raw: string): T {
@@ -164,7 +182,7 @@ export async function extractHomeworkFromPhotos(
     reason?: string;
   }>(raw);
 
-  const tasks = parsed.todayTasks ?? parsed.tasks ?? [];
+  const tasks = normalizeExtractedTasks(parsed.todayTasks ?? parsed.tasks ?? []);
   return {
     tasks,
     confidence: parsed.confidence ?? (tasks.length ? "medium" : "low"),
@@ -223,7 +241,18 @@ export async function extractHomeworkFromText(
     1024,
   );
 
-  return parseJson(raw);
+  const parsed = parseJson<{
+    tasks?: HomeworkTask[];
+    confidence?: string;
+    reason?: string;
+  }>(raw);
+
+  const tasks = normalizeExtractedTasks(parsed.tasks ?? []);
+  return {
+    tasks,
+    confidence: parsed.confidence ?? (tasks.length ? "medium" : "low"),
+    reason: parsed.reason,
+  };
 }
 
 export async function generateParentSolution(

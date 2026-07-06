@@ -3,12 +3,15 @@ import { loadSettings, saveSettings, type GeminiKeyStatus } from "@/lib/settings
 export function getGeminiKeyStatus(): {
   hasKey: boolean;
   status: GeminiKeyStatus;
+  usingServerDefault: boolean;
 } {
   const settings = loadSettings();
   const hasKey = Boolean(settings.geminiApiKey?.trim());
+  const status = hasKey ? (settings.geminiKeyStatus ?? "unknown") : "unknown";
   return {
     hasKey,
-    status: hasKey ? (settings.geminiKeyStatus ?? "unknown") : "unknown",
+    status,
+    usingServerDefault: !hasKey || status !== "valid",
   };
 }
 
@@ -19,18 +22,30 @@ export function setGeminiKeyStatus(status: GeminiKeyStatus) {
   });
 }
 
+export function clearInvalidUserKey() {
+  saveSettings({
+    geminiApiKey: "",
+    geminiKeyStatus: undefined,
+    geminiKeyCheckedAt: undefined,
+  });
+}
+
 export function geminiStatusLabel(
   hasKey: boolean,
   status: GeminiKeyStatus,
+  serverOk?: boolean,
 ): { text: string; tone: "ok" | "warn" | "bad" } {
-  if (!hasKey) {
-    return { text: "Tap to add AI key in Settings", tone: "warn" };
+  if (hasKey && status === "valid") {
+    return { text: "Your AI key active", tone: "ok" };
   }
-  if (status === "valid") {
-    return { text: "AI teaching ready", tone: "ok" };
+  if (hasKey && status === "invalid") {
+    return { text: "Your key not working — using Arjuna AI or fix in Settings", tone: "bad" };
   }
-  if (status === "invalid") {
-    return { text: "AI key not working — fix in Settings", tone: "bad" };
+  if (hasKey) {
+    return { text: "Key saved — test in Settings", tone: "warn" };
   }
-  return { text: "Key saved — test in Settings", tone: "warn" };
+  if (serverOk) {
+    return { text: "Arjuna AI ready", tone: "ok" };
+  }
+  return { text: "Tap to add AI key in Settings", tone: "warn" };
 }

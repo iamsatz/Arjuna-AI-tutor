@@ -3,6 +3,8 @@
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import type { ReviewableTask } from "@/lib/homeworkReview";
+import { allSubjectsConfirmed, markSubjectConfirmed } from "@/lib/homeworkReview";
+import { formatCompletedAt } from "@/lib/duplicateTasks";
 import { SUBJECT_OPTIONS } from "@/lib/profileOptions";
 
 type HomeworkTaskReviewProps = {
@@ -16,7 +18,13 @@ type HomeworkTaskReviewProps = {
   onStart: () => void;
   onDone?: () => void;
   starting?: boolean;
+  onSpeakSubjectQuestion?: (task: ReviewableTask, index: number) => void;
+  onSpeakDuplicate?: (task: ReviewableTask, index: number) => void;
+  onDismissDuplicate?: (id: string) => void;
+  onSkipDuplicate?: (id: string) => void;
 };
+
+const QUICK_SUBJECTS = SUBJECT_OPTIONS.filter((s) => s !== "Other");
 
 export function HomeworkTaskReview({
   tasks,
@@ -29,12 +37,23 @@ export function HomeworkTaskReview({
   onStart,
   onDone,
   starting,
+  onSpeakSubjectQuestion,
+  onSpeakDuplicate,
+  onDismissDuplicate,
+  onSkipDuplicate,
 }: HomeworkTaskReviewProps) {
   const selectedCount = tasks.filter((t) => t.selected && t.task.trim()).length;
+  const canStart = selectedCount > 0 && allSubjectsConfirmed(tasks);
 
   function updateTask(id: string, patch: Partial<ReviewableTask>) {
     onChange(tasks.map((t) => (t.id === id ? { ...t, ...patch } : t)));
   }
+
+  function confirmSubject(id: string, subject: string) {
+    onChange(markSubjectConfirmed(tasks, id, subject));
+  }
+
+  const duplicateCount = tasks.filter((t) => t.duplicateOf).length;
 
   return (
     <Card className="space-y-4">
@@ -47,11 +66,18 @@ export function HomeworkTaskReview({
         <p className="mt-1 text-xs text-arjuna-muted">
           {editMode
             ? "Change subjects, add pages, or fix anything Arjuna got wrong."
-            : "Check each subject and question. Uncheck any you don't want to do now."}
+            : "Check each subject and question. Tap a subject chip if Arjuna isn't sure."}
         </p>
         {extractHint && (
           <p className="mt-2 rounded-xl bg-amber-50 px-3 py-2 text-xs text-amber-900">
             {extractHint}
+          </p>
+        )}
+        {duplicateCount > 0 && (
+          <p className="mt-2 rounded-xl bg-sky-50 px-3 py-2 text-xs text-sky-900">
+            {duplicateCount} task{duplicateCount > 1 ? "s" : ""} look like homework
+            you already did — skipped by default. Tap &quot;Do again anyway&quot; to
+            include.
           </p>
         )}
       </div>
@@ -70,7 +96,13 @@ export function HomeworkTaskReview({
           {tasks.map((task, index) => (
             <li
               key={task.id}
-              className="rounded-2xl border-2 border-orange-100 bg-orange-50/50 p-3"
+              className={`rounded-2xl border-2 p-3 ${
+                task.duplicateOf
+                  ? "border-sky-200 bg-sky-50/60"
+                  : task.subjectUncertain && !task.subjectConfirmed
+                    ? "border-amber-200 bg-amber-50/50"
+                    : "border-orange-100 bg-orange-50/50"
+              }`}
             >
               <div className="mb-2 flex items-center gap-2">
                 <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-arjuna-primary font-display text-sm font-bold text-white">
@@ -87,10 +119,87 @@ export function HomeworkTaskReview({
                   Do now
                 </label>
               </div>
+
+              {task.duplicateOf && (
+                <div className="mb-2 rounded-xl bg-white/80 px-3 py-2 text-xs text-sky-900">
+                  <p className="font-semibold">
+                    Already worked on ·{" "}
+                    {formatCompletedAt(task.duplicateOf.completedAt)}
+                  </p>
+                  {task.duplicateOf.notes && (
+                    <p className="mt-1">Note: {task.duplicateOf.notes}</p>
+                  )}
+                  {task.duplicateOf.outcomeNote && (
+                    <p className="mt-0.5 text-arjuna-muted">
+                      Last time: {task.duplicateOf.outcomeNote}
+                    </p>
+                  )}
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    <button
+                      type="button"
+                      className="rounded-lg border border-sky-200 bg-white px-2 py-1 font-semibold"
+                      onClick={() => onSkipDuplicate?.(task.id)}
+                    >
+                      Skip
+                    </button>
+                    <button
+                      type="button"
+                      className="rounded-lg bg-arjuna-primary px-2 py-1 font-semibold text-white"
+                      onClick={() => onDismissDuplicate?.(task.id)}
+                    >
+                      Do again anyway
+                    </button>
+                    {onSpeakDuplicate && (
+                      <button
+                        type="button"
+                        className="rounded-lg border border-sky-200 bg-white px-2 py-1"
+                        aria-label="Read duplicate notice aloud"
+                        onClick={() => onSpeakDuplicate(task, index)}
+                      >
+                        🔊
+                      </button>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {task.subjectUncertain && !task.subjectConfirmed && (
+                <div className="mb-2 rounded-xl bg-white/80 px-3 py-2">
+                  <p className="text-xs font-semibold text-amber-900">
+                    Which subject is this?
+                  </p>
+                  <div className="mt-2 flex flex-wrap gap-1.5">
+                    {QUICK_SUBJECTS.map((subject) => (
+                      <button
+                        key={subject}
+                        type="button"
+                        className="rounded-full border border-amber-200 bg-white px-2.5 py-1 text-xs font-semibold text-arjuna-text hover:bg-amber-100"
+                        onClick={() => confirmSubject(task.id, subject)}
+                      >
+                        {subject}
+                      </button>
+                    ))}
+                  </div>
+                  {onSpeakSubjectQuestion && (
+                    <button
+                      type="button"
+                      className="mt-2 text-xs font-semibold text-arjuna-primaryDark underline"
+                      onClick={() => onSpeakSubjectQuestion(task, index)}
+                    >
+                      🔊 Hear the question
+                    </button>
+                  )}
+                </div>
+              )}
+
               <select
                 value={task.subject}
                 onChange={(e) =>
-                  updateTask(task.id, { subject: e.target.value })
+                  updateTask(task.id, {
+                    subject: e.target.value,
+                    subjectUncertain: false,
+                    subjectConfirmed: true,
+                  })
                 }
                 className="mb-2 w-full rounded-xl border-2 border-orange-100 bg-white p-2 text-sm"
               >
@@ -138,7 +247,7 @@ export function HomeworkTaskReview({
           <Button
             size="lg"
             className="flex-1"
-            disabled={selectedCount === 0 || starting}
+            disabled={!canStart || starting}
             onClick={onDone}
           >
             {starting ? "Updating…" : "Done"}
@@ -147,7 +256,7 @@ export function HomeworkTaskReview({
           <Button
             size="lg"
             className="flex-1"
-            disabled={selectedCount === 0 || starting}
+            disabled={!canStart || starting}
             onClick={onStart}
           >
             {starting

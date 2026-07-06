@@ -166,7 +166,7 @@ export function SettingsGeminiAndFeedback({ profile, onProfileChange }: Props) {
           Gemini AI key
         </h2>
         <p className="text-sm text-arjuna-muted">
-          Paste your key from{" "}
+          Leave empty to use Arjuna&apos;s built-in AI. Paste your own key from{" "}
           <a
             href="https://aistudio.google.com/apikey"
             target="_blank"
@@ -174,8 +174,8 @@ export function SettingsGeminiAndFeedback({ profile, onProfileChange }: Props) {
             className="font-semibold text-indigo-700 underline"
           >
             Google AI Studio
-          </a>
-          . Unlocks photo reading, teaching chat, and summaries.
+          </a>{" "}
+          only if you want your account used instead.
         </p>
         {savedKeyHint && (
           <div className="flex items-center justify-between gap-2">

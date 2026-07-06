@@ -13,6 +13,8 @@ import { loadSettings, verifyParentPin, type DeviceMode, type LanguageMode } fro
 import type { HomeworkTask } from "@/lib/types";
 import { track, setAnalyticsContext } from "@/lib/analytics";
 import { arjunaFetch, getGeminiKeyHeader } from "@/lib/apiClient";
+import { clearInvalidUserKey } from "@/lib/geminiKeyStatus";
+import { appendTaskHistory, profileHistoryKey } from "@/lib/taskHistoryStore";
 import { normalizeTeachingMethod } from "@/lib/teachingMethods";
 import { playSpeech } from "@/lib/clientSpeech";
 import { stripSpeechMarkers } from "@/lib/bridgeSubject";
@@ -105,6 +107,28 @@ export function useLessonSession({
   const [pinInput, setPinInput] = useState("");
   const [loading, setLoading] = useState(false);
   const sessionTrackedRef = useRef(false);
+  const sessionPageHashesRef = useRef<string[]>([]);
+
+  const saveCompletedTaskHistory = useCallback(
+    (
+      task: HomeworkTask | undefined,
+      outcomeNote: string,
+    ) => {
+      if (!task?.task.trim()) return;
+      const profileKey = profileHistoryKey(profile);
+      appendTaskHistory(profileKey, {
+        subject: task.subject,
+        task: task.task,
+        notes: task.notes,
+        outcomeNote,
+        imageHashes:
+          sessionPageHashesRef.current.length > 0
+            ? [...sessionPageHashesRef.current]
+            : undefined,
+      });
+    },
+    [profile],
+  );
 
   const studentKey = profile.id
     ? buildStudentKey(profile.inviteCode, profile.id)
@@ -330,76 +354,115 @@ export function useLessonSession({
       setLoading(true);
       patchState({ avatarState: "loading", statusMessage: "Reading homework…" });
 
-      try {
-        let result: {
-          tasks: HomeworkTask[];
-          confidence: string;
-          reason?: string;
-        };
+      const isAuthError = (error?: string, message?: string) => {
+        const raw = `${error ?? ""} ${message ?? ""}`.toLowerCase();
+        return (
+          raw.includes("401") ||
+          raw.includes("google_rejected") ||
+          raw.includes("unauthenticated")
+        );
+      };
 
+      const parseExtractBody = async (res: Response) => {
+        const body = (await res.json()) as {
+          tasks?: HomeworkTask[];
+          confidence?: string;
+          reason?: string;
+          error?: string;
+          message?: string;
+        };
+        if (!res.ok && !body.tasks?.length) {
+          return {
+            tasks: [] as HomeworkTask[],
+            confidence: "low" as const,
+            error: friendlyExtractError(body.error, body.message),
+            authFailed: isAuthError(body.error, body.message),
+          };
+        }
+        if (body.error && !body.tasks?.length) {
+          return {
+            tasks: [] as HomeworkTask[],
+            confidence: (body.confidence ?? "low") as string,
+            error: friendlyExtractError(body.error, body.message),
+            authFailed: isAuthError(body.error, body.message),
+          };
+        }
+        return {
+          tasks: body.tasks ?? [],
+          confidence: body.confidence ?? "medium",
+          reason: body.reason,
+          authFailed: false,
+        };
+      };
+
+      try {
         if (input.files?.length) {
-          const form = new FormData();
-          for (const file of input.files) {
-            form.append("photo", file);
+          const runPhotoExtract = async (useUserKey: boolean) => {
+            const form = new FormData();
+            for (const file of input.files!) {
+              form.append("photo", file);
+            }
+            if (input.diaryNote?.trim()) {
+              form.append("diaryNote", input.diaryNote.trim());
+            }
+            if (input.text?.trim()) {
+              form.append("text", input.text.trim());
+            }
+            if (profile.schoolName?.trim()) {
+              form.append("schoolName", profile.schoolName.trim());
+            }
+            if (profile.grade?.trim()) {
+              form.append("grade", profile.grade.trim());
+            }
+            if (profile.board) {
+              form.append("board", profile.board);
+            }
+            const res = await fetch("/api/extract-tasks", {
+              method: "POST",
+              headers: useUserKey ? getGeminiKeyHeader() : {},
+              body: form,
+            });
+            return parseExtractBody(res);
+          };
+
+          let parsed = await runPhotoExtract(true);
+          if (parsed.authFailed) {
+            clearInvalidUserKey();
+            parsed = await runPhotoExtract(false);
           }
-          if (input.diaryNote?.trim()) {
-            form.append("diaryNote", input.diaryNote.trim());
-          }
-          if (input.text?.trim()) {
-            form.append("text", input.text.trim());
-          }
-          if (profile.schoolName?.trim()) {
-            form.append("schoolName", profile.schoolName.trim());
-          }
-          if (profile.grade?.trim()) {
-            form.append("grade", profile.grade.trim());
-          }
-          if (profile.board) {
-            form.append("board", profile.board);
-          }
-          const res = await fetch("/api/extract-tasks", {
-            method: "POST",
-            headers: getGeminiKeyHeader(),
-            body: form,
+          void track("homework_input", {
+            inputType: "photo",
+            tasksCount: parsed.tasks?.length ?? 0,
           });
-          const body = (await res.json()) as {
-            tasks?: HomeworkTask[];
-            confidence?: string;
-            reason?: string;
-            error?: string;
-            message?: string;
+          patchState({ avatarState: "idle" });
+          if (parsed.error) {
+            return {
+              tasks: parsed.tasks,
+              confidence: parsed.confidence,
+              error: parsed.error,
+            };
+          }
+          return {
+            tasks: parsed.tasks,
+            confidence: parsed.confidence,
+            reason: parsed.reason,
           };
-          if (!res.ok && !body.tasks?.length) {
-            return {
-              tasks: [],
-              confidence: "low",
-              error: friendlyExtractError(body.error, body.message),
-            };
-          }
-          if (body.error && !body.tasks?.length) {
-            return {
-              tasks: [],
-              confidence: body.confidence ?? "low",
-              error: friendlyExtractError(body.error, body.message),
-            };
-          }
-          result = {
-            tasks: body.tasks ?? [],
-            confidence: body.confidence ?? "medium",
-            reason: body.reason,
+        }
+
+        const combined = [input.diaryNote, input.text]
+          .filter(Boolean)
+          .join("\n\n")
+          .trim();
+        if (!combined) {
+          patchState({ avatarState: "idle" });
+          return {
+            tasks: [],
+            confidence: "low",
+            error: "Add photos or type the diary note first.",
           };
-        } else {
-          const combined = [input.diaryNote, input.text]
-            .filter(Boolean)
-            .join("\n\n")
-            .trim();
-          if (!combined) {
-            return {
-              tasks: [],
-              confidence: "low",
-              error: "Add photos or type the diary note first.",
-            };
-          }
+        }
+
+        const runTextExtract = async () => {
           const res = await arjunaFetch("/api/extract-tasks", {
             method: "POST",
             json: {
@@ -407,45 +470,30 @@ export function useLessonSession({
               diaryNote: input.diaryNote?.trim(),
             },
           });
-          const body = (await res.json()) as {
-            tasks?: HomeworkTask[];
-            confidence?: string;
-            reason?: string;
-            error?: string;
-            message?: string;
-          };
-          if (!res.ok && !body.tasks?.length) {
-            return {
-              tasks: [],
-              confidence: "low",
-              error: friendlyExtractError(body.error, body.message),
-            };
-          }
-          if (body.error && !body.tasks?.length) {
-            return {
-              tasks: [],
-              confidence: body.confidence ?? "low",
-              error: friendlyExtractError(body.error, body.message),
-            };
-          }
-          result = {
-            tasks: body.tasks ?? [],
-            confidence: body.confidence ?? "medium",
-            reason: body.reason,
+          return parseExtractBody(res);
+        };
+
+        let parsed = await runTextExtract();
+        if (parsed.authFailed) {
+          clearInvalidUserKey();
+          parsed = await runTextExtract();
+        }
+        void track("homework_input", {
+          inputType: "text",
+          tasksCount: parsed.tasks?.length ?? 0,
+        });
+        patchState({ avatarState: "idle" });
+        if (parsed.error) {
+          return {
+            tasks: parsed.tasks,
+            confidence: parsed.confidence,
+            error: parsed.error,
           };
         }
-
-        void track("homework_input", {
-          inputType: input.files?.length ? "photo" : "text",
-          tasksCount: result.tasks?.length ?? 0,
-        });
-
-        patchState({ avatarState: "idle" });
-
         return {
-          tasks: result.tasks ?? [],
-          confidence: result.confidence ?? "medium",
-          reason: result.reason,
+          tasks: parsed.tasks,
+          confidence: parsed.confidence,
+          reason: parsed.reason,
         };
       } catch (e) {
         patchState({ avatarState: "idle" });
@@ -460,12 +508,14 @@ export function useLessonSession({
         setLoading(false);
       }
     },
-    [patchState],
+    [patchState, profile.board, profile.grade, profile.schoolName],
   );
 
   const startSelectedTasks = useCallback(
-    async (tasks: HomeworkTask[]) => {
+    async (tasks: HomeworkTask[], options?: { pageHashes?: string[] }) => {
       if (!tasks.length) return;
+
+      sessionPageHashesRef.current = options?.pageHashes ?? [];
 
       setLoading(true);
       try {
@@ -684,6 +734,7 @@ export function useLessonSession({
 
         if (data.correct) {
           const msg = data.feedback || localizedCopy(settings.languageMode, "verify_correct");
+          saveCompletedTaskHistory(task, "Answer verified correct");
           patchState({
             phase: "verify_result",
             lastVerifyCorrect: true,
@@ -745,6 +796,7 @@ export function useLessonSession({
       patchState,
       profile.grade,
       recordStudentOutcome,
+      saveCompletedTaskHistory,
       settings.languageMode,
       speak,
     ],
@@ -752,10 +804,9 @@ export function useLessonSession({
 
   const handleUnderstood = useCallback(async () => {
     void track("understood", { attempt: activeState.attemptCount + 1 });
-    recordStudentOutcome(
-      "understood",
-      activeState.tasks[activeState.currentTaskIndex],
-    );
+    const task = activeState.tasks[activeState.currentTaskIndex];
+    recordStudentOutcome("understood", task);
+    saveCompletedTaskHistory(task, "Understood");
     const nextIndex = activeState.currentTaskIndex + 1;
     if (nextIndex >= activeState.tasks.length) {
       patchState({ phase: "session_done", statusMessage: "All done! Great job!" });
@@ -785,6 +836,7 @@ export function useLessonSession({
     speak,
     startTask,
     recordStudentOutcome,
+    saveCompletedTaskHistory,
   ]);
 
   const handleNotUnderstood = useCallback(async () => {

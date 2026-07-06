@@ -2,6 +2,8 @@ export type HomeworkTask = {
   subject: string;
   task: string;
   notes?: string;
+  /** Gemini flagged subject as a guess — parent should confirm. */
+  subjectUncertain?: boolean;
 };
 
 export type ChatMessage = {

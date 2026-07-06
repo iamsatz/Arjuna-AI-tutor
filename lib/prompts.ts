@@ -185,18 +185,21 @@ Return JSON only, no markdown:
     "term": "Term 1 or similar",
     "subjects": [{"subject":"Maths|English|Telugu|Hindi|EVS|Science|Other","topics":["topic1","topic2"]}]
   } | null,
-  "todayTasks": [{"subject":"Maths|English|Telugu|Hindi|EVS|Science|Other","task":"short description","notes":""}],
+  "todayTasks": [{"subject":"Maths|English|Telugu|Hindi|EVS|Science|Other","task":"short description","notes":"","subjectUncertain":false}],
   "teacherNote": "optional note from teacher",
   "confidence": "high|medium|low"
 }
 
+Set subjectUncertain true when the subject label is missing, the page mixes subjects, or you are guessing the subject.
 If only daily homework is visible, set termPlan to null and fill todayTasks.
 If partially readable, return what you can with confidence medium/low.`;
 
 export const TEXT_EXTRACTION_PROMPT = `The student or parent described homework in text (diary note, spoken transcript, or typed list).
 Extract EVERY separate homework item as its own task with the correct subject.
 Return JSON only, no markdown:
-{"tasks":[{"subject":"Maths|English|Telugu|Hindi|EVS|Science|Social Studies|Computer|Other","task":"short description","notes":""}],"confidence":"high|medium|low"}`;
+{"tasks":[{"subject":"Maths|English|Telugu|Hindi|EVS|Science|Social Studies|Computer|Other","task":"short description","notes":"","subjectUncertain":false}],"confidence":"high|medium|low"}
+
+Set subjectUncertain true when the subject is missing or you are guessing.`;
 
 export const SUMMARY_PROMPT = `From this Arjuna tutoring session transcript, write two parent summaries (80-150 words each).
 Return JSON only:

@@ -4,13 +4,21 @@ type FetchInit = RequestInit & {
   json?: Record<string, unknown>;
 };
 
+/** Only attach a saved parent key when it passed Test connection. */
+function validatedUserKey(): string | null {
+  const settings = loadSettings();
+  const key = settings.geminiApiKey?.trim();
+  if (!key || settings.geminiKeyStatus !== "valid") return null;
+  return key;
+}
+
 function geminiHeaders(): HeadersInit {
-  const key = loadSettings().geminiApiKey?.trim();
+  const key = validatedUserKey();
   if (!key) return {};
   return { "x-gemini-key": key };
 }
 
-/** Client fetch that attaches Gemini key from Settings when present. */
+/** Client fetch that attaches Gemini key from Settings when validated. */
 export async function arjunaFetch(
   input: RequestInfo | URL,
   init: FetchInit = {},
@@ -37,7 +45,7 @@ export async function arjunaFetch(
     }
     const payload = { ...init.json };
     if (!explicitKey) {
-      const savedKey = loadSettings().geminiApiKey?.trim();
+      const savedKey = validatedUserKey();
       if (savedKey) payload.geminiApiKey = savedKey;
     }
     body = JSON.stringify(payload);
@@ -47,11 +55,14 @@ export async function arjunaFetch(
 }
 
 export function getGeminiKeyHeader(): Record<string, string> {
-  const key = loadSettings().geminiApiKey?.trim();
+  const key = validatedUserKey();
   return key ? { "x-gemini-key": key } : {};
 }
 
 export function hasGeminiKeyConfigured(): boolean {
-  const key = loadSettings().geminiApiKey?.trim();
-  return Boolean(key && key.length > 8);
+  return validatedUserKey() !== null;
+}
+
+export function hasValidatedUserKey(): boolean {
+  return validatedUserKey() !== null;
 }

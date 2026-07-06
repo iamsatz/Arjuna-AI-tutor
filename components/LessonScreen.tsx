@@ -28,8 +28,17 @@ import {
   mergeReviewTasks,
   reviewableToHomework,
   tasksToReviewable,
+  dismissDuplicate,
+  skipDuplicate,
   type ReviewableTask,
 } from "@/lib/homeworkReview";
+import { prepareUploadFiles } from "@/lib/compressImage";
+import { hashFiles, formatCompletedAt } from "@/lib/duplicateTasks";
+import {
+  findHistoryByImageHash,
+  loadTaskHistory,
+  profileHistoryKey,
+} from "@/lib/taskHistoryStore";
 import type { AvatarState } from "@/lib/avatar";
 
 type HwPhase = "capture" | "extracting" | "review";
@@ -62,6 +71,7 @@ export function LessonScreen({
   const [reviewTasks, setReviewTasks] = useState<ReviewableTask[]>([]);
   const [reviewEditMode, setReviewEditMode] = useState(false);
   const [extractHint, setExtractHint] = useState<string | null>(null);
+  const [pageHashes, setPageHashes] = useState<string[]>([]);
   const [startingLesson, setStartingLesson] = useState(false);
   const [upcomingExams, setUpcomingExams] = useState<StoredExam[]>([]);
   const [streak, setStreak] = useState(getStreak);
@@ -103,7 +113,7 @@ export function LessonScreen({
     readOnly,
   });
 
-  const { state, loading, doubtInput, setDoubtInput, pinInput, setPinInput } =
+  const { state, loading, doubtInput, setDoubtInput, pinInput, setPinInput, speak } =
     lesson;
   const settings = loadSettings();
 
@@ -128,67 +138,85 @@ export function LessonScreen({
       files?: File[];
       text?: string;
       merge?: boolean;
+      pageHashes?: string[];
     }) => {
       setHwPhase("extracting");
       setExtractHint(null);
+
+      const history = loadTaskHistory(profileHistoryKey(profile));
+      const hashes = input.pageHashes ?? pageHashes;
+      const imageEntry =
+        hashes.length > 0
+          ? findHistoryByImageHash(history, hashes[0])
+          : undefined;
 
       const result = await lesson.extractHomeworkForReview({
         files: input.files,
         text: input.text,
       });
 
-      const rows =
-        result.tasks.length > 0 ? homeworkToReviewable(result.tasks) : [];
+      const hadPdf = input.files?.some((f) => f.type === "application/pdf");
 
       if (input.merge) {
-        setReviewTasks((prev) =>
-          prev.length ? mergeReviewTasks(prev, rows) : rows.length ? rows : [emptyManualTask()],
-        );
-        if (result.error) setExtractHint(result.error);
-        else if (rows.length === 0) {
-          setExtractHint("No new tasks found on that page.");
-        }
+        const incoming =
+          result.tasks.length > 0
+            ? homeworkToReviewable(result.tasks, history, imageEntry)
+            : [];
+        setReviewTasks((prev) => {
+          const base = prev.length ? prev : [emptyManualTask()];
+          if (!incoming.length) return base;
+          const merged = mergeReviewTasks(base, incoming, history);
+          if (merged.skippedDuplicates.length > 0) {
+            const when = formatCompletedAt(
+              merged.skippedDuplicates[0].entry.completedAt,
+            );
+            setExtractHint(
+              `${merged.skippedDuplicates.length} duplicate task(s) skipped — already done ${when}.`,
+            );
+          } else if (result.error) {
+            setExtractHint(result.error);
+          } else if (!incoming.length) {
+            setExtractHint("No new tasks found on that page.");
+          }
+          return merged.tasks;
+        });
         setHwPhase("review");
         return;
       }
 
+      const rows =
+        result.tasks.length > 0
+          ? homeworkToReviewable(result.tasks, history, imageEntry)
+          : [];
+
       if (rows.length === 0) {
-        openManualReview(
+        let hint =
           result.error ??
-            "Couldn't read it clearly — type your homework below.",
-        );
+          "Couldn't read it clearly — type your homework below.";
+        if (hadPdf) {
+          hint =
+            "PDF didn't read clearly — take a photo of each page instead, or type tasks below.";
+        }
+        openManualReview(hint);
         return;
       }
 
       setReviewTasks(rows);
-
-      if (result.error) {
-        setExtractHint(result.error);
-        setReviewEditMode(false);
-        setHwPhase("review");
-        return;
-      }
-
-      if (result.confidence === "low") {
-        setExtractHint("Check the tasks below — fix anything wrong.");
-        setReviewEditMode(false);
-        setHwPhase("review");
-        return;
-      }
-
-      const allSelected = rows.map((r) => ({ ...r, selected: true }));
-      const tasks = reviewableToHomework(allSelected);
-      setStartingLesson(true);
-      await lesson.startSelectedTasks(tasks);
-      setStartingLesson(false);
+      setExtractHint(
+        result.error ??
+          "Check each task. Tap a subject chip if Arjuna isn't sure.",
+      );
       setReviewEditMode(false);
-      setHwPhase("capture");
+      setHwPhase("review");
     },
-    [lesson],
+    [lesson, pageHashes, profile],
   );
 
-  function handleCapture(files: File[]) {
-    void runRead({ files: files.slice(0, MAX_PHOTOS) });
+  async function handleCapture(files: File[]) {
+    const prepared = await prepareUploadFiles(files.slice(0, MAX_PHOTOS));
+    const hashes = await hashFiles(prepared);
+    setPageHashes(hashes);
+    void runRead({ files: prepared, pageHashes: hashes });
   }
 
   function handleReadText(text: string) {
@@ -197,8 +225,14 @@ export function LessonScreen({
 
   function handleAddPageFiles(fileList: FileList | null) {
     if (!fileList?.length) return;
-    const files = Array.from(fileList).slice(0, MAX_PHOTOS);
-    void runRead({ files, merge: true });
+    void (async () => {
+      const prepared = await prepareUploadFiles(
+        Array.from(fileList).slice(0, MAX_PHOTOS),
+      );
+      const hashes = await hashFiles(prepared);
+      setPageHashes((prev) => [...prev, ...hashes]);
+      void runRead({ files: prepared, merge: true, pageHashes: hashes });
+    })();
   }
 
   function stopMicStream() {
@@ -269,7 +303,7 @@ export function LessonScreen({
     const selected = reviewableToHomework(reviewTasks);
     if (!selected.length) return;
     setStartingLesson(true);
-    await lesson.startSelectedTasks(selected);
+    await lesson.startSelectedTasks(selected, { pageHashes });
     setStartingLesson(false);
     setReviewEditMode(false);
     setHwPhase("capture");
@@ -279,7 +313,7 @@ export function LessonScreen({
     const selected = reviewableToHomework(reviewTasks);
     if (!selected.length) return;
     setStartingLesson(true);
-    await lesson.startSelectedTasks(selected);
+    await lesson.startSelectedTasks(selected, { pageHashes });
     setStartingLesson(false);
     setReviewEditMode(false);
     setHwPhase("capture");
@@ -387,11 +421,31 @@ export function LessonScreen({
             onStart={() => void handleStartSelected()}
             onDone={() => void handleReviewDone()}
             starting={startingLesson}
+            onSpeakSubjectQuestion={(task, index) => {
+              const snippet = task.task.trim().slice(0, 80);
+              void speak(
+                `Task ${index + 1}. ${snippet || "This homework"}. Which subject is this?`,
+              );
+            }}
+            onSpeakDuplicate={(task, index) => {
+              const when = task.duplicateOf
+                ? formatCompletedAt(task.duplicateOf.completedAt)
+                : "before";
+              void speak(
+                `Task ${index + 1}. You already worked on this ${when}.`,
+              );
+            }}
+            onDismissDuplicate={(id) =>
+              setReviewTasks((prev) => dismissDuplicate(prev, id))
+            }
+            onSkipDuplicate={(id) =>
+              setReviewTasks((prev) => skipDuplicate(prev, id))
+            }
           />
           <input
             ref={addPageRef}
             type="file"
-            accept="image/*"
+            accept="image/*,application/pdf"
             capture="environment"
             className="hidden"
             onChange={(e) => {
