@@ -6,6 +6,29 @@ hidden bugs, then the two big features (Scenario 1 & 3).
 Status legend: 🔴 Broken · 🟠 Needs improvement · 🔵 Suggestion · ⚪ Not started · 🟢 Working · ❓ Unverified
 Priority: P0 blocks a whole feature · P1 subset/silent · P2 quality/polish · P3 cosmetic
 
+## 🔴 Open — production env vars missing (blocks everything AI/Supabase-backed)
+
+Confirmed via `curl https://arjuna-ai-tutor.vercel.app/api/health`: both
+Supabase and Gemini report `not_configured` on production. This is the real
+cause behind "AI key not working" and exam creation failing — not a code bug.
+Invite links only work because of a file-based fallback specific to invites;
+everything else Supabase-backed (exams, curricula, student memory) silently
+no-ops.
+
+**Needs to be set in Vercel → Project → Settings → Environment Variables**
+(Production scope), then redeploy:
+- `GEMINI_API_KEY`
+- `NEXT_PUBLIC_SUPABASE_URL` (`https://shikwtguxfhefzvfkedo.supabase.co`)
+- `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+- `SUPABASE_SERVICE_ROLE_KEY` (recommended, for server-side writes)
+
+This requires the account owner — the Vercel CLI in this project is not
+logged in here (`vercel whoami` → "specified token is not valid"), so it
+can't be set from this session without `vercel login` being run interactively
+first. **Never paste real key values into this file or any other committed
+file** — set them directly in the Vercel dashboard (or via `vercel env add`
+after logging in locally). Re-verify with `/api/health` once set.
+
 ## Overview
 
 | # | Session | Priority | Effort | Test by opening | State |
@@ -22,6 +45,7 @@ Priority: P0 blocks a whole feature · P1 subset/silent · P2 quality/polish · 
 | S8 | PDF polish + backlog + roadmap update | P2/P3 | S | `/`, `/roadmap` | ☐ |
 | S1.7 | Exam input parity (upload JPG/PDF/PNG, scan, type, speak) | P1 | M | `/exam` | ✅ done + live-tested + deployed |
 | S1.8 | Homework label clarity, curriculum preview+confirm, multi-subject exam create | P1/P2 | M | `/`, `/settings`, `/exam` | ✅ done + live-tested + deployed |
+| S9 | School Message Understanding Agent (homework + notices + timetables, learns from corrections) | P1 | L | `/`, new School Inbox | ☐ designed, not started |
 
 ## Confirmed defects (source of truth)
 
@@ -57,7 +81,7 @@ Priority: P0 blocks a whole feature · P1 subset/silent · P2 quality/polish · 
 
 ## Session detail
 
-### S1 — Restore English tab + Exam key (in progress)
+### S1 — Restore English tab + Exam key
 - `lib/apiClient.ts`: `arjunaFetch` defaults to POST when a `json` body is present.
 - Add explicit `method:"POST"` at the 5 English call sites (belt + braces).
 - `components/ExamHub.tsx`: route the 6 AI calls (timetable, material, revise×2, quiz×2) through the key-aware helper.
@@ -156,3 +180,46 @@ real UX gaps:
 
 ### S8 — PDF polish + backlog + roadmap
 - Use `reason:"pdf_unsupported"` for a sharper tip / per-page retry; update `/roadmap` (Spaced-repetition + Weekly-report → Shipped).
+
+### S9 — School Message Understanding Agent (designed, not yet built)
+User wants a separate agent to understand homework AND other school
+communications, and to be able to "teach" it over time. Scoped via discussion:
+- **Handles:** homework diary (absorbs existing extraction), school
+  notices/circulars (new — holiday notices, PTM announcements, fee reminders,
+  event circulars — currently no path for these at all), and exam timetables
+  (fold in conceptually; S1.7 already built the timetable pipeline).
+- **"Teaching" mechanism — learn from corrections over time (chosen over
+  upfront-rules-only):** there's no local model to fine-tune here, so
+  "teaching" means a persistent per-school memory of corrections fed back into
+  future extraction prompts as context — the same shape as the existing
+  `teachingPlan.ts` research-once-cache-reuse pattern, applied to message
+  understanding instead of invented fresh.
+- **Sharing scope — shared per-school (chosen over private-per-family):**
+  reuses the existing `schoolKey` mechanism (school+grade+board). One
+  family's correction improves extraction for every other family at that
+  school immediately.
+
+**Architecture:**
+1. One classifying entry point (`/api/school/understand`): parent scans/
+   types/speaks anything from school; a lightweight classifier prompt sorts
+   it into homework / notice-circular / exam timetable, then routes to the
+   matching specialist extractor.
+2. New notices/circulars pipeline: new prompt producing
+   `{type: holiday|ptm|fee|event|other, title, date, summary, actionNeeded}`,
+   surfaced in a new **School Inbox** card on the Homework tab (this is
+   backlog item "School comms inbox" from the roadmap — direct alignment).
+   Same capture tray (scan/upload/type/speak) as everywhere else for consistency.
+3. The teaching loop: parent corrects a task/notice in the review screen (the
+   diff between what the agent produced and what the parent finalized is
+   currently thrown away — this session captures it); log the correction to
+   a new `arjuna_school_corrections` Supabase table keyed by `schoolKey`;
+   periodically (every few corrections) one Gemini call distills the raw
+   correction log into a compact ~5-10 rule ruleset per school, cached and
+   reused (mirrors the teaching-plan cache); every future extraction for that
+   school includes the latest learned rules automatically.
+
+**Size/risk note:** needs a new Supabase table/migration (the one genuinely
+hard-to-reverse piece — write the SQL for the user to run, don't apply it
+autonomously), 2 new API routes, one new prompt set, a correction-diff hook
+wired into the existing review screens, and a new Inbox UI. Comparable in
+size to S6 (revision scheduler). Not started — awaiting a go-ahead to build.
