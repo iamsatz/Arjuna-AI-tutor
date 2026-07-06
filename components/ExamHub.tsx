@@ -14,6 +14,7 @@ import {
 } from "@/lib/childProfile";
 import type { StoredExam } from "@/lib/examTypes";
 import { arjunaFetch, getGeminiKeyHeader } from "@/lib/apiClient";
+import { prepareUploadFiles } from "@/lib/compressImage";
 import { topicsToConceptNotes, type StoredCurriculum } from "@/lib/curriculumTypes";
 import { loadSettings, verifyParentPin } from "@/lib/settings";
 import { track } from "@/lib/analytics";
@@ -26,7 +27,8 @@ type ExamHubProps = {
   profile: ChildProfile;
 };
 
-type PrepMode = "list" | "create" | "curriculum" | "upload" | "revise" | "quiz";
+type PrepMode = "list" | "create" | "curriculum" | "timetable" | "upload" | "revise" | "quiz";
+type MicTarget = "timetable" | "topics";
 
 export function ExamHub({ profile }: ExamHubProps) {
   const searchParams = useSearchParams();
@@ -47,7 +49,17 @@ export function ExamHub({ profile }: ExamHubProps) {
   const [topicsText, setTopicsText] = useState("");
   const [pageFiles, setPageFiles] = useState<File[]>([]);
   const pageRef = useRef<HTMLInputElement>(null);
+  const pageGalleryRef = useRef<HTMLInputElement>(null);
   const timetableRef = useRef<HTMLInputElement>(null);
+  const timetableGalleryRef = useRef<HTMLInputElement>(null);
+  const [timetableText, setTimetableText] = useState("");
+
+  const [recording, setRecording] = useState(false);
+  const [transcribing, setTranscribing] = useState(false);
+  const [micTarget, setMicTarget] = useState<MicTarget | null>(null);
+  const recorderRef = useRef<MediaRecorder | null>(null);
+  const micStreamRef = useRef<MediaStream | null>(null);
+  const chunksRef = useRef<Blob[]>([]);
 
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [lastReply, setLastReply] = useState("");
@@ -233,12 +245,25 @@ export function ExamHub({ profile }: ExamHubProps) {
     }
   }
 
-  async function handleTimetableUpload(file: File) {
+  async function saveTimetableResult(res: Response) {
+    if (!res.ok) throw new Error("timetable failed");
+    const data = (await res.json()) as { exams: StoredExam[] };
+    for (const exam of data.exams) {
+      void track("exam_created", { subject: exam.subject, examId: exam.id, source: "timetable" });
+    }
+    await loadExams();
+    setMode("list");
+    setTimetableText("");
+  }
+
+  async function handleTimetableFiles(files: File[]) {
+    if (!files.length) return;
     setBusy(true);
     setError(null);
     try {
+      const prepared = await prepareUploadFiles(files);
       const form = new FormData();
-      form.append("photo", file);
+      for (const file of prepared) form.append("photo", file);
       form.append("inviteCode", profile.inviteCode);
       form.append("childName", profile.childName);
       if (profile.board) form.append("board", profile.board);
@@ -249,17 +274,97 @@ export function ExamHub({ profile }: ExamHubProps) {
         headers: getGeminiKeyHeader(),
         body: form,
       });
-      if (!res.ok) throw new Error("timetable failed");
-      const data = (await res.json()) as { exams: StoredExam[] };
-      for (const exam of data.exams) {
-        void track("exam_created", { subject: exam.subject, examId: exam.id, source: "timetable" });
-      }
-      await loadExams();
-      setMode("list");
+      await saveTimetableResult(res);
     } catch {
-      setError("Could not read timetable. Try a clearer photo.");
+      setError("Could not read timetable. Try a clearer photo, or type it instead.");
     } finally {
       setBusy(false);
+    }
+  }
+
+  async function handleTimetableTextSubmit() {
+    const text = timetableText.trim();
+    if (!text) return;
+    setBusy(true);
+    setError(null);
+    try {
+      const res = await arjunaFetch("/api/exam/timetable", {
+        method: "POST",
+        json: {
+          text,
+          inviteCode: profile.inviteCode,
+          childName: profile.childName,
+          board: profile.board,
+          grade: profile.grade,
+        },
+      });
+      await saveTimetableResult(res);
+    } catch {
+      setError("Could not understand that schedule. Try adding subject + date clearly.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  function stopMicStream() {
+    micStreamRef.current?.getTracks().forEach((track) => track.stop());
+    micStreamRef.current = null;
+  }
+
+  async function toggleMic(target: MicTarget) {
+    if (recording && micTarget === target) {
+      const recorder = recorderRef.current;
+      if (!recorder) return;
+      setTranscribing(true);
+      await new Promise<void>((resolve) => {
+        recorder.onstop = () => resolve();
+        recorder.stop();
+      });
+      setRecording(false);
+      stopMicStream();
+      recorderRef.current = null;
+      const blob = new Blob(chunksRef.current, { type: "audio/webm" });
+      chunksRef.current = [];
+
+      try {
+        const form = new FormData();
+        form.append("audio", blob, "recording.webm");
+        const res = await fetch("/api/transcribe", { method: "POST", body: form });
+        const data = (await res.json()) as { transcript?: string; error?: string };
+        const text = data.transcript?.trim();
+        if (res.ok && text) {
+          if (target === "timetable") {
+            setTimetableText((prev) => (prev ? `${prev} ${text}` : text));
+          } else {
+            setTopicsText((prev) => (prev ? `${prev}, ${text}` : text));
+          }
+        } else {
+          setError("Could not hear you. Try again or type instead.");
+        }
+      } catch {
+        setError("Could not hear you. Try again or type instead.");
+      } finally {
+        setTranscribing(false);
+        setMicTarget(null);
+      }
+      return;
+    }
+
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      micStreamRef.current = stream;
+      const recorder = new MediaRecorder(stream);
+      chunksRef.current = [];
+      recorder.ondataavailable = (e) => {
+        if (e.data.size > 0) chunksRef.current.push(e.data);
+      };
+      recorder.start();
+      recorderRef.current = recorder;
+      setMicTarget(target);
+      setRecording(true);
+    } catch {
+      stopMicStream();
+      setError("Microphone blocked. Allow mic in browser settings, or type instead.");
     }
   }
 
@@ -521,25 +626,16 @@ export function ExamHub({ profile }: ExamHubProps) {
             </button>
             <button
               type="button"
-              onClick={() => timetableRef.current?.click()}
+              onClick={() => {
+                setMode("timetable");
+                setError(null);
+              }}
               disabled={busy}
               className="flex-1 rounded-xl border border-arjuna-primary/30 bg-white py-3 text-sm font-semibold"
             >
               📅 Timetable
             </button>
           </div>
-          <input
-            ref={timetableRef}
-            type="file"
-            accept="image/*"
-            capture="environment"
-            className="hidden"
-            onChange={(e) => {
-              const file = e.target.files?.[0];
-              if (file) void handleTimetableUpload(file);
-              e.target.value = "";
-            }}
-          />
 
           {loading && <p className="text-sm text-arjuna-muted">Loading…</p>}
 
@@ -686,6 +782,109 @@ export function ExamHub({ profile }: ExamHubProps) {
         </div>
       )}
 
+      {mode === "timetable" && (
+        <div className="space-y-4">
+          <h2 className="text-lg font-semibold">Add timetable</h2>
+          <p className="text-sm text-arjuna-muted">
+            Scan a photo or PDF of the timetable, or type / speak the exam dates.
+          </p>
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={() => timetableRef.current?.click()}
+              disabled={busy}
+              className="flex-1 rounded-xl border border-arjuna-primary/30 bg-white py-3 text-sm font-semibold"
+            >
+              📷 Scan
+            </button>
+            <button
+              type="button"
+              onClick={() => timetableGalleryRef.current?.click()}
+              disabled={busy}
+              className="flex-1 rounded-xl border border-arjuna-primary/30 bg-white py-3 text-sm font-semibold"
+            >
+              🖼️ Choose file
+            </button>
+          </div>
+          <input
+            ref={timetableRef}
+            type="file"
+            accept="image/*,application/pdf"
+            capture="environment"
+            multiple
+            className="hidden"
+            onChange={(e) => {
+              const files = Array.from(e.target.files ?? []);
+              if (files.length) void handleTimetableFiles(files);
+              e.target.value = "";
+            }}
+          />
+          <input
+            ref={timetableGalleryRef}
+            type="file"
+            accept="image/*,application/pdf"
+            multiple
+            className="hidden"
+            onChange={(e) => {
+              const files = Array.from(e.target.files ?? []);
+              if (files.length) void handleTimetableFiles(files);
+              e.target.value = "";
+            }}
+          />
+
+          <div className="flex items-center gap-2">
+            <div className="h-px flex-1 bg-gray-200" />
+            <span className="text-xs text-arjuna-muted">or</span>
+            <div className="h-px flex-1 bg-gray-200" />
+          </div>
+
+          <label className="block text-sm">
+            Type the schedule (subject + date)
+            <div className="mt-1 flex gap-2">
+              <textarea
+                value={timetableText}
+                onChange={(e) => setTimetableText(e.target.value)}
+                placeholder="Maths - 12 July, English - 15 July…"
+                className="flex-1 rounded-xl border p-3 text-sm"
+                rows={3}
+                disabled={busy}
+              />
+              <button
+                type="button"
+                onClick={() => void toggleMic("timetable")}
+                disabled={transcribing || busy}
+                className={`rounded-xl border px-3 text-sm font-semibold ${
+                  recording && micTarget === "timetable"
+                    ? "border-red-400 bg-red-50 text-red-700"
+                    : "border-arjuna-primary/30"
+                }`}
+              >
+                {recording && micTarget === "timetable" ? "⏹" : "🎤"}
+              </button>
+            </div>
+          </label>
+          <button
+            type="button"
+            disabled={busy || !timetableText.trim()}
+            onClick={() => void handleTimetableTextSubmit()}
+            className="w-full rounded-xl bg-arjuna-primary py-3 font-semibold text-white disabled:opacity-50"
+          >
+            Add from typed schedule
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setMode("list");
+              setTimetableText("");
+              setError(null);
+            }}
+            className="w-full text-sm underline"
+          >
+            Cancel
+          </button>
+        </div>
+      )}
+
       {mode === "create" && (
         <div className="space-y-4">
           <h2 className="text-lg font-semibold">Create exam</h2>
@@ -739,30 +938,73 @@ export function ExamHub({ profile }: ExamHubProps) {
             only from what you upload.
           </p>
           <label className="block text-sm">
-            Extra topics (optional)
-            <input
-              value={topicsText}
-              onChange={(e) => setTopicsText(e.target.value)}
-              className="mt-1 w-full rounded-xl border p-3"
-            />
+            Extra topics (optional) — type, or speak
+            <div className="mt-1 flex gap-2">
+              <input
+                value={topicsText}
+                onChange={(e) => setTopicsText(e.target.value)}
+                className="flex-1 rounded-xl border p-3"
+              />
+              <button
+                type="button"
+                onClick={() => void toggleMic("topics")}
+                disabled={transcribing}
+                className={`rounded-xl border px-3 text-sm font-semibold ${
+                  recording && micTarget === "topics"
+                    ? "border-red-400 bg-red-50 text-red-700"
+                    : "border-arjuna-primary/30"
+                }`}
+              >
+                {recording && micTarget === "topics" ? "⏹" : "🎤"}
+              </button>
+            </div>
           </label>
-          <button
-            type="button"
-            onClick={() => pageRef.current?.click()}
-            className="w-full rounded-xl border border-arjuna-primary/30 bg-white py-3 font-semibold"
-          >
-            📷 Add page ({pageFiles.length} selected)
-          </button>
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={() => pageRef.current?.click()}
+              className="flex-1 rounded-xl border border-arjuna-primary/30 bg-white py-3 font-semibold"
+            >
+              📷 Scan page ({pageFiles.length} selected)
+            </button>
+            <button
+              type="button"
+              onClick={() => pageGalleryRef.current?.click()}
+              className="flex-1 rounded-xl border border-arjuna-primary/30 bg-white py-3 font-semibold"
+            >
+              🖼️ Choose file
+            </button>
+          </div>
           <input
             ref={pageRef}
             type="file"
-            accept="image/*"
+            accept="image/*,application/pdf"
             multiple
             capture="environment"
             className="hidden"
             onChange={(e) => {
               const files = Array.from(e.target.files ?? []);
-              if (files.length) setPageFiles((prev) => [...prev, ...files]);
+              if (files.length) {
+                void prepareUploadFiles(files).then((prepared) =>
+                  setPageFiles((prev) => [...prev, ...prepared]),
+                );
+              }
+              e.target.value = "";
+            }}
+          />
+          <input
+            ref={pageGalleryRef}
+            type="file"
+            accept="image/*,application/pdf"
+            multiple
+            className="hidden"
+            onChange={(e) => {
+              const files = Array.from(e.target.files ?? []);
+              if (files.length) {
+                void prepareUploadFiles(files).then((prepared) =>
+                  setPageFiles((prev) => [...prev, ...prepared]),
+                );
+              }
               e.target.value = "";
             }}
           />

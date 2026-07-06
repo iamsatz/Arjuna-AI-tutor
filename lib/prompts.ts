@@ -212,11 +212,18 @@ Return JSON only, no markdown:
 
 If unreadable, return {"concepts":[],"confidence":"low","notes":"reason"}`;
 
-export const TIMETABLE_EXTRACTION_PROMPT = `You read a school exam timetable or schedule photo.
+export const TIMETABLE_EXTRACTION_PROMPT = `You read a school exam timetable or schedule photo (one or more pages).
 Extract each subject exam as JSON only, no markdown:
 {"exams":[{"subject":"English|Maths|Telugu|EVS|Science|Other","examDate":"YYYY-MM-DD or best guess","topics":["topic1","topic2"]}],"confidence":"high|medium|low"}
 
 If not a timetable, return {"exams":[],"confidence":"low"}`;
+
+export const TIMETABLE_TEXT_EXTRACTION_PROMPT = `A parent typed or spoke their child's exam schedule (not a photo).
+Extract each subject exam as JSON only, no markdown:
+{"exams":[{"subject":"English|Maths|Telugu|EVS|Science|Other","examDate":"YYYY-MM-DD or best guess","topics":["topic1","topic2"]}],"confidence":"high|medium|low"}
+
+Parse dates loosely (e.g. "12th July" -> best-guess YYYY-MM-DD using the current year).
+If the text does not describe an exam schedule, return {"exams":[],"confidence":"low"}`;
 
 export const CURRICULUM_EXTRACTION_PROMPT = `You read a school term plan, syllabus, or curriculum document (PDF pages or photos).
 Extract the structured syllabus for ONE term. Do not invent subjects or topics not present in the document.

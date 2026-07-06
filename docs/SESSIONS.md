@@ -20,6 +20,7 @@ Priority: P0 blocks a whole feature · P1 subset/silent · P2 quality/polish · 
 | S6 | Scenario 3 — revision scheduler | P1 | L | `/exam`, `/owner` | ☐ |
 | S7 | Consistency & cleanup (one AI client) | P2 | M | `/`, `/english`, `/exam` | ☐ |
 | S8 | PDF polish + backlog + roadmap update | P2/P3 | S | `/`, `/roadmap` | ☐ |
+| S1.7 | Exam input parity (upload JPG/PDF/PNG, scan, type, speak) | P1 | M | `/exam` | ✅ done + live-tested + deployed |
 
 ## Confirmed defects (source of truth)
 
@@ -79,6 +80,27 @@ size in elementary kids, vocabulary/journaling via personal + imagery) applied t
   specific 2-line-answerable prompts instead of generic "write about your day."
 - **Verify:** open a concept session, homework teach, exam quiz, and journal —
   each response should reference something a real Indian kid does, not a stock example.
+
+### S1.7 — Exam input parity (upload/scan/type/speak)
+Homework already had all four input modes (scan, gallery upload of JPG/PDF/PNG,
+type, speak). Exam prep only had camera-only, image-only capture. Brought to parity:
+- **Timetable**: new capture screen with Scan (camera) + Choose file (gallery,
+  image/PDF, multi-page) + type-the-schedule textarea + 🎤 speak-to-transcribe.
+  New backend: `extractExamTimetable` now takes multiple images; new
+  `extractExamTimetableFromText` parses typed/spoken schedules directly
+  (`lib/gemini.ts`, `lib/prompts.ts`, `app/api/exam/timetable/route.ts` rewritten
+  to support multipart multi-photo + JSON text paths).
+- **Study material**: added PDF support + gallery picker (was camera-only image),
+  client-side PDF→JPEG conversion via existing `prepareUploadFiles`, and a
+  🎤 speak-to-topics button feeding the existing "Extra topics" field. Left the
+  "generate concept notes from typed topics alone, no material" path out on
+  purpose — the app's invariant is concepts only come from what's actually
+  uploaded (matches `CONCEPT_EXTRACTION_PROMPT`'s anti-hallucination rule).
+- **Verify:** open `/exam` → Timetable — all four options render; typed-schedule
+  path reaches the server correctly (live-tested). Material upload's new UI
+  verified via code + build; full click-through blocked locally by a pre-existing
+  Supabase config gap unrelated to this change (`/api/exam` create already fails
+  without the `arjuna_exams` migration — not something this session touched).
 
 ### S2 — Observability + smoke test
 - `console.error(realError)` in dev inside every AI `catch` (keep friendly UI text).

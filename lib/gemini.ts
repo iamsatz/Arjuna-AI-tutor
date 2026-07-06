@@ -12,6 +12,7 @@ import {
   SUMMARY_PROMPT,
   TEXT_EXTRACTION_PROMPT,
   TIMETABLE_EXTRACTION_PROMPT,
+  TIMETABLE_TEXT_EXTRACTION_PROMPT,
   CURRICULUM_EXTRACTION_PROMPT,
   buildEnglishConceptCompletionCheck,
   buildEnglishConceptPrompt,
@@ -361,29 +362,15 @@ export async function extractConceptNotesFromImages(
   };
 }
 
-export async function extractExamTimetable(
-  apiKey: string,
-  imageBase64: string,
-  mimeType: string,
-): Promise<{
+type ExtractedTimetable = {
   exams: { subject: string; examDate?: string; topics: string[] }[];
   confidence: string;
-}> {
-  const raw = await geminiGenerate(
-    apiKey,
-    [
-      { text: TIMETABLE_EXTRACTION_PROMPT },
-      { inline_data: { mime_type: mimeType, data: imageBase64 } },
-    ],
-    undefined,
-    2048,
-  );
+};
 
-  const parsed = parseJson<{
-    exams: { subject: string; examDate?: string; topics?: string[] }[];
-    confidence: string;
-  }>(raw);
-
+function normalizeTimetableResult(parsed: {
+  exams?: { subject: string; examDate?: string; topics?: string[] }[];
+  confidence?: string;
+}): ExtractedTimetable {
   return {
     exams: (parsed.exams ?? []).map((e) => ({
       subject: e.subject,
@@ -392,6 +379,44 @@ export async function extractExamTimetable(
     })),
     confidence: parsed.confidence ?? "low",
   };
+}
+
+export async function extractExamTimetable(
+  apiKey: string,
+  images: { base64: string; mimeType: string }[],
+  extraText?: string,
+): Promise<ExtractedTimetable> {
+  const parts: GeminiPart[] = [{ text: TIMETABLE_EXTRACTION_PROMPT }];
+  if (extraText?.trim()) {
+    parts.push({ text: `Extra context from parent:\n${extraText.trim()}` });
+  }
+  for (const img of images) {
+    parts.push({ inline_data: { mime_type: img.mimeType, data: img.base64 } });
+  }
+
+  const raw = await geminiGenerate(apiKey, parts, undefined, 2048);
+  const parsed = parseJson<{
+    exams?: { subject: string; examDate?: string; topics?: string[] }[];
+    confidence?: string;
+  }>(raw);
+  return normalizeTimetableResult(parsed);
+}
+
+export async function extractExamTimetableFromText(
+  apiKey: string,
+  text: string,
+): Promise<ExtractedTimetable> {
+  const raw = await geminiGenerate(
+    apiKey,
+    [{ text: `${TIMETABLE_TEXT_EXTRACTION_PROMPT}\n\nParent's text:\n${text.trim()}` }],
+    undefined,
+    2048,
+  );
+  const parsed = parseJson<{
+    exams?: { subject: string; examDate?: string; topics?: string[] }[];
+    confidence?: string;
+  }>(raw);
+  return normalizeTimetableResult(parsed);
 }
 
 export async function generateExamRevision(
