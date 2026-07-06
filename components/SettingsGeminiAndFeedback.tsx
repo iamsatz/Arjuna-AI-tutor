@@ -80,24 +80,26 @@ export function SettingsGeminiAndFeedback({ profile, onProfileChange }: Props) {
       });
       const data = (await res.json().catch(() => ({}))) as {
         ok?: boolean;
+        rateLimited?: boolean;
         error?: string;
+        googleStatus?: number;
         message?: string;
       };
       if (data.ok) {
         setGeminiTest("ok");
         setGeminiTestMsg(
-          pasted
-            ? "Connection OK — tap Save key to keep this key on this phone."
-            : "Connection OK — AI teaching ready.",
+          data.rateLimited
+            ? "Key works! Google's free limit is busy right now — try teaching in a minute."
+            : pasted
+              ? "Connection OK — tap Save key to keep this key on this phone."
+              : "Connection OK — AI teaching ready.",
         );
         return;
       }
       setGeminiTest("fail");
-      if (data.error === "wrong_key_type" && data.message) {
-        setGeminiTestMsg(data.message);
-      } else if (data.error === "google_rejected") {
+      if (data.error === "google_rejected") {
         setGeminiTestMsg(
-          "Google rejected this key. Create a fresh one at Google AI Studio (AIzaSy…).",
+          "Google rejected this key. Create a fresh key at Google AI Studio and paste the whole key.",
         );
       } else if (data.error === "missing_api_key") {
         setGeminiTestMsg("No key to test. Paste your key above.");

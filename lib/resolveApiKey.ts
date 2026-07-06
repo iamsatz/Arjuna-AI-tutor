@@ -2,19 +2,6 @@ import { NextRequest } from "next/server";
 
 const PLACEHOLDER = "your_gemini_api_key_here";
 
-/** Google AI Studio keys start with AIzaSy. OAuth tokens (AQ.*) do not work with our API. */
-export function describeGeminiKeyProblem(key: string): string | null {
-  const trimmed = key.trim();
-  if (!trimmed) return null;
-  if (trimmed.startsWith("AQ.")) {
-    return "Wrong key type (OAuth token). Use an API key from Google AI Studio — it starts with AIzaSy.";
-  }
-  if (trimmed.length > 12 && !trimmed.startsWith("AIzaSy")) {
-    return "This key format is not supported. Get a free key at Google AI Studio (starts with AIzaSy).";
-  }
-  return null;
-}
-
 export function geminiKeyFromValue(value?: string | null): string | null {
   const key = value?.trim();
   if (!key || key === PLACEHOLDER) return null;
