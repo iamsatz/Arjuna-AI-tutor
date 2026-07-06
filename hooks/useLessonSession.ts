@@ -25,6 +25,7 @@ import {
 import { isTvDevice } from "@/lib/platform";
 import { friendlyChatError, friendlyExtractError, MISSING_AI_KEY_MESSAGE } from "@/lib/userErrors";
 import { parseTeachIntent } from "@/lib/teachIntent";
+import { logDevError } from "@/lib/devLog";
 
 const MAX_ATTEMPTS = 4;
 const MAX_VERIFY_ATTEMPTS = 3;
@@ -199,7 +200,8 @@ export function useLessonSession({
           speaker: "shubh",
           languageMode: settings.languageMode,
         });
-      } catch {
+      } catch (err) {
+        logDevError("speak/playSpeech", err);
         patchState({
           statusMessage:
             "Voice is not working right now. Try typing your homework instead.",
@@ -310,6 +312,7 @@ export function useLessonSession({
           subject: task.subject,
         });
       } catch (err) {
+        logDevError("teachCurrentTask/chat", err);
         patchState({
           statusMessage: friendlyChatError(
             "chat_failed",
@@ -520,6 +523,7 @@ export function useLessonSession({
           reason: parsed.reason,
         };
       } catch (e) {
+        logDevError("extractHomeworkForReview", e);
         patchState({ avatarState: "idle" });
         return {
           tasks: [],
@@ -863,7 +867,8 @@ export function useLessonSession({
         });
         await speak(msg);
         void track("answer_verified", { correct: false, subject: task.subject });
-      } catch {
+      } catch (err) {
+        logDevError("handleVerifyAnswer", err);
         patchState({
           phase: "try_self",
           statusMessage: "Could not check. Try a clearer photo.",
@@ -984,7 +989,8 @@ export function useLessonSession({
         parentSolution: data.solution,
         statusMessage: "Parent solution",
       });
-    } catch {
+    } catch (err) {
+      logDevError("unlockParentSolution", err);
       patchState({ statusMessage: "Could not load solution" });
     } finally {
       setLoading(false);

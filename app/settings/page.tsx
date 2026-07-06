@@ -20,6 +20,7 @@ import {
 import { setDailyRewardTarget } from "@/lib/streak";
 import { SettingsGeminiAndFeedback } from "@/components/SettingsGeminiAndFeedback";
 import { getGeminiKeyHeader } from "@/lib/apiClient";
+import { logDevError } from "@/lib/devLog";
 
 export default function SettingsPage() {
   const [settings, setSettings] = useState(loadSettings);
@@ -63,8 +64,8 @@ export default function SettingsPage() {
       if (!res.ok) return;
       const data = (await res.json()) as { curriculum: StoredCurriculum | null };
       setCurriculum(data.curriculum ?? null);
-    } catch {
-      // ignore
+    } catch (err) {
+      logDevError("Settings loadCurriculum", err);
     }
   }, [schoolKey]);
 
@@ -141,7 +142,8 @@ export default function SettingsPage() {
       }
 
       setPendingPreview(data.preview);
-    } catch {
+    } catch (err) {
+      logDevError("handleCurriculumUpload", err);
       setCurriculumError("Could not upload curriculum.");
     } finally {
       setCurriculumBusy(false);
@@ -182,7 +184,8 @@ export default function SettingsPage() {
       setPendingPreview(null);
       setSelectedFiles([]);
       setIsReplacing(false);
-    } catch {
+    } catch (err) {
+      logDevError("confirmCurriculumSave", err);
       setCurriculumError("Could not save curriculum.");
     } finally {
       setCurriculumBusy(false);

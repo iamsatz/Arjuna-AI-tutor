@@ -20,6 +20,7 @@ import {
   profileHistoryKey,
 } from "@/lib/taskHistoryStore";
 import type { StoredCurriculum } from "@/lib/curriculumTypes";
+import { logDevError } from "@/lib/devLog";
 
 type DailyWordsCardProps = {
   profile: ChildProfile;
@@ -83,6 +84,7 @@ export function DailyWordsCard({
       saveDailyWords(profileId, next);
       setPack(next);
     } catch (e) {
+      logDevError("DailyWordsCard loadOrGenerate", e);
       setError(e instanceof Error ? e.message : "Failed to load words");
     } finally {
       setLoading(false);

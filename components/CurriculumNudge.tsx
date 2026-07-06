@@ -5,6 +5,7 @@ import Link from "next/link";
 import { buildSchoolKey, type ChildProfile } from "@/lib/childProfile";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
+import { logDevError } from "@/lib/devLog";
 
 type CurriculumNudgeProps = {
   profile: ChildProfile;
@@ -34,7 +35,8 @@ export function CurriculumNudge({ profile }: CurriculumNudgeProps) {
         }
         const data = (await res.json()) as { curriculum: unknown | null };
         setHasCurriculum(Boolean(data.curriculum));
-      } catch {
+      } catch (err) {
+        logDevError("CurriculumNudge check", err);
         setHasCurriculum(false);
       }
     }

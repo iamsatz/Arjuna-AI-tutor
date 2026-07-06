@@ -16,6 +16,7 @@ import { profileHistoryKey } from "@/lib/taskHistoryStore";
 import type { ChildProfile } from "@/lib/childProfile";
 import { loadSettings } from "@/lib/settings";
 import { recordDailyActivity } from "@/lib/streak";
+import { logDevError } from "@/lib/devLog";
 
 type JournalSectionProps = {
   profile: ChildProfile;
@@ -72,10 +73,11 @@ export function JournalSection({ profile, onReward }: JournalSectionProps) {
       onReward?.();
       try {
         await playSpeech(arjunaReply, { languageMode: settings.languageMode });
-      } catch {
-        // ignore
+      } catch (err) {
+        logDevError("JournalSection speak", err);
       }
-    } catch {
+    } catch (err) {
+      logDevError("JournalSection handleSubmit", err);
       setReply("Arjuna could not reply right now. Try again.");
     } finally {
       setBusy(false);

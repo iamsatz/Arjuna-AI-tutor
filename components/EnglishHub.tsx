@@ -24,6 +24,7 @@ import {
   profileHistoryKey,
 } from "@/lib/taskHistoryStore";
 import { loadSettings } from "@/lib/settings";
+import { logDevError } from "@/lib/devLog";
 
 type EnglishHubProps = {
   profile: ChildProfile;
@@ -70,8 +71,8 @@ export function EnglishHub({ profile }: EnglishHubProps) {
       if (!res.ok) return;
       const data = (await res.json()) as { curriculum: StoredCurriculum | null };
       setCurriculum(data.curriculum ?? null);
-    } catch {
-      // ignore
+    } catch (err) {
+      logDevError("EnglishHub loadCurriculum", err);
     }
   }, [schoolKey]);
 

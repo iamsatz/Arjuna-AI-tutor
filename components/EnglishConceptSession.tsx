@@ -17,6 +17,7 @@ import { buildSchoolKey, buildStudentKey, type ChildProfile } from "@/lib/childP
 import { loadSettings } from "@/lib/settings";
 import { recordDailyActivity } from "@/lib/streak";
 import type { ChatMessage } from "@/lib/types";
+import { logDevError } from "@/lib/devLog";
 
 type EnglishConceptSessionProps = {
   profile: ChildProfile;
@@ -57,8 +58,8 @@ export function EnglishConceptSession({
       setAvatarState("speaking");
       try {
         await playSpeech(text, { languageMode: settings.languageMode });
-      } catch {
-        // ignore TTS errors
+      } catch (err) {
+        logDevError("EnglishConceptSession speak", err);
       } finally {
         setAvatarState("idle");
       }
@@ -90,7 +91,8 @@ export function EnglishConceptSession({
         setReply(text);
         setMessages((prev) => [...prev, { role: "assistant", content: text }]);
         await speak(text);
-      } catch {
+      } catch (err) {
+        logDevError("EnglishConceptSession fetchStep", err);
         setReply("Arjuna is resting. Try again in a moment.");
         setAvatarState("idle");
       } finally {
@@ -161,7 +163,8 @@ export function EnglishConceptSession({
         recordDailyActivity("english");
         setDone(true);
         onComplete?.();
-      } catch {
+      } catch (err) {
+        logDevError("EnglishConceptSession completion check", err);
         recordDailyActivity("english");
         setDone(true);
         onComplete?.();

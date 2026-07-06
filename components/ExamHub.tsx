@@ -22,6 +22,7 @@ import { playSpeech } from "@/lib/clientSpeech";
 import { stripSpeechMarkers } from "@/lib/bridgeSubject";
 import type { ChatMessage } from "@/lib/types";
 import type { ExamQuizQuestion } from "@/lib/examTypes";
+import { logDevError } from "@/lib/devLog";
 
 type ExamHubProps = {
   profile: ChildProfile;
@@ -111,7 +112,8 @@ export function ExamHub({ profile }: ExamHubProps) {
       if (!res.ok) throw new Error("load failed");
       const data = (await res.json()) as { exams: StoredExam[] };
       setExams(data.exams ?? []);
-    } catch {
+    } catch (err) {
+      logDevError("loadExams", err);
       setError("Could not load exams. Run Supabase migration for arjuna_exams.");
     } finally {
       setLoading(false);
@@ -131,8 +133,8 @@ export function ExamHub({ profile }: ExamHubProps) {
       if (!res.ok) return;
       const data = (await res.json()) as { curriculum: StoredCurriculum | null };
       setCurriculum(data.curriculum ?? null);
-    } catch {
-      // ignore
+    } catch (err) {
+      logDevError("loadCurriculum", err);
     }
   }, [schoolKey]);
 
@@ -168,8 +170,8 @@ export function ExamHub({ profile }: ExamHubProps) {
         speaker: "shubh",
         languageMode: settings.languageMode,
       });
-    } catch {
-      // ignore
+    } catch (err) {
+      logDevError("ExamHub speak", err);
     } finally {
       setAvatarState("idle");
     }
@@ -222,7 +224,8 @@ export function ExamHub({ profile }: ExamHubProps) {
       setSelectedExam(data.exam);
       await loadExams();
       void startRevision(data.exam);
-    } catch {
+    } catch (err) {
+      logDevError("handleCreateFromCurriculum", err);
       setError("Could not start from curriculum.");
     } finally {
       setBusy(false);
@@ -279,7 +282,8 @@ export function ExamHub({ profile }: ExamHubProps) {
       setSubjectRows([newSubjectRow()]);
       await loadExams();
       setMode("list");
-    } catch {
+    } catch (err) {
+      logDevError("handleCreateMultipleExams", err);
       setError("Could not create exam(s).");
     } finally {
       setBusy(false);
@@ -316,7 +320,8 @@ export function ExamHub({ profile }: ExamHubProps) {
         body: form,
       });
       await saveTimetableResult(res);
-    } catch {
+    } catch (err) {
+      logDevError("handleTimetableFiles", err);
       setError("Could not read timetable. Try a clearer photo, or type it instead.");
     } finally {
       setBusy(false);
@@ -340,7 +345,8 @@ export function ExamHub({ profile }: ExamHubProps) {
         },
       });
       await saveTimetableResult(res);
-    } catch {
+    } catch (err) {
+      logDevError("handleTimetableTextSubmit", err);
       setError("Could not understand that schedule. Try adding subject + date clearly.");
     } finally {
       setBusy(false);
@@ -378,7 +384,8 @@ export function ExamHub({ profile }: ExamHubProps) {
         } else {
           setError("Could not hear you. Try again or type instead.");
         }
-      } catch {
+      } catch (err) {
+        logDevError("toggleMic/transcribe", err);
         setError("Could not hear you. Try again or type instead.");
       } finally {
         setTranscribing(false);
@@ -437,7 +444,8 @@ export function ExamHub({ profile }: ExamHubProps) {
       if (data.warning) setError(data.warning);
       await loadExams();
       setMode("list");
-    } catch {
+    } catch (err) {
+      logDevError("handleUploadPages", err);
       setError("Could not understand pages. Try clearer photos.");
     } finally {
       setBusy(false);
@@ -471,7 +479,8 @@ export function ExamHub({ profile }: ExamHubProps) {
       const reply = data.reply;
       setMessages([{ role: "assistant", content: reply }]);
       await speak(reply);
-    } catch {
+    } catch (err) {
+      logDevError("startRevision", err);
       setError("Could not start revision.");
     } finally {
       setBusy(false);
@@ -503,7 +512,8 @@ export function ExamHub({ profile }: ExamHubProps) {
       const data = (await res.json()) as { reply: string };
       setMessages([...nextMessages, { role: "assistant", content: data.reply }]);
       await speak(data.reply);
-    } catch {
+    } catch (err) {
+      logDevError("continueRevision", err);
       setError("Revision failed.");
     } finally {
       setBusy(false);
@@ -541,7 +551,8 @@ export function ExamHub({ profile }: ExamHubProps) {
       };
       setQuestions(data.questions ?? []);
       setMissionTitle(data.missionTitle ?? null);
-    } catch {
+    } catch (err) {
+      logDevError("startQuiz", err);
       setError("Could not create quiz.");
     } finally {
       setBusy(false);
@@ -570,7 +581,8 @@ export function ExamHub({ profile }: ExamHubProps) {
       const data = (await res.json()) as { questions: ExamQuizQuestion[] };
       setFullQuestions(data.questions ?? []);
       setShowAnswers(true);
-    } catch {
+    } catch (err) {
+      logDevError("revealQuizAnswers", err);
       setError("Could not reveal answers.");
     } finally {
       setBusy(false);

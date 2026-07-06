@@ -6,6 +6,14 @@ hidden bugs, then the two big features (Scenario 1 & 3).
 Status legend: 🔴 Broken · 🟠 Needs improvement · 🔵 Suggestion · ⚪ Not started · 🟢 Working · ❓ Unverified
 Priority: P0 blocks a whole feature · P1 subset/silent · P2 quality/polish · P3 cosmetic
 
+**"Done" vs "Verified"** — these are different claims. "✅ done + live-tested"
+means: tsc/build clean, and a live click-through proved the request reaches
+the server correctly with the new code path (network-level proof, no client
+crash). "✅ Verified" means someone actually read real AI output and confirmed
+it's good — that's only possible once a valid Gemini key exists somewhere
+(currently: nowhere, see the open item below). Don't conflate the two; a
+session marked "done" can still ship a prompt that reads badly in practice.
+
 ## 🔴 Open — production env vars missing (blocks everything AI/Supabase-backed)
 
 Confirmed via `curl https://arjuna-ai-tutor.vercel.app/api/health`: both
@@ -36,7 +44,7 @@ after logging in locally). Re-verify with `/api/health` once set.
 | S0 | Baseline test pass (no code) | — | S | every link | ☐ |
 | S1 | Restore English tab + Exam key | P0/P1 | M | `/english`, `/exam` | ✅ done + live-tested + deployed |
 | S1.5 | Task-based, real-world teaching content redesign | P1 | M | `/`, `/english`, `/exam` | ✅ done + live-tested + deployed |
-| S2 | Observability + smoke test net | P1 | M | `/owner` | ☐ |
+| S2 | Observability + smoke test net | P1 | M | `npm run smoke` | ✅ done + live-tested + deployed |
 | S3 | Sweep unverified (TV, owner, family, curriculum) | P1 | L | `/join/family01`, `/tv`, `/owner` | ☐ |
 | S4 | Lifecycle & robustness polish | P2 | S | `/`, `/english` | ☐ |
 | S5 | Scenario 1 — smart multi-subject read | P1 | M | `/` (4-subject photo) | ☐ |
@@ -180,9 +188,29 @@ real UX gaps:
   calls correctly (same pre-existing env blockers, not code bugs).
 
 ### S2 — Observability + smoke test
-- `console.error(realError)` in dev inside every AI `catch` (keep friendly UI text).
-- `scripts/smoke.mjs` → POST every `/api/*` route; `npm run smoke`; wire to CI.
-- Add a "Verified" state to this tracker.
+- Added `lib/devLog.ts` (`logDevError(context, error)` — logs to console only
+  outside production, friendly UI text unchanged) and wired it into every
+  AI-call catch block across the app: `useLessonSession.ts` (speak, teach,
+  extract, verify-answer, unlock-solution), `ExamHub.tsx` (12 of its 14
+  catches — skipped the two mic-permission `getUserMedia` denials, which are
+  self-explanatory, not silent bugs), `EnglishConceptSession.tsx`,
+  `DailyWordsCard.tsx`, `JournalSection.tsx`, `EnglishHub.tsx`,
+  `CurriculumNudge.tsx`, and the curriculum preview/confirm catches in
+  `app/settings/page.tsx`. The next silent failure will show a real stack
+  trace in the browser console instead of just a generic user-facing string.
+- `scripts/smoke.mjs` (`npm run smoke`): hits all 44 route handlers across the
+  34 `/api/*` files with minimal payloads and asserts the response parses as
+  JSON — Next's default crash page is HTML, so a JSON-parse failure reliably
+  catches an unhandled exception. 400/401/404/502/503 with a structured JSON
+  body all count as PASS (expected without Gemini/Supabase configured); only
+  a non-JSON response or a request that never completes counts as FAIL.
+  Requires a running dev server (`npm run dev` in one terminal); not wired to
+  CI yet since this repo doesn't have a CI pipeline configured.
+- Added the "Done vs Verified" distinction to this file's legend (see above) —
+  the meta-gap from the original review: a session can be "done" (shipped,
+  structurally tested) without being "Verified" (real output confirmed good).
+- **Verify:** ran `npm run smoke` against a live local dev server — all 44
+  routes responded with parseable JSON, 0 failures.
 
 ### S3 — Sweep unverified areas
 - Read + test `familyAuth`/`/api/family/*`, TV/`roomSync`, owner dashboard/analytics, curriculum engine (`teachingPlan`, `studentAgent`, `schoolAgent`, `bridgeSubject`, `memory`). Fix any P0 found.
