@@ -45,7 +45,7 @@ after logging in locally). Re-verify with `/api/health` once set.
 | S1 | Restore English tab + Exam key | P0/P1 | M | `/english`, `/exam` | ✅ done + live-tested + deployed |
 | S1.5 | Task-based, real-world teaching content redesign | P1 | M | `/`, `/english`, `/exam` | ✅ done + live-tested + deployed |
 | S2 | Observability + smoke test net | P1 | M | `npm run smoke` | ✅ done + live-tested + deployed |
-| S3 | Sweep unverified (TV, owner, family, curriculum) | P1 | L | `/join/family01`, `/tv`, `/owner` | ☐ |
+| S3 | Sweep unverified (TV, owner, family, curriculum) | P1 | L | `/join/family01`, `/tv`, `/owner` | ✅ swept — no P0 bugs found |
 | S4 | Lifecycle & robustness polish | P2 | S | `/`, `/english` | ☐ |
 | S5 | Scenario 1 — smart multi-subject read | P1 | M | `/` (4-subject photo) | ☐ |
 | S6 | Scenario 3 — revision scheduler | P1 | L | `/exam`, `/owner` | ☐ |
@@ -213,7 +213,39 @@ real UX gaps:
   routes responded with parseable JSON, 0 failures.
 
 ### S3 — Sweep unverified areas
-- Read + test `familyAuth`/`/api/family/*`, TV/`roomSync`, owner dashboard/analytics, curriculum engine (`teachingPlan`, `studentAgent`, `schoolAgent`, `bridgeSubject`, `memory`). Fix any P0 found.
+Read every file in the four unverified areas and live-tested where possible.
+**Result: no P0 bugs found** — genuinely good news, unlike S1's dead English
+tab or the missing env vars. Two dead-code items surfaced (queued for S7,
+not fixed here since S3 is a verification pass, not a cleanup pass):
+- `lib/familyAuth.ts` (password-hash cookie helpers) — zero imports anywhere.
+  `JoinForm.tsx` never asks for a password; the invite code is the only
+  credential now (matches the "Simplify family link flow" commit history).
+  `/api/family/[code]/verify/route.ts` is explicitly commented "Legacy route."
+- `components/TvScreen.tsx` + `hooks/useRoomSync.ts` (`useRoomPublisher`/
+  `useRoomSubscriber`) + the polling-based `/api/room/route.ts` and
+  `/api/room/[code]/route.ts` — orphaned. `/tv` actually renders
+  `TvLessonScreen.tsx`, which uses the newer Supabase-realtime room system
+  (`useSupabaseRoom.ts` + `/api/room/supabase`) instead.
+
+What was verified and found solid:
+- **Family/join flow**: `JoinForm.tsx` gracefully falls back to a local-only
+  profile (`tryAddProfile`) whenever the server/Supabase call fails — this is
+  why family onboarding still works today despite Supabase being unconfigured
+  in production.
+- **Room sync (active path)**: `lib/supabaseRoom.ts` + `/api/room/supabase`
+  degrade cleanly (null/404/503) when Supabase is down; room codes check for
+  collisions; TTL cleanup on read.
+- **Owner dashboard**: live-tested for real with the actual local
+  `OWNER_PASSWORD` — login → dashboard → all 15 invite links render → health
+  card correctly shows "Supabase: Broken" / "Gemini: Broken" (matching known
+  local config gaps, not a dashboard bug) → analytics page shows a clear
+  "Could not load analytics" message rather than hanging, when `/api/events`
+  is unavailable.
+- **Curriculum engine**: `schoolAgent.ts`, `studentAgent.ts`, `teachingPlan.ts`,
+  `memory.ts` (`getOrCreate` cache), `bridgeSubject.ts` all read correctly;
+  `bridgeSpeechLanguage`/`bridgeSubjectFor` logic cross-checked and consistent
+  (Telugu-medium → bridge subject is English, spoken as en-IN; English-medium
+  → bridge subject is Hindi, spoken as hi-IN).
 
 ### S4 — Lifecycle & robustness polish
 - `TodayRing` reads in `useEffect`; clear celebrate `setTimeout`; harden streak day writes.
@@ -226,6 +258,11 @@ real UX gaps:
 
 ### S7 — Consistency & cleanup
 - One AI client everywhere; delete duplicate; drop unused prop; cap journal/daily-words storage.
+- Delete dead code found in S3: `lib/familyAuth.ts` (0 imports), and the
+  orphaned TV path `components/TvScreen.tsx` + `hooks/useRoomSync.ts` +
+  `app/api/room/route.ts` + `app/api/room/[code]/route.ts` (superseded by
+  the Supabase room system `TvLessonScreen.tsx`/`useSupabaseRoom.ts`/
+  `/api/room/supabase`). Confirm nothing else imports these first.
 
 ### S8 — PDF polish + backlog + roadmap
 - Use `reason:"pdf_unsupported"` for a sharper tip / per-page retry; update `/roadmap` (Spaced-repetition + Weekly-report → Shipped).
