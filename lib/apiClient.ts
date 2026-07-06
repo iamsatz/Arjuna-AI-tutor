@@ -16,9 +16,18 @@ export async function arjunaFetch(
   init: FetchInit = {},
 ): Promise<Response> {
   const headers = new Headers(init.headers);
-  const gh = geminiHeaders();
-  for (const [k, v] of Object.entries(gh)) {
-    if (!headers.has(k)) headers.set(k, v);
+  const explicitKey =
+    init.json && "geminiApiKey" in init.json
+      ? String(init.json.geminiApiKey ?? "").trim()
+      : "";
+
+  if (!explicitKey) {
+    const gh = geminiHeaders();
+    for (const [k, v] of Object.entries(gh)) {
+      if (!headers.has(k)) headers.set(k, v);
+    }
+  } else {
+    headers.delete("x-gemini-key");
   }
 
   let body = init.body;
@@ -26,11 +35,12 @@ export async function arjunaFetch(
     if (!headers.has("Content-Type")) {
       headers.set("Content-Type", "application/json");
     }
-    const key = loadSettings().geminiApiKey?.trim();
-    body = JSON.stringify({
-      ...init.json,
-      ...(key ? { geminiApiKey: key } : {}),
-    });
+    const payload = { ...init.json };
+    if (!explicitKey) {
+      const savedKey = loadSettings().geminiApiKey?.trim();
+      if (savedKey) payload.geminiApiKey = savedKey;
+    }
+    body = JSON.stringify(payload);
   }
 
   return fetch(input, { ...init, headers, body });

@@ -27,6 +27,7 @@ export function SettingsGeminiAndFeedback({ profile, onProfileChange }: Props) {
   const [settings, setSettings] = useState(loadSettings);
   const [geminiInput, setGeminiInput] = useState("");
   const [geminiTest, setGeminiTest] = useState<"idle" | "ok" | "fail">("idle");
+  const [geminiTestMsg, setGeminiTestMsg] = useState<string | null>(null);
   const [geminiBusy, setGeminiBusy] = useState(false);
   const [feedbackText, setFeedbackText] = useState("");
   const [feedbackBy, setFeedbackBy] = useState<"mother" | "father">("mother");
@@ -51,18 +52,61 @@ export function SettingsGeminiAndFeedback({ profile, onProfileChange }: Props) {
     setGeminiTest("idle");
   }
 
+  function clearGeminiKey() {
+    saveSettings({ geminiApiKey: "" });
+    setGeminiInput("");
+    refreshSettings();
+    setGeminiTest("idle");
+    setGeminiTestMsg(null);
+  }
+
   async function testGemini() {
     setGeminiBusy(true);
     setGeminiTest("idle");
+    setGeminiTestMsg(null);
     try {
-      const key = geminiInput.trim() || settings.geminiApiKey;
-      const res = await arjunaFetch("/api/gemini-test", {
+      // Test pasted key first — do not silently fall back to an old saved key.
+      const pasted = geminiInput.trim();
+      const key = pasted || settings.geminiApiKey?.trim();
+      if (!key) {
+        setGeminiTest("fail");
+        setGeminiTestMsg("Paste a key first, then tap Test connection.");
+        return;
+      }
+      const res = await fetch("/api/gemini-test", {
         method: "POST",
-        json: key ? { geminiApiKey: key } : {},
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ geminiApiKey: key }),
       });
-      setGeminiTest(res.ok ? "ok" : "fail");
+      const data = (await res.json().catch(() => ({}))) as {
+        ok?: boolean;
+        error?: string;
+        message?: string;
+      };
+      if (data.ok) {
+        setGeminiTest("ok");
+        setGeminiTestMsg(
+          pasted
+            ? "Connection OK — tap Save key to keep this key on this phone."
+            : "Connection OK — AI teaching ready.",
+        );
+        return;
+      }
+      setGeminiTest("fail");
+      if (data.error === "wrong_key_type" && data.message) {
+        setGeminiTestMsg(data.message);
+      } else if (data.error === "google_rejected") {
+        setGeminiTestMsg(
+          "Google rejected this key. Create a fresh one at Google AI Studio (AIzaSy…).",
+        );
+      } else if (data.error === "missing_api_key") {
+        setGeminiTestMsg("No key to test. Paste your key above.");
+      } else {
+        setGeminiTestMsg(data.message ?? "Test failed on our server. Try again.");
+      }
     } catch {
       setGeminiTest("fail");
+      setGeminiTestMsg("Network error — check internet and try again.");
     } finally {
       setGeminiBusy(false);
     }
@@ -129,7 +173,16 @@ export function SettingsGeminiAndFeedback({ profile, onProfileChange }: Props) {
           . Unlocks photo reading, teaching chat, and summaries.
         </p>
         {savedKeyHint && (
-          <p className="text-xs text-green-800">Saved: {savedKeyHint}</p>
+          <div className="flex items-center justify-between gap-2">
+            <p className="text-xs text-green-800">Saved: {savedKeyHint}</p>
+            <button
+              type="button"
+              onClick={clearGeminiKey}
+              className="text-xs font-semibold text-red-700 underline"
+            >
+              Remove
+            </button>
+          </div>
         )}
         <input
           type="password"
@@ -156,11 +209,12 @@ export function SettingsGeminiAndFeedback({ profile, onProfileChange }: Props) {
             {geminiBusy ? "Testing…" : "Test connection"}
           </button>
         </div>
-        {geminiTest === "ok" && (
-          <p className="text-sm text-green-700">Connection OK — AI teaching ready.</p>
-        )}
-        {geminiTest === "fail" && (
-          <p className="text-sm text-red-700">Test failed — check the key and try again.</p>
+        {(geminiTest === "ok" || geminiTest === "fail") && geminiTestMsg && (
+          <p
+            className={`text-sm ${geminiTest === "ok" ? "text-green-700" : "text-red-700"}`}
+          >
+            {geminiTestMsg}
+          </p>
         )}
         <button
           type="button"
