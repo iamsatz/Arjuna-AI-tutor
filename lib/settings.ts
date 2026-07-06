@@ -3,11 +3,16 @@ export type DeviceMode = "phone_only" | "phone_tv" | "tv_only";
 
 const SETTINGS_KEY = "arjuna-settings";
 
+export type GeminiKeyStatus = "valid" | "invalid" | "unknown";
+
 export type AppSettings = {
   languageMode: LanguageMode;
   deviceMode: DeviceMode;
   parentPin: string;
   geminiApiKey?: string;
+  /** Last known result from Test connection in Settings. */
+  geminiKeyStatus?: GeminiKeyStatus;
+  geminiKeyCheckedAt?: string;
 };
 
 const DEFAULT_SETTINGS: AppSettings = {
@@ -30,6 +35,9 @@ export function loadSettings(): AppSettings {
 export function saveSettings(partial: Partial<AppSettings>): AppSettings {
   const next = { ...loadSettings(), ...partial };
   localStorage.setItem(SETTINGS_KEY, JSON.stringify(next));
+  if (typeof window !== "undefined") {
+    window.dispatchEvent(new Event("arjuna-settings-changed"));
+  }
   return next;
 }
 

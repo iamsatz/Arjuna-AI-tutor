@@ -116,6 +116,13 @@ export function LessonScreen({
     setTimeout(() => setAvatarOverride(null), 1200);
   }, [lesson]);
 
+  function openManualReview(hint?: string) {
+    setReviewTasks([emptyManualTask()]);
+    setReviewEditMode(false);
+    setExtractHint(hint ?? "Type each homework task below, then tap Start teaching.");
+    setHwPhase("review");
+  }
+
   const runRead = useCallback(
     async (input: {
       files?: File[];
@@ -134,12 +141,22 @@ export function LessonScreen({
         result.tasks.length > 0 ? homeworkToReviewable(result.tasks) : [];
 
       if (input.merge) {
-        setReviewTasks((prev) => mergeReviewTasks(prev, rows));
+        setReviewTasks((prev) =>
+          prev.length ? mergeReviewTasks(prev, rows) : rows.length ? rows : [emptyManualTask()],
+        );
         if (result.error) setExtractHint(result.error);
         else if (rows.length === 0) {
           setExtractHint("No new tasks found on that page.");
         }
         setHwPhase("review");
+        return;
+      }
+
+      if (rows.length === 0) {
+        openManualReview(
+          result.error ??
+            "Couldn't read it clearly — type your homework below.",
+        );
         return;
       }
 
@@ -152,10 +169,8 @@ export function LessonScreen({
         return;
       }
 
-      if (rows.length === 0 || result.confidence === "low") {
-        setExtractHint(
-          "Couldn't read it clearly — add or edit below.",
-        );
+      if (result.confidence === "low") {
+        setExtractHint("Check the tasks below — fix anything wrong.");
         setReviewEditMode(false);
         setHwPhase("review");
         return;
@@ -352,6 +367,7 @@ export function LessonScreen({
             onCapture={handleCapture}
             onReadText={handleReadText}
             onToggleMic={() => void toggleMic()}
+            onManualEntry={() => openManualReview()}
           />
         </div>
       )}

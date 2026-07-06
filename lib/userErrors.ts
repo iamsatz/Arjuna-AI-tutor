@@ -13,6 +13,18 @@ export function friendlyExtractError(
   if (raw.includes("missing_api_key") || raw.includes(".env.local")) {
     return MISSING_AI_KEY_MESSAGE;
   }
+  if (
+    raw.includes("401") ||
+    raw.includes("unauthenticated") ||
+    raw.includes("invalid authentication") ||
+    raw.includes("google_rejected") ||
+    raw.includes("access_token")
+  ) {
+    return "AI key is not working. Open Settings → Test connection, or create a fresh key at Google AI Studio.";
+  }
+  if (raw.includes("429") || raw.includes("rate limit") || raw.includes("resource_exhausted")) {
+    return "Google's free limit is busy. Wait a minute and try again.";
+  }
   if (raw.includes("extract_failed") || raw.includes("gemini failed")) {
     return "Couldn't read the photo clearly — add or fix tasks below.";
   }

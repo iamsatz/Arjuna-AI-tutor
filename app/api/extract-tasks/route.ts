@@ -105,11 +105,15 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(result);
   } catch (error) {
     const message = error instanceof Error ? error.message : "Extract failed";
+    const authFailed =
+      message.includes("401") ||
+      message.toLowerCase().includes("unauthenticated") ||
+      message.toLowerCase().includes("invalid authentication");
     return NextResponse.json({
       tasks: [],
       confidence: "low",
       reason: "extract_failed",
-      error: message,
+      error: authFailed ? "google_rejected" : message,
     });
   }
 }

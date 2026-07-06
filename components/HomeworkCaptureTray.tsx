@@ -11,6 +11,7 @@ type HomeworkCaptureTrayProps = {
   onCapture: (files: File[]) => void;
   onReadText?: (text: string) => void;
   onToggleMic?: () => void;
+  onManualEntry?: () => void;
   mode?: "homework" | "answer";
 };
 
@@ -20,6 +21,7 @@ export function HomeworkCaptureTray({
   onCapture,
   onReadText,
   onToggleMic,
+  onManualEntry,
   mode = "homework",
 }: HomeworkCaptureTrayProps) {
   const cameraRef = useRef<HTMLInputElement>(null);
@@ -75,6 +77,14 @@ export function HomeworkCaptureTray({
             className="text-arjuna-primaryDark underline disabled:opacity-50"
           >
             Type instead
+          </button>
+          <button
+            type="button"
+            disabled={disabled}
+            onClick={onManualEntry}
+            className="text-arjuna-primaryDark underline disabled:opacity-50"
+          >
+            Enter myself
           </button>
           <button
             type="button"

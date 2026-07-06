@@ -57,9 +57,14 @@ export function HomeworkTaskReview({
       </div>
 
       {tasks.length === 0 ? (
-        <p className="text-sm text-arjuna-muted">
-          Couldn&apos;t read tasks automatically. Add them manually below.
-        </p>
+        <div className="space-y-3">
+          <p className="text-sm text-arjuna-muted">
+            Type each homework item below, then tap Start teaching.
+          </p>
+          <Button variant="secondary" className="w-full" onClick={onAddManual}>
+            + Add your first task
+          </Button>
+        </div>
       ) : (
         <ul className="space-y-3">
           {tasks.map((task, index) => (

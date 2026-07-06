@@ -13,6 +13,7 @@ import {
   saveSettings,
 } from "@/lib/settings";
 import { arjunaFetch } from "@/lib/apiClient";
+import { setGeminiKeyStatus } from "@/lib/geminiKeyStatus";
 import {
   normalizeTeachingMethod,
   TEACHING_METHOD_OPTIONS,
@@ -46,14 +47,14 @@ export function SettingsGeminiAndFeedback({ profile, onProfileChange }: Props) {
   function saveGeminiKey() {
     const key = geminiInput.trim();
     if (!key) return;
-    saveSettings({ geminiApiKey: key });
+    saveSettings({ geminiApiKey: key, geminiKeyStatus: geminiTest === "ok" ? "valid" : "unknown" });
     setGeminiInput("");
     refreshSettings();
     setGeminiTest("idle");
   }
 
   function clearGeminiKey() {
-    saveSettings({ geminiApiKey: "" });
+    saveSettings({ geminiApiKey: "", geminiKeyStatus: undefined, geminiKeyCheckedAt: undefined });
     setGeminiInput("");
     refreshSettings();
     setGeminiTest("idle");
@@ -86,6 +87,7 @@ export function SettingsGeminiAndFeedback({ profile, onProfileChange }: Props) {
         message?: string;
       };
       if (data.ok) {
+        setGeminiKeyStatus("valid");
         setGeminiTest("ok");
         setGeminiTestMsg(
           data.rateLimited
@@ -97,6 +99,7 @@ export function SettingsGeminiAndFeedback({ profile, onProfileChange }: Props) {
         return;
       }
       setGeminiTest("fail");
+      setGeminiKeyStatus("invalid");
       if (data.error === "google_rejected") {
         setGeminiTestMsg(
           "Google rejected this key. Create a fresh key at Google AI Studio and paste the whole key.",
