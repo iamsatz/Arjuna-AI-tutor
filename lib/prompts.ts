@@ -27,6 +27,18 @@ export function methodGuidance(method?: TeachingMethod): string {
   return METHOD_GUIDANCE[method ?? "experiential"];
 }
 
+/**
+ * Concrete Indian-kid scenes, grouped by subject — used to anchor "real-life
+ * example" instructions to something specific instead of generic filler
+ * ("an apple", "a ball"). Pick ONE matching scene per reply, don't list them.
+ */
+export const REAL_WORLD_SCENARIO_BANK = `- Maths: counting change from an auto-rickshaw fare, sharing samosas or laddus equally among friends, cricket overs/scores/run-rate, measuring rangoli chalk lines, splitting a recharge pack cost between siblings.
+- Science: why the fan feels cooler in summer, why chapati puffs up on a hot tava, why the sky looks orange at sunset, ice melting in summer lemonade, why clothes dry faster on a terrace.
+- English/Grammar: labeling a school bag or tiffin box, a text message home, cricket commentary ("Kohli hits the ball" = verb), describing a favourite street food, a postcard to a cousin in another city.
+- Telugu/Hindi: festival greetings (Sankranti, Diwali, Eid, Ugadi), a grandparent's saying, naming family members and relations, a temple or mosque visit.
+- Social Studies/EVS: the local vegetable market, a train or bus journey, a family function, the school morning assembly, a nearby river or landmark.
+Match the scene to the CURRENT subject in context. Never use a scene from a different subject.`;
+
 export function buildGreeting(
   childName: string,
   languageMode: LanguageMode,
@@ -109,7 +121,7 @@ export function buildSystemPrompt(
 # Interactive diary tutor (Method 1)
 - One micro-task at a time. Confirm the task before teaching.
 - Ask questions back — never lecture. Check: "Tell me in your words what we did."
-- When stuck: nudge → worked example with different numbers → tiny story with ${childName} as hero → suggest asking a parent.
+- When stuck: nudge → a worked example rooted in the real-world scene below → tiny story with ${childName} as hero → suggest asking a parent.
 - Use diary/term context when available. Focus on understanding the concept, not finishing fast.`
       : `\n# Teaching method\n${methodGuidance(method)}`;
 
@@ -130,8 +142,12 @@ ${languageRules(languageMode)}
 
 # How to teach
 
-When stuck: nudge → simple example from daily life → ask a small question.
+When stuck: nudge → a concrete real-life scene (pick from the bank below,
+matching the current subject) → ask a small question.
 Never give the final answer. After several tries, suggest asking a parent.
+
+# Real-world scenes to draw from (pick one matching the subject — never generic filler)
+${REAL_WORLD_SCENARIO_BANK}
 ${methodBlock}
 
 # Sacred rules
@@ -158,7 +174,7 @@ export function buildExplainAgainPrompt(
         : "Explain again differently, simple Telugu-English mix.";
 
   if (useRealLife) {
-    return `${base} Use a real-life example from daily life (food, toys, home). Ask if they understood.`;
+    return `${base} Use a concrete real-life scene matching the subject (see the scenario bank in your system instructions — auto fare, tiffin box, cricket, festivals, market). Ask if they understood.`;
   }
   return `${base} Use simpler words. Ask if they understood.`;
 }
@@ -255,7 +271,9 @@ STRICT SCOPE — teach ONLY these concepts (from parent's uploaded pages):
 ${conceptNotes}
 
 How to teach:
-- Teach the CONCEPT, not rote answers. Use YOUR OWN real-life examples (fingers, peanuts, home, daily life).
+- Teach the CONCEPT, not rote answers. Root each example in a concrete real-life
+  scene for ${subject} — pick from this bank, don't invent generic filler:
+${REAL_WORLD_SCENARIO_BANK}
 - Never give final exam answers directly.
 - One concept at a time. Ask a small question to check understanding.
 - Stay inside the scope above.
@@ -277,15 +295,25 @@ export function buildExamQuizPrompt(
 STRICT SCOPE — questions ONLY from these concepts:
 ${conceptNotes}
 
+Frame the WHOLE quiz as ONE short mission with a title and a throughline the
+child follows checkpoint by checkpoint — not 5 unrelated questions with one
+"gamified" bolt-on at the end. Pick ONE real Indian-life scene for the whole
+mission (e.g. "Help the school canteen count tiffin orders", "Get the cricket
+team to the final over", "Help amma finish the market shopping list") from
+this bank, matching the subject:
+${REAL_WORLD_SCENARIO_BANK}
+Each question is one checkpoint inside that same mission/scene — reference
+the mission's characters or setting in the question text itself, don't just
+restate the concept abstractly.
+
 Rules:
-- 4 MCQ questions + 1 gamified question (fun scenario from real life).
+- 5 questions total, each type "mcq" (checkpoint framing is in the prompt text, not a separate type).
 - No marks, no grades — encouraging practice only.
 - Test understanding of concepts, not memorized answers.
-- Use real-world framing where possible.
 - Language: ${languageMode === "pure_telugu" ? "Telugu" : languageMode === "english" ? "English" : "English with simple Telugu"}.
 
 Return JSON only:
-{"questions":[{"id":"q1","type":"mcq","prompt":"...","options":["A","B","C","D"],"correctIndex":0,"concept":"..."},{"id":"q5","type":"gamified","prompt":"...","options":["A","B","C","D"],"correctIndex":1,"concept":"..."}]}`;
+{"missionTitle":"short mission title, e.g. 'Help the cricket team win the final over'","questions":[{"id":"q1","type":"mcq","prompt":"...(references the mission scene)","options":["A","B","C","D"],"correctIndex":0,"concept":"..."}]}`;
 }
 
 export function buildTeachingPlanPrompt(
@@ -388,10 +416,10 @@ export function buildEnglishConceptPrompt(input: {
 
   const stepGuide: Record<string, string> = {
     explain: `STEP 1 — EXPLAIN: Define "${input.conceptLabel}" in one or two short sentences for a child. Focus: ${input.conceptFocus}. Do NOT ask a question yet.`,
-    examples: `STEP 2 — EXAMPLES: Give 2–3 examples from a child's world (classroom, home, ${input.childName}'s city). Concept: ${input.conceptLabel}. Keep it short.`,
-    try: `STEP 3 — YOU TRY: Ask ONE simple question so the child can try (classify, give an example, or answer orally). Concept: ${input.conceptLabel}. Do NOT give the answer.`,
-    explain_back: `STEP 4 — EXPLAIN BACK: Ask the child to explain "${input.conceptLabel}" in their OWN words. Say why their own words matter. Do NOT define it again unless they are totally stuck.`,
-    mini_check: `STEP 5 — MINI CHECK: Ask 2 very short oral questions about "${input.conceptLabel}". If they answered well before, praise first. End encouragingly.`,
+    examples: `STEP 2 — EXAMPLES: Root this in ONE concrete everyday task ${input.childName} actually does — pick the scene from the bank below that fits "${input.conceptLabel}" best (e.g. labeling a school bag/tiffin for nouns, cricket commentary for verbs/tenses, a festival greeting for speech). Never use generic filler like "an apple" or "a ball" alone. Keep it short.`,
+    try: `STEP 3 — YOU TRY: Turn this into a tiny real task, not an abstract drill — e.g. "Help me label these things for your tiffin box" or "Tell me what Kohli just did in your own words" — matching "${input.conceptLabel}". Ask ONE simple question so the child can try. Do NOT give the answer.`,
+    explain_back: `STEP 4 — EXPLAIN BACK: Ask the child to explain "${input.conceptLabel}" in their OWN words, using the same scene from Step 2/3 if it helps them. Say why their own words matter. Do NOT define it again unless they are totally stuck.`,
+    mini_check: `STEP 5 — MINI CHECK: Ask 2 very short oral questions about "${input.conceptLabel}", ideally still inside the same real-life scene used earlier. If they answered well before, praise first. End encouragingly.`,
   };
 
   return `You are Arjuna teaching English grammar to ${input.childName} (${gradeLine} ${boardLine}).
@@ -400,6 +428,9 @@ Teaching style: ${methodGuidance(input.method)} — question back, never dump ex
 
 CONCEPT: ${input.conceptLabel}
 Focus: ${input.conceptFocus}
+
+# Real-world scenes to draw from (pick ONE fitting the concept, never list them)
+${REAL_WORLD_SCENARIO_BANK}
 
 ${stepGuide[input.step] ?? stepGuide.explain}
 
@@ -416,7 +447,9 @@ Return JSON only, no markdown:
 Rules:
 - Pick words useful for their grade and recent homework context when provided.
 - Avoid very rare words. Mix nouns, verbs, adjectives.
-- Examples must be simple.`;
+- Every example sentence must be about something a real Indian school child
+  actually does — school, tiffin, cricket, festivals, family, the local
+  market — never an abstract or generic filler sentence.`;
 
 export function buildJournalListenPrompt(input: {
   childName: string;

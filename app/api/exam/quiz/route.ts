@@ -45,7 +45,7 @@ export async function POST(request: NextRequest) {
   const languageMode = body.languageMode ?? "mixed";
 
   try {
-    let quiz: { questions: ExamQuizQuestion[] };
+    let quiz: { questions: ExamQuizQuestion[]; missionTitle?: string };
     let cached = false;
 
     if (body.schoolKey) {
@@ -56,7 +56,7 @@ export async function POST(request: NextRequest) {
         languageMode,
       ]);
 
-      const result = await getOrCreate<{ questions: ExamQuizQuestion[] }>({
+      const result = await getOrCreate<{ questions: ExamQuizQuestion[]; missionTitle?: string }>({
         schoolKey: body.schoolKey,
         kind: "quiz",
         topicKey,
@@ -89,6 +89,7 @@ export async function POST(request: NextRequest) {
       }
       return NextResponse.json({
         questions: quiz.questions,
+        missionTitle: quiz.missionTitle,
         answersRevealed: true,
         cached,
       });
@@ -102,7 +103,7 @@ export async function POST(request: NextRequest) {
       concept: q.concept,
     }));
 
-    return NextResponse.json({ questions, cached });
+    return NextResponse.json({ questions, missionTitle: quiz.missionTitle, cached });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Quiz failed";
     return NextResponse.json({ error: "quiz_failed", message }, { status: 502 });

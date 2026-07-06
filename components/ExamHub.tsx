@@ -85,6 +85,7 @@ export function ExamHub({ profile }: ExamHubProps) {
   const [questions, setQuestions] = useState<
     Omit<ExamQuizQuestion, "correctIndex">[]
   >([]);
+  const [missionTitle, setMissionTitle] = useState<string | null>(null);
   const [fullQuestions, setFullQuestions] = useState<ExamQuizQuestion[]>([]);
   const [selectedAnswers, setSelectedAnswers] = useState<Record<string, number>>({});
   const [pinInput, setPinInput] = useState("");
@@ -518,6 +519,7 @@ export function ExamHub({ profile }: ExamHubProps) {
     setSelectedExam(exam);
     setMode("quiz");
     setQuestions([]);
+    setMissionTitle(null);
     setFullQuestions([]);
     setSelectedAnswers({});
     setShowAnswers(false);
@@ -535,8 +537,10 @@ export function ExamHub({ profile }: ExamHubProps) {
       if (!res.ok) throw new Error("quiz failed");
       const data = (await res.json()) as {
         questions: Omit<ExamQuizQuestion, "correctIndex">[];
+        missionTitle?: string;
       };
       setQuestions(data.questions ?? []);
+      setMissionTitle(data.missionTitle ?? null);
     } catch {
       setError("Could not create quiz.");
     } finally {
@@ -1168,13 +1172,18 @@ export function ExamHub({ profile }: ExamHubProps) {
       {mode === "quiz" && selectedExam && (
         <div className="space-y-4 pb-4">
           <h2 className="text-lg font-semibold">{selectedExam.subject} practice</h2>
+          {missionTitle && (
+            <p className="rounded-xl bg-arjuna-primary/10 px-3 py-2 text-sm font-semibold text-arjuna-primaryDark">
+              🎯 {missionTitle}
+            </p>
+          )}
           <p className="text-xs text-arjuna-muted">No marks — just practice</p>
-          {questions.map((q) => (
+          {questions.map((q, idx) => (
             <div key={q.id} className="rounded-xl bg-white/95 p-4 shadow-sm">
-              <p className="text-sm font-medium">
-                {q.type === "gamified" ? "🎮 " : ""}
-                {q.prompt}
+              <p className="text-xs font-semibold uppercase text-arjuna-muted">
+                Checkpoint {idx + 1}
               </p>
+              <p className="mt-1 text-sm font-medium">{q.prompt}</p>
               <div className="mt-2 space-y-2">
                 {q.options.map((opt, idx) => {
                   const selected = selectedAnswers[q.id] === idx;

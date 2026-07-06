@@ -35,7 +35,7 @@ after logging in locally). Re-verify with `/api/health` once set.
 |---|---------|----------|--------|-----------------|-------|
 | S0 | Baseline test pass (no code) | — | S | every link | ☐ |
 | S1 | Restore English tab + Exam key | P0/P1 | M | `/english`, `/exam` | ✅ done + live-tested + deployed |
-| S1.5 | Task-based, real-world teaching content redesign | P1 | M | `/`, `/english`, `/exam` | ☐ research done, prompts not yet rewritten |
+| S1.5 | Task-based, real-world teaching content redesign | P1 | M | `/`, `/english`, `/exam` | ✅ done + live-tested + deployed |
 | S2 | Observability + smoke test net | P1 | M | `/owner` | ☐ |
 | S3 | Sweep unverified (TV, owner, family, curriculum) | P1 | L | `/join/family01`, `/tv`, `/owner` | ☐ |
 | S4 | Lifecycle & robustness polish | P2 | S | `/`, `/english` | ☐ |
@@ -90,21 +90,42 @@ after logging in locally). Re-verify with `/api/health` once set.
 ### S1.5 — Task-based, real-world teaching content redesign
 Pedagogy research (task-based learning, inquiry-based scaffolding, gamification effect
 size in elementary kids, vocabulary/journaling via personal + imagery) applied to:
-- **English concept sessions** (`buildEnglishConceptPrompt`): replace generic "give
-  examples from a child's world" with a concrete Indian-kid scenario bank per
-  grammar category (school bag labels, tiffin box, cricket team, street food,
-  festivals, auto fare) wrapped as a mission the child completes, not a fact recited.
-- **Homework teaching method** (`buildSystemPrompt` methodBlock): subject-specific
-  real-world task banks (Maths → market/auto-fare counting, Science → everyday
-  "why" questions, Telugu/Hindi → festival matching) instead of a static object list.
-- **Exam revision & quiz** (`buildExamQuizPrompt`/`buildExamRevisionPrompt`): wrap the
-  whole quiz as one escape-room/mission narrative (checkpoints) instead of 4 plain
-  MCQs + 1 gamified bolt-on.
-- **Daily Words & Journal** (`DAILY_WORDS_PROMPT`, `buildJournalListenPrompt`): tie
-  every word/prompt to the child's own recent homework/day, one word per card,
-  specific 2-line-answerable prompts instead of generic "write about your day."
-- **Verify:** open a concept session, homework teach, exam quiz, and journal —
-  each response should reference something a real Indian kid does, not a stock example.
+- **Shared scenario bank** (`REAL_WORLD_SCENARIO_BANK` in `lib/prompts.ts`): one
+  reusable set of concrete Indian-kid scenes grouped by subject (auto-rickshaw
+  fare/cricket scores for Maths, why-questions like the tava/fan for Science,
+  tiffin/school-bag labels/cricket commentary for English grammar, festival
+  greetings for Telugu/Hindi, market/train journey for Social/EVS) — referenced
+  from every prompt below instead of each one inventing its own generic filler.
+- **English concept sessions** (`buildEnglishConceptPrompt`): Step 2 (examples),
+  Step 3 (try), Step 4 (explain-back) and Step 5 (mini-check) all now instruct
+  picking one scene from the bank matching the concept and framing it as a task
+  the child does, not a fact recited ("help me label these for your tiffin box").
+- **Homework teaching method** (`buildSystemPrompt` methodBlock + `buildExplainAgainPrompt`):
+  "nudge → real-life example" now points at the scenario bank matched to the
+  subject already in context, instead of a static "fingers, peanuts, toys" line.
+- **Exam revision** (`buildExamRevisionPrompt`): same bank, matched to subject.
+- **Exam quiz** (`buildExamQuizPrompt`): wraps the whole quiz as ONE mission
+  with a title and throughline (e.g. "Help the cricket team win the final
+  over") instead of 4 plain MCQs + 1 gamified bolt-on; each question is a
+  "checkpoint" referencing the same scene. Added `missionTitle` to the
+  response contract (`lib/gemini.ts` `generateExamQuiz`,
+  `app/api/exam/quiz/route.ts`, `ExamHub.tsx` renders it as a 🎯 banner above
+  "Checkpoint 1/2/…" per question).
+- **Daily Words** (`DAILY_WORDS_PROMPT`): every example sentence must be
+  about something a real Indian school child does, not generic filler.
+- **Journal prompts** (`lib/englishJournalStore.ts`): swapped the vaguest
+  open-ended prompt ("A story idea — start anywhere!") and added two more
+  grounded in real life (food, games with friends, family weekend).
+- **Verify:** live-tested — English concept request reaches the server with
+  the new prompt correctly (no template-literal bug, same pre-existing 401
+  key issue as before, not a regression); mocked the quiz API response to
+  confirm the UI renders "🎯 {missionTitle}" and "CHECKPOINT 1/2" correctly
+  end-to-end without needing a working Gemini key.
+- **Known limitation:** actual model OUTPUT quality (whether Gemini's replies
+  really land as vivid and Indian-specific as intended) still can't be verified
+  end-to-end until a valid key exists somewhere (local or Vercel) — everything
+  here is verified structurally (reaches Gemini correctly, renders correctly),
+  not by reading real generated text.
 
 ### S1.7 — Exam input parity (upload/scan/type/speak)
 Homework already had all four input modes (scan, gallery upload of JPG/PDF/PNG,

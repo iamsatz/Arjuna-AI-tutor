@@ -11,12 +11,14 @@ export type JournalEntry = {
 const PROMPTS = [
   "What made you smile today?",
   "One thing you learned today?",
-  "A story idea — start anywhere!",
+  "Tell Arjuna about the best thing you ate this week.",
   "Who helped you today and how?",
   "What was tricky today? You tried anyway!",
   "If you could go anywhere tomorrow, where?",
   "Describe your favourite place at school.",
   "What are you proud of this week?",
+  "Tell Arjuna about a game you played with your friends.",
+  "What did your family do together this weekend?",
 ];
 
 function storageKey(profileId: string): string {

@@ -453,7 +453,7 @@ export async function generateExamQuiz(
   subject: string,
   conceptNotes: string,
   languageMode: LanguageMode,
-): Promise<{ questions: ExamQuizQuestion[] }> {
+): Promise<{ questions: ExamQuizQuestion[]; missionTitle?: string }> {
   const raw = await geminiGenerate(
     apiKey,
     [{ text: buildExamQuizPrompt(board, grade, subject, conceptNotes, languageMode) }],
@@ -461,8 +461,8 @@ export async function generateExamQuiz(
     2048,
   );
 
-  const parsed = parseJson<{ questions: ExamQuizQuestion[] }>(raw);
-  return { questions: parsed.questions ?? [] };
+  const parsed = parseJson<{ questions: ExamQuizQuestion[]; missionTitle?: string }>(raw);
+  return { questions: parsed.questions ?? [], missionTitle: parsed.missionTitle };
 }
 
 export type TeachingPlan = {
