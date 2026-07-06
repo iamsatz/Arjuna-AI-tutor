@@ -16,6 +16,12 @@ type FeedbackRow = {
   analysis: FeedbackAnalysis;
 };
 
+type HealthReport = {
+  ok: boolean;
+  checkedAt: string;
+  checks: Record<string, { status: "ok" | "fail" | "not_configured"; detail?: string }>;
+};
+
 export default function OwnerDashboardPage() {
   const router = useRouter();
   const phase = getAppPhase();
@@ -27,6 +33,7 @@ export default function OwnerDashboardPage() {
   const [creatingInvite, setCreatingInvite] = useState(false);
   const [copiedCode, setCopiedCode] = useState<string | null>(null);
   const [feedback, setFeedback] = useState<FeedbackRow[]>([]);
+  const [health, setHealth] = useState<HealthReport | null>(null);
 
   useEffect(() => {
     async function loadData() {
@@ -62,6 +69,11 @@ export default function OwnerDashboardPage() {
     }
 
     void loadData();
+
+    void fetch("/api/health")
+      .then((res) => res.json() as Promise<HealthReport>)
+      .then(setHealth)
+      .catch(() => setHealth(null));
   }, []);
 
   async function handleLogout() {
@@ -183,6 +195,39 @@ export default function OwnerDashboardPage() {
                     ? `Claimed by ${invite.childName}${invite.grade ? ` · ${invite.grade}` : ""}`
                     : "Not claimed yet"}
                 </p>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
+
+      <section className="mb-6 rounded-2xl bg-white/95 p-5 shadow-sm">
+        <h2 className="text-lg font-semibold text-arjuna-text">App health</h2>
+        <p className="mt-1 text-sm text-arjuna-muted">
+          Checked automatically every day and each time you open this page.
+        </p>
+        {health === null ? (
+          <p className="mt-3 text-sm text-arjuna-muted">Checking…</p>
+        ) : (
+          <ul className="mt-3 flex flex-wrap gap-2">
+            {Object.entries(health.checks).map(([name, check]) => (
+              <li
+                key={name}
+                className={`rounded-full px-3 py-1 text-xs font-semibold capitalize ${
+                  check.status === "fail"
+                    ? "bg-red-50 text-red-700"
+                    : check.status === "ok"
+                      ? "bg-green-50 text-green-800"
+                      : "bg-arjuna-bg text-arjuna-muted"
+                }`}
+                title={check.detail}
+              >
+                {name}:{" "}
+                {check.status === "ok"
+                  ? "working"
+                  : check.status === "fail"
+                    ? `broken — ${check.detail ?? "check logs"}`
+                    : "not set up"}
               </li>
             ))}
           </ul>
