@@ -46,7 +46,7 @@ after logging in locally). Re-verify with `/api/health` once set.
 | S1.5 | Task-based, real-world teaching content redesign | P1 | M | `/`, `/english`, `/exam` | ✅ done + live-tested + deployed |
 | S2 | Observability + smoke test net | P1 | M | `npm run smoke` | ✅ done + live-tested + deployed |
 | S3 | Sweep unverified (TV, owner, family, curriculum) | P1 | L | `/join/family01`, `/tv`, `/owner` | ✅ swept — no P0 bugs found |
-| S4 | Lifecycle & robustness polish | P2 | S | `/`, `/english` | ☐ |
+| S4 | Lifecycle & robustness polish | P2 | S | `/`, `/english` | ✅ done + live-tested + deployed |
 | S5 | Scenario 1 — smart multi-subject read | P1 | M | `/` (4-subject photo) | ☐ |
 | S6 | Scenario 3 — revision scheduler | P1 | L | `/exam`, `/owner` | ☐ |
 | S7 | Consistency & cleanup (one AI client) | P2 | M | `/`, `/english`, `/exam` | ☐ |
@@ -248,7 +248,28 @@ What was verified and found solid:
   → bridge subject is Hindi, spoken as hi-IN).
 
 ### S4 — Lifecycle & robustness polish
-- `TodayRing` reads in `useEffect`; clear celebrate `setTimeout`; harden streak day writes.
+- `TodayRing.tsx`: initial state now matches the SSR-safe defaults (0/0/3,
+  empty badges) instead of calling `getStreak()`/`getBadges()` inside the
+  `useState` initializer — that ran on the client during hydration with
+  `window` defined, reading real localStorage immediately and mismatching
+  the server-rendered 0s. Real values now load in the existing `useEffect`.
+- `LessonScreen.tsx`: the "celebrate" avatar `setTimeout` (1200ms, on
+  Understood) is now tracked in a ref, cleared before starting a new one,
+  and cleared on unmount — previously it could fire `setAvatarOverride` after
+  the component (or child profile) had already unmounted.
+- `lib/streak.ts`: `rollDayIfNeeded` now always writes `LAST_DAY_KEY` to
+  today whenever it detects a day change — previously only
+  `recordDailyActivity` wrote that key, so opening the app on a new day
+  without completing any activity left `LAST_DAY_KEY` stale. Also simplified
+  `recordDailyActivity` to call the shared `rollDayIfNeeded()` instead of
+  re-implementing the same rollover comparison inline (two copies of the
+  same logic was itself a latent bug source).
+- **Verify:** live-tested all three — seeded a streak of 5, reloaded, and
+  confirmed via console logs there's no React hydration warning and the UI
+  shows 5 immediately after mount; seeded `LAST_DAY_KEY` two days stale with
+  no activity recorded, reloaded, and confirmed `rollDayIfNeeded` correctly
+  reset the streak to 0 **and** synced `LAST_DAY_KEY` to today without
+  needing `recordDailyActivity` to run first.
 
 ### S5 — Scenario 1: smart multi-subject read
 - Surface extraction count + confidence; nudge "add the rest if I missed some"; use profile's usual subjects as expectation.

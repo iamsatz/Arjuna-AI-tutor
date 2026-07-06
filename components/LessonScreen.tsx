@@ -115,12 +115,24 @@ export function LessonScreen({
     lesson;
   const settings = loadSettings();
 
+  const celebrateTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (celebrateTimeoutRef.current) clearTimeout(celebrateTimeoutRef.current);
+    };
+  }, []);
+
   const onUnderstood = useCallback(async () => {
     await lesson.handleUnderstood();
     recordDailyActivity("homework");
     setRingKey((k) => k + 1);
     setAvatarOverride("celebrate");
-    setTimeout(() => setAvatarOverride(null), 1200);
+    if (celebrateTimeoutRef.current) clearTimeout(celebrateTimeoutRef.current);
+    celebrateTimeoutRef.current = setTimeout(() => {
+      setAvatarOverride(null);
+      celebrateTimeoutRef.current = null;
+    }, 1200);
   }, [lesson]);
 
   function openManualReview(hint?: string) {

@@ -26,6 +26,12 @@ function todayKey(): string {
   return new Date().toISOString().slice(0, 10);
 }
 
+/**
+ * Always syncs LAST_DAY_KEY to today whenever a rollover is detected — not
+ * just when recordDailyActivity happens to run — so any future reader can
+ * trust LAST_DAY_KEY reflects "the last day this was checked/updated"
+ * rather than depending on activity-recording as the sole writer.
+ */
 function rollDayIfNeeded(): void {
   if (typeof window === "undefined") return;
   const day = todayKey();
@@ -38,6 +44,7 @@ function rollDayIfNeeded(): void {
     if (lastDay !== yesterdayKey) count = 0;
     localStorage.setItem(STREAK_KEY, String(count));
     localStorage.setItem(TODAY_ACTIVITIES_KEY, "[]");
+    localStorage.setItem(LAST_DAY_KEY, day);
   }
 }
 
@@ -115,23 +122,15 @@ export function setDailyRewardTarget(target: number): void {
 export function recordDailyActivity(type: DailyActivityType): StreakData {
   if (typeof window === "undefined") return getStreak();
 
+  rollDayIfNeeded();
   const day = todayKey();
-  const lastDay = localStorage.getItem(LAST_DAY_KEY);
   let count = Number(localStorage.getItem(STREAK_KEY) ?? "0");
   let activities = loadTodayActivities();
-
-  if (lastDay !== day) {
-    const yesterday = new Date();
-    yesterday.setDate(yesterday.getDate() - 1);
-    const yesterdayKey = yesterday.toISOString().slice(0, 10);
-    if (lastDay !== yesterdayKey) count = 0;
-    activities = [];
-  }
 
   if (!activities.includes(type)) {
     activities = [...activities, type];
     saveTodayActivities(activities);
-    if (activities.length === 1 && lastDay !== day) {
+    if (activities.length === 1) {
       count += 1;
     }
     localStorage.setItem(STREAK_KEY, String(count));
