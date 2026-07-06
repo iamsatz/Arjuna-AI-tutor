@@ -28,7 +28,22 @@ type ExamHubProps = {
 };
 
 type PrepMode = "list" | "create" | "curriculum" | "timetable" | "upload" | "revise" | "quiz";
-type MicTarget = "timetable" | "topics";
+type MicTarget = string;
+
+type SubjectRow = { id: string; subject: string; examDate: string; topicsText: string };
+
+function newSubjectRow(seed?: Partial<SubjectRow>): SubjectRow {
+  const id =
+    typeof crypto !== "undefined" && typeof crypto.randomUUID === "function"
+      ? crypto.randomUUID()
+      : `row_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+  return {
+    id,
+    subject: seed?.subject ?? "",
+    examDate: seed?.examDate ?? "",
+    topicsText: seed?.topicsText ?? "",
+  };
+}
 
 export function ExamHub({ profile }: ExamHubProps) {
   const searchParams = useSearchParams();
@@ -44,7 +59,9 @@ export function ExamHub({ profile }: ExamHubProps) {
   const [selectedExam, setSelectedExam] = useState<StoredExam | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  const [subject, setSubject] = useState("English");
+  const [subjectRows, setSubjectRows] = useState<SubjectRow[]>([
+    newSubjectRow({ subject: "English" }),
+  ]);
   const [examDate, setExamDate] = useState("");
   const [topicsText, setTopicsText] = useState("");
   const [pageFiles, setPageFiles] = useState<File[]>([]);
@@ -128,7 +145,7 @@ export function ExamHub({ profile }: ExamHubProps) {
     const topicParam = searchParams.get("topic");
     if (!subjectParam) return;
     prefilledRef.current = true;
-    setSubject(subjectParam);
+    setSubjectRows([newSubjectRow({ subject: subjectParam, topicsText: topicParam ?? "" })]);
     if (topicParam) {
       setTopicsText(topicParam);
       setSelectedTopicNames([topicParam]);
@@ -211,35 +228,58 @@ export function ExamHub({ profile }: ExamHubProps) {
     }
   }
 
-  async function handleCreateExam() {
+  function updateSubjectRow(id: string, patch: Partial<SubjectRow>) {
+    setSubjectRows((prev) => prev.map((r) => (r.id === id ? { ...r, ...patch } : r)));
+  }
+
+  function addSubjectRow() {
+    setSubjectRows((prev) => [...prev, newSubjectRow()]);
+  }
+
+  function removeSubjectRow(id: string) {
+    setSubjectRows((prev) => (prev.length > 1 ? prev.filter((r) => r.id !== id) : prev));
+  }
+
+  async function handleCreateMultipleExams() {
+    const rows = subjectRows.filter((r) => r.subject.trim());
+    if (!rows.length) return;
     setBusy(true);
     setError(null);
     try {
-      const res = await fetch("/api/exam", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          inviteCode: profile.inviteCode,
-          childName: profile.childName,
-          profileId: profile.id,
-          subject,
-          board: profile.board,
-          grade: profile.grade,
-          examDate: examDate || undefined,
-          topics: topicsText
-            .split(",")
-            .map((t) => t.trim())
-            .filter(Boolean),
-        }),
-      });
-      if (!res.ok) throw new Error("create failed");
-      const data = (await res.json()) as { exam: StoredExam };
-      void track("exam_created", { subject, examId: data.exam.id });
-      setSelectedExam(data.exam);
-      setMode("upload");
+      let createdCount = 0;
+      for (const row of rows) {
+        const res = await fetch("/api/exam", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            inviteCode: profile.inviteCode,
+            childName: profile.childName,
+            profileId: profile.id,
+            subject: row.subject.trim(),
+            board: profile.board,
+            grade: profile.grade,
+            examDate: row.examDate || undefined,
+            topics: row.topicsText
+              .split(",")
+              .map((t) => t.trim())
+              .filter(Boolean),
+          }),
+        });
+        if (res.ok) {
+          const data = (await res.json()) as { exam: StoredExam };
+          createdCount += 1;
+          void track("exam_created", { subject: row.subject.trim(), examId: data.exam.id });
+        }
+      }
+      if (!createdCount) {
+        setError("Could not create exam(s).");
+        return;
+      }
+      setSubjectRows([newSubjectRow()]);
       await loadExams();
+      setMode("list");
     } catch {
-      setError("Could not create exam.");
+      setError("Could not create exam(s).");
     } finally {
       setBusy(false);
     }
@@ -311,7 +351,7 @@ export function ExamHub({ profile }: ExamHubProps) {
     micStreamRef.current = null;
   }
 
-  async function toggleMic(target: MicTarget) {
+  async function toggleMic(target: MicTarget, applyText: (text: string) => void) {
     if (recording && micTarget === target) {
       const recorder = recorderRef.current;
       if (!recorder) return;
@@ -333,11 +373,7 @@ export function ExamHub({ profile }: ExamHubProps) {
         const data = (await res.json()) as { transcript?: string; error?: string };
         const text = data.transcript?.trim();
         if (res.ok && text) {
-          if (target === "timetable") {
-            setTimetableText((prev) => (prev ? `${prev} ${text}` : text));
-          } else {
-            setTopicsText((prev) => (prev ? `${prev}, ${text}` : text));
-          }
+          applyText(text);
         } else {
           setError("Could not hear you. Try again or type instead.");
         }
@@ -851,7 +887,11 @@ export function ExamHub({ profile }: ExamHubProps) {
               />
               <button
                 type="button"
-                onClick={() => void toggleMic("timetable")}
+                onClick={() =>
+                  void toggleMic("timetable", (text) =>
+                    setTimetableText((prev) => (prev ? `${prev} ${text}` : text)),
+                  )
+                }
                 disabled={transcribing || busy}
                 className={`rounded-xl border px-3 text-sm font-semibold ${
                   recording && micTarget === "timetable"
@@ -887,40 +927,90 @@ export function ExamHub({ profile }: ExamHubProps) {
 
       {mode === "create" && (
         <div className="space-y-4">
-          <h2 className="text-lg font-semibold">Create exam</h2>
-          <label className="block text-sm">
-            Subject
-            <input
-              value={subject}
-              onChange={(e) => setSubject(e.target.value)}
-              className="mt-1 w-full rounded-xl border p-3"
-            />
-          </label>
-          <label className="block text-sm">
-            Exam date (optional)
-            <input
-              type="date"
-              value={examDate}
-              onChange={(e) => setExamDate(e.target.value)}
-              className="mt-1 w-full rounded-xl border p-3"
-            />
-          </label>
-          <label className="block text-sm">
-            Topics (comma separated)
-            <input
-              value={topicsText}
-              onChange={(e) => setTopicsText(e.target.value)}
-              placeholder="Nouns, Verbs, Reading"
-              className="mt-1 w-full rounded-xl border p-3"
-            />
-          </label>
+          <h2 className="text-lg font-semibold">Create exam(s)</h2>
+          <p className="text-sm text-arjuna-muted">
+            Add one subject at a time. Type or speak the topics — no need to
+            format anything.
+          </p>
+
+          {subjectRows.map((row, idx) => (
+            <div
+              key={row.id}
+              className="space-y-2 rounded-xl border border-arjuna-primary/20 bg-white p-3"
+            >
+              <div className="flex items-center justify-between">
+                <p className="text-xs font-semibold uppercase text-arjuna-muted">
+                  Subject {idx + 1}
+                </p>
+                {subjectRows.length > 1 && (
+                  <button
+                    type="button"
+                    onClick={() => removeSubjectRow(row.id)}
+                    className="text-xs font-semibold text-red-600 underline"
+                  >
+                    Remove
+                  </button>
+                )}
+              </div>
+              <input
+                value={row.subject}
+                onChange={(e) => updateSubjectRow(row.id, { subject: e.target.value })}
+                placeholder="e.g. English"
+                className="w-full rounded-xl border p-3 text-sm"
+              />
+              <input
+                type="date"
+                value={row.examDate}
+                onChange={(e) => updateSubjectRow(row.id, { examDate: e.target.value })}
+                className="w-full rounded-xl border p-3 text-sm"
+              />
+              <div className="flex gap-2">
+                <textarea
+                  value={row.topicsText}
+                  onChange={(e) => updateSubjectRow(row.id, { topicsText: e.target.value })}
+                  placeholder="Topics — type or speak (e.g. Nouns, Verbs, Reading)"
+                  className="flex-1 rounded-xl border p-3 text-sm"
+                  rows={2}
+                />
+                <button
+                  type="button"
+                  onClick={() =>
+                    void toggleMic(row.id, (text) =>
+                      updateSubjectRow(row.id, {
+                        topicsText: row.topicsText ? `${row.topicsText}, ${text}` : text,
+                      }),
+                    )
+                  }
+                  disabled={transcribing}
+                  className={`rounded-xl border px-3 text-sm font-semibold ${
+                    recording && micTarget === row.id
+                      ? "border-red-400 bg-red-50 text-red-700"
+                      : "border-arjuna-primary/30"
+                  }`}
+                >
+                  {recording && micTarget === row.id ? "⏹" : "🎤"}
+                </button>
+              </div>
+            </div>
+          ))}
+
           <button
             type="button"
-            disabled={busy || !subject.trim()}
-            onClick={() => void handleCreateExam()}
+            onClick={addSubjectRow}
+            className="w-full rounded-xl border border-dashed border-arjuna-primary/40 py-2.5 text-sm font-semibold text-arjuna-primaryDark"
+          >
+            + Add another subject
+          </button>
+          <button
+            type="button"
+            disabled={busy || !subjectRows.some((r) => r.subject.trim())}
+            onClick={() => void handleCreateMultipleExams()}
             className="w-full rounded-xl bg-arjuna-primary py-3 font-semibold text-white disabled:opacity-50"
           >
-            Next: upload pages
+            {subjectRows.filter((r) => r.subject.trim()).length > 1
+              ? "Create these exams"
+              : "Create exam"}{" "}
+            — add pages next
           </button>
           <button type="button" onClick={() => setMode("list")} className="w-full text-sm underline">
             Cancel
@@ -947,7 +1037,11 @@ export function ExamHub({ profile }: ExamHubProps) {
               />
               <button
                 type="button"
-                onClick={() => void toggleMic("topics")}
+                onClick={() =>
+                  void toggleMic("topics", (text) =>
+                    setTopicsText((prev) => (prev ? `${prev}, ${text}` : text)),
+                  )
+                }
                 disabled={transcribing}
                 className={`rounded-xl border px-3 text-sm font-semibold ${
                   recording && micTarget === "topics"

@@ -76,7 +76,7 @@ export function HomeworkCaptureTray({
             onClick={() => setShowTypeInput((v) => !v)}
             className="text-arjuna-primaryDark underline disabled:opacity-50"
           >
-            Type instead
+            Type & let Arjuna read it
           </button>
           <button
             type="button"
@@ -84,7 +84,7 @@ export function HomeworkCaptureTray({
             onClick={onManualEntry}
             className="text-arjuna-primaryDark underline disabled:opacity-50"
           >
-            Enter myself
+            Skip AI, add tasks myself
           </button>
           <button
             type="button"

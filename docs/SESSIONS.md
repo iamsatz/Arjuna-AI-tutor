@@ -21,6 +21,7 @@ Priority: P0 blocks a whole feature · P1 subset/silent · P2 quality/polish · 
 | S7 | Consistency & cleanup (one AI client) | P2 | M | `/`, `/english`, `/exam` | ☐ |
 | S8 | PDF polish + backlog + roadmap update | P2/P3 | S | `/`, `/roadmap` | ☐ |
 | S1.7 | Exam input parity (upload JPG/PDF/PNG, scan, type, speak) | P1 | M | `/exam` | ✅ done + live-tested + deployed |
+| S1.8 | Homework label clarity, curriculum preview+confirm, multi-subject exam create | P1/P2 | M | `/`, `/settings`, `/exam` | ✅ done + live-tested + deployed |
 
 ## Confirmed defects (source of truth)
 
@@ -101,6 +102,37 @@ type, speak). Exam prep only had camera-only, image-only capture. Brought to par
   verified via code + build; full click-through blocked locally by a pre-existing
   Supabase config gap unrelated to this change (`/api/exam` create already fails
   without the `arjuna_exams` migration — not something this session touched).
+
+### S1.8 — Homework label clarity, curriculum preview+confirm, multi-subject exam create
+Direct user testing on production surfaced one critical infra finding and three
+real UX gaps:
+- **Critical (not code):** `/api/health` on production shows both Supabase and
+  Gemini as `not_configured` — confirmed via curl. This is why "AI key not
+  working" and exam creation ("upload pages") were failing — Vercel is
+  missing `GEMINI_API_KEY`, `NEXT_PUBLIC_SUPABASE_URL`,
+  `NEXT_PUBLIC_SUPABASE_ANON_KEY` (and ideally `SUPABASE_SERVICE_ROLE_KEY`).
+  Invite links still worked only because of a file-based fallback specific
+  to invites — everything else Supabase-backed (exams, curricula, student
+  memory) silently no-ops. **User action required** — I can't set Vercel env vars.
+- **Homework capture tray**: "Type instead" and "Enter myself" looked like
+  duplicates. Relabeled to "Type & let Arjuna read it" (AI-parsed) vs
+  "Skip AI, add tasks myself" (manual, no AI) — same underlying behavior,
+  clearer intent.
+- **Curriculum/syllabus upload** (`/settings`): previously extracted and
+  saved in one shot with no visibility. Split `/api/curriculum` into a
+  `preview=true` extract-only mode and a JSON confirm-save mode; client shows
+  selected file names immediately and an "Is this what you uploaded? ✅ Save
+  / ✕ Discard" card with the parsed subjects/topics before anything is saved.
+- **Exam create flow**: replaced the single subject+date+comma-topics form
+  with repeatable subject rows (add/remove), each with its own exam date and
+  a topics field with type-or-speak (reused/generalized the `toggleMic`
+  helper from S1.7 to take an arbitrary target id + callback instead of a
+  fixed two-value union). Submitting loops one `/api/exam` POST per subject.
+- **Verify:** live-tested — relabeled buttons render; typed a 2-subject form
+  and confirmed two separate `POST /api/exam` calls fired (both correctly
+  blocked only by the missing-Supabase-env issue above, not a code bug);
+  curriculum preview and confirm-save paths both reach their Gemini/Supabase
+  calls correctly (same pre-existing env blockers, not code bugs).
 
 ### S2 — Observability + smoke test
 - `console.error(realError)` in dev inside every AI `catch` (keep friendly UI text).

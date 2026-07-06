@@ -10,7 +10,7 @@ import {
   type MediumOfInstruction,
 } from "@/lib/childProfile";
 import { MEDIUM_OPTIONS } from "@/lib/profileOptions";
-import type { StoredCurriculum } from "@/lib/curriculumTypes";
+import type { CurriculumSubject, StoredCurriculum } from "@/lib/curriculumTypes";
 import {
   loadSettings,
   saveSettings,
@@ -31,6 +31,13 @@ export default function SettingsPage() {
   const [curriculumBusy, setCurriculumBusy] = useState(false);
   const [curriculumMsg, setCurriculumMsg] = useState<string | null>(null);
   const [curriculumError, setCurriculumError] = useState<string | null>(null);
+  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
+  const [pendingPreview, setPendingPreview] = useState<{
+    term?: string;
+    subjects: CurriculumSubject[];
+    rawText?: string;
+  } | null>(null);
+  const [isReplacing, setIsReplacing] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
   const replaceRef = useRef(false);
 
@@ -99,17 +106,21 @@ export default function SettingsPage() {
       return;
     }
 
+    const fileArray = Array.from(files);
+    setSelectedFiles(fileArray);
+    setIsReplacing(replace);
     setCurriculumBusy(true);
     setCurriculumError(null);
     setCurriculumMsg(null);
+    setPendingPreview(null);
 
     try {
       const form = new FormData();
       form.append("schoolName", schoolName.trim());
       form.append("grade", profile.grade.trim());
       if (profile.board) form.append("board", profile.board);
-      if (replace) form.append("replace", "true");
-      for (const file of Array.from(files)) {
+      form.append("preview", "true");
+      for (const file of fileArray) {
         form.append("pages", file);
       }
 
@@ -119,31 +130,68 @@ export default function SettingsPage() {
         body: form,
       });
       const data = (await res.json()) as {
-        curriculum?: StoredCurriculum;
-        reused?: boolean;
-        replaced?: boolean;
+        preview?: { term?: string; subjects: CurriculumSubject[]; rawText?: string };
         message?: string;
         error?: string;
       };
 
-      if (!res.ok) {
-        setCurriculumError(data.message ?? data.error ?? "Upload failed");
+      if (!res.ok || !data.preview) {
+        setCurriculumError(data.message ?? data.error ?? "Could not read that file");
         return;
       }
 
-      setCurriculum(data.curriculum ?? null);
-      setCurriculumMsg(
-        data.reused
-          ? "Term plan already loaded. Use Replace below to update from diary."
-          : data.replaced
-            ? "Term plan replaced."
-            : "Term plan understood and saved for all kids at this school.",
-      );
+      setPendingPreview(data.preview);
     } catch {
       setCurriculumError("Could not upload curriculum.");
     } finally {
       setCurriculumBusy(false);
     }
+  }
+
+  async function confirmCurriculumSave() {
+    if (!pendingPreview || !profile) return;
+    setCurriculumBusy(true);
+    setCurriculumError(null);
+    try {
+      const res = await fetch("/api/curriculum", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          schoolName: schoolName.trim(),
+          grade: profile.grade,
+          board: profile.board,
+          term: pendingPreview.term,
+          subjects: pendingPreview.subjects,
+          rawText: pendingPreview.rawText,
+        }),
+      });
+      const data = (await res.json()) as {
+        curriculum?: StoredCurriculum;
+        error?: string;
+      };
+      if (!res.ok) {
+        setCurriculumError(data.error ?? "Could not save");
+        return;
+      }
+      setCurriculum(data.curriculum ?? null);
+      setCurriculumMsg(
+        isReplacing
+          ? "Term plan replaced."
+          : "Term plan understood and saved for all kids at this school.",
+      );
+      setPendingPreview(null);
+      setSelectedFiles([]);
+      setIsReplacing(false);
+    } catch {
+      setCurriculumError("Could not save curriculum.");
+    } finally {
+      setCurriculumBusy(false);
+    }
+  }
+
+  function discardCurriculumPreview() {
+    setPendingPreview(null);
+    setSelectedFiles([]);
   }
 
   return (
@@ -380,6 +428,13 @@ export default function SettingsPage() {
           }}
         />
 
+        {selectedFiles.length > 0 && !pendingPreview && (
+          <div className="rounded-lg bg-gray-50 px-3 py-2 text-xs text-arjuna-muted">
+            {curriculumBusy ? "Reading: " : "Selected: "}
+            {selectedFiles.map((f) => f.name).join(", ")}
+          </div>
+        )}
+
         {curriculumMsg && (
           <p className="rounded-lg bg-green-50 px-3 py-2 text-sm text-green-800">
             {curriculumMsg}
@@ -389,6 +444,50 @@ export default function SettingsPage() {
           <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">
             {curriculumError}
           </p>
+        )}
+
+        {pendingPreview && (
+          <div className="rounded-xl border border-amber-300 bg-amber-50 p-4">
+            <p className="text-sm font-semibold text-amber-900">
+              Is this what you uploaded?
+            </p>
+            <p className="mt-1 text-xs text-amber-800">
+              From: {selectedFiles.map((f) => f.name).join(", ")}
+            </p>
+            <p className="mt-2 text-sm font-semibold text-amber-900">
+              {pendingPreview.term ?? "Term plan"}
+            </p>
+            <ul className="mt-2 space-y-2 text-sm text-amber-900">
+              {pendingPreview.subjects.map((s) => (
+                <li key={s.subject}>
+                  <strong>{s.subject}</strong>
+                  <span className="text-amber-800">
+                    {" "}
+                    — {s.topics.slice(0, 4).map((t) => t.name).join(", ")}
+                    {s.topics.length > 4 ? "…" : ""}
+                  </span>
+                </li>
+              ))}
+            </ul>
+            <div className="mt-3 flex gap-2">
+              <button
+                type="button"
+                disabled={curriculumBusy}
+                onClick={() => void confirmCurriculumSave()}
+                className="flex-1 rounded-xl bg-amber-600 py-2.5 text-sm font-semibold text-white disabled:opacity-50"
+              >
+                ✅ Yes, save this
+              </button>
+              <button
+                type="button"
+                disabled={curriculumBusy}
+                onClick={discardCurriculumPreview}
+                className="flex-1 rounded-xl border border-amber-300 bg-white py-2.5 text-sm font-semibold text-amber-900"
+              >
+                ✕ Not right, discard
+              </button>
+            </div>
+          </div>
         )}
 
         {curriculum && (
