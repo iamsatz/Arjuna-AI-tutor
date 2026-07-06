@@ -23,7 +23,8 @@ import {
   useSupabaseRoomPublisher,
 } from "@/hooks/useSupabaseRoom";
 import { isTvDevice } from "@/lib/platform";
-import { friendlyExtractError, MISSING_AI_KEY_MESSAGE } from "@/lib/userErrors";
+import { friendlyChatError, friendlyExtractError, MISSING_AI_KEY_MESSAGE } from "@/lib/userErrors";
+import { parseTeachIntent } from "@/lib/teachIntent";
 
 const MAX_ATTEMPTS = 4;
 const MAX_VERIFY_ATTEMPTS = 3;
@@ -108,6 +109,10 @@ export function useLessonSession({
   const [loading, setLoading] = useState(false);
   const sessionTrackedRef = useRef(false);
   const sessionPageHashesRef = useRef<string[]>([]);
+  const lastTeachRef = useRef<{
+    contextNote?: string;
+    teachMode: "full" | "hint";
+  }>({ teachMode: "full" });
 
   const saveCompletedTaskHistory = useCallback(
     (
@@ -218,8 +223,17 @@ export function useLessonSession({
       const task = list[idx];
       if (!task) return;
 
+      lastTeachRef.current = {
+        contextNote,
+        teachMode,
+      };
+
       setLoading(true);
-      patchState({ avatarState: "loading", phase: "teaching" });
+      patchState({
+        avatarState: "loading",
+        phase: "teaching",
+        teachFailed: false,
+      });
 
       const noteLine = task.notes?.trim()
         ? `Child/parent note: ${task.notes.trim()}. `
@@ -262,17 +276,18 @@ export function useLessonSession({
             scopeKey,
             subject: task.subject,
             topic: task.task,
+            skipTeachingPlan: sessionPageHashesRef.current.length === 0,
           },
         });
         if (!response.ok) {
           const errBody = (await response.json().catch(() => ({}))) as {
             error?: string;
+            message?: string;
           };
           patchState({
-            statusMessage:
-              errBody.error === "missing_api_key"
-                ? MISSING_AI_KEY_MESSAGE
-                : "Something went wrong. Try again.",
+            statusMessage: friendlyChatError(errBody.error, errBody.message),
+            avatarState: "idle",
+            teachFailed: true,
           });
           return;
         }
@@ -286,14 +301,23 @@ export function useLessonSession({
           statusMessage: displayReply,
           lastReply: displayReply,
           phase: "teaching",
+          teachFailed: false,
+          avatarState: "idle",
         });
         await speak(reply);
         void track("example_given", {
           attempt: activeState.attemptCount + 1,
           subject: task.subject,
         });
-      } catch {
-        patchState({ statusMessage: "Something went wrong. Try again." });
+      } catch (err) {
+        patchState({
+          statusMessage: friendlyChatError(
+            "chat_failed",
+            err instanceof Error ? err.message : undefined,
+          ),
+          avatarState: "idle",
+          teachFailed: true,
+        });
       } finally {
         setLoading(false);
       }
@@ -603,26 +627,6 @@ export function useLessonSession({
     await teachCurrentTask(note);
   }, [activeState.attemptCount, patchState, settings.languageMode, teachCurrentTask]);
 
-  const handleDoubt = useCallback(async () => {
-    if (!doubtInput.trim()) return;
-    void track("doubt_submitted", { doubt: doubtInput.slice(0, 200) });
-    recordStudentOutcome(
-      "doubt",
-      activeState.tasks[activeState.currentTaskIndex],
-      doubtInput.slice(0, 200),
-    );
-    patchState({ phase: "doubt", doubtText: doubtInput });
-    await teachCurrentTask(`Student doubt: ${doubtInput}`);
-    setDoubtInput("");
-  }, [
-    doubtInput,
-    patchState,
-    teachCurrentTask,
-    recordStudentOutcome,
-    activeState.tasks,
-    activeState.currentTaskIndex,
-  ]);
-
   const handleExplainChoice = useCallback(
     async (wantsExplain: boolean) => {
       if (wantsExplain) {
@@ -631,6 +635,7 @@ export function useLessonSession({
           phase: "ask_help_mode",
           statusMessage: msg,
           lastReply: msg,
+          teachFailed: false,
         });
         await speak(msg);
         return;
@@ -640,6 +645,7 @@ export function useLessonSession({
         phase: "try_self",
         statusMessage: msg,
         lastReply: msg,
+        teachFailed: false,
       });
       await speak(msg);
     },
@@ -674,6 +680,84 @@ export function useLessonSession({
       teachCurrentTask,
     ],
   );
+
+  const handleHelpModeText = useCallback(
+    async (text: string) => {
+      const intent = parseTeachIntent(text);
+      if (intent === "hint") {
+        await handleHelpMode("hint");
+        return;
+      }
+      if (intent === "explain" || intent === "explain_again") {
+        await handleHelpMode("explain");
+        return;
+      }
+      if (intent === "try_self") {
+        await handleHelpMode("try_self");
+        return;
+      }
+      await handleHelpMode("explain");
+    },
+    [handleHelpMode],
+  );
+
+  const handleRetryTeach = useCallback(async () => {
+    const { contextNote, teachMode } = lastTeachRef.current;
+    await teachCurrentTask(
+      contextNote,
+      activeState.currentTaskIndex,
+      activeState.tasks,
+      teachMode,
+    );
+  }, [
+    activeState.currentTaskIndex,
+    activeState.tasks,
+    teachCurrentTask,
+  ]);
+
+  const handleDoubt = useCallback(async () => {
+    if (!doubtInput.trim()) return;
+    const intent = parseTeachIntent(doubtInput);
+    if (intent === "hint") {
+      setDoubtInput("");
+      await handleHelpMode("hint");
+      return;
+    }
+    if (intent === "explain") {
+      setDoubtInput("");
+      await handleHelpMode("explain");
+      return;
+    }
+    if (intent === "try_self") {
+      setDoubtInput("");
+      await handleHelpMode("try_self");
+      return;
+    }
+    if (intent === "explain_again") {
+      setDoubtInput("");
+      await handleExplainAgain();
+      return;
+    }
+
+    void track("doubt_submitted", { doubt: doubtInput.slice(0, 200) });
+    recordStudentOutcome(
+      "doubt",
+      activeState.tasks[activeState.currentTaskIndex],
+      doubtInput.slice(0, 200),
+    );
+    patchState({ phase: "doubt", doubtText: doubtInput, teachFailed: false });
+    await teachCurrentTask(`Student doubt: ${doubtInput}`);
+    setDoubtInput("");
+  }, [
+    doubtInput,
+    handleExplainAgain,
+    handleHelpMode,
+    patchState,
+    teachCurrentTask,
+    recordStudentOutcome,
+    activeState.tasks,
+    activeState.currentTaskIndex,
+  ]);
 
   const handleReadyToTry = useCallback(async () => {
     const msg = localizedCopy(settings.languageMode, "try_self");
@@ -952,6 +1036,8 @@ export function useLessonSession({
     handleVerifyAnswer,
     handleExplainAgain,
     handleDoubt,
+    handleHelpModeText,
+    handleRetryTeach,
     handleUnderstood,
     handleNotUnderstood,
     unlockParentSolution,

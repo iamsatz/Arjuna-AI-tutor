@@ -3,6 +3,9 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
+import { AppTabNav } from "@/components/AppTabNav";
+import { TodayRing } from "@/components/TodayRing";
+import { Card } from "@/components/ui/Card";
 import { ArjunaAvatar } from "./ArjunaAvatar";
 import {
   buildSchoolKey,
@@ -10,6 +13,7 @@ import {
   type ChildProfile,
 } from "@/lib/childProfile";
 import type { StoredExam } from "@/lib/examTypes";
+import { arjunaFetch, getGeminiKeyHeader } from "@/lib/apiClient";
 import { topicsToConceptNotes, type StoredCurriculum } from "@/lib/curriculumTypes";
 import { loadSettings, verifyParentPin } from "@/lib/settings";
 import { track } from "@/lib/analytics";
@@ -240,7 +244,11 @@ export function ExamHub({ profile }: ExamHubProps) {
       if (profile.board) form.append("board", profile.board);
       if (profile.grade) form.append("grade", profile.grade);
 
-      const res = await fetch("/api/exam/timetable", { method: "POST", body: form });
+      const res = await fetch("/api/exam/timetable", {
+        method: "POST",
+        headers: getGeminiKeyHeader(),
+        body: form,
+      });
       if (!res.ok) throw new Error("timetable failed");
       const data = (await res.json()) as { exams: StoredExam[] };
       for (const exam of data.exams) {
@@ -267,7 +275,11 @@ export function ExamHub({ profile }: ExamHubProps) {
         form.append("pages", file);
       }
 
-      const res = await fetch("/api/exam/material", { method: "POST", body: form });
+      const res = await fetch("/api/exam/material", {
+        method: "POST",
+        headers: getGeminiKeyHeader(),
+        body: form,
+      });
       if (!res.ok) throw new Error("upload failed");
       const data = (await res.json()) as {
         exam: StoredExam;
@@ -302,16 +314,15 @@ export function ExamHub({ profile }: ExamHubProps) {
     void track("exam_revision_started", { examId: exam.id, subject: exam.subject });
     setBusy(true);
     try {
-      const res = await fetch("/api/exam/revise", {
+      const res = await arjunaFetch("/api/exam/revise", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
+        json: {
           examId: exam.id,
           childName: profile.childName,
           messages: [],
           languageMode: settings.languageMode,
           schoolKey: schoolKey ?? undefined,
-        }),
+        },
       });
       if (!res.ok) throw new Error("revise failed");
       const data = (await res.json()) as { reply: string };
@@ -334,10 +345,9 @@ export function ExamHub({ profile }: ExamHubProps) {
     setMessages(nextMessages);
     setBusy(true);
     try {
-      const res = await fetch("/api/exam/revise", {
+      const res = await arjunaFetch("/api/exam/revise", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
+        json: {
           examId: selectedExam.id,
           childName: profile.childName,
           messages: nextMessages,
@@ -345,7 +355,7 @@ export function ExamHub({ profile }: ExamHubProps) {
           languageMode: settings.languageMode,
           schoolKey: schoolKey ?? undefined,
           studentKey,
-        }),
+        },
       });
       if (!res.ok) throw new Error("revise failed");
       const data = (await res.json()) as { reply: string };
@@ -373,14 +383,13 @@ export function ExamHub({ profile }: ExamHubProps) {
     void track("exam_quiz_started", { examId: exam.id, subject: exam.subject });
     setBusy(true);
     try {
-      const res = await fetch("/api/exam/quiz", {
+      const res = await arjunaFetch("/api/exam/quiz", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
+        json: {
           examId: exam.id,
           languageMode: settings.languageMode,
           schoolKey: schoolKey ?? undefined,
-        }),
+        },
       });
       if (!res.ok) throw new Error("quiz failed");
       const data = (await res.json()) as {
@@ -402,16 +411,15 @@ export function ExamHub({ profile }: ExamHubProps) {
     }
     setBusy(true);
     try {
-      const res = await fetch("/api/exam/quiz", {
+      const res = await arjunaFetch("/api/exam/quiz", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
+        json: {
           examId: selectedExam.id,
           languageMode: settings.languageMode,
           revealAnswers: true,
           pin: pinInput,
           schoolKey: schoolKey ?? undefined,
-        }),
+        },
       });
       if (!res.ok) throw new Error("reveal failed");
       const data = (await res.json()) as { questions: ExamQuizQuestion[] };
@@ -433,14 +441,29 @@ export function ExamHub({ profile }: ExamHubProps) {
 
   return (
     <main className="mx-auto flex min-h-dvh max-w-md flex-col bg-arjuna-bg px-6 py-8">
-      <div className="mb-4 flex items-center justify-between">
-        <p className="text-sm font-medium uppercase tracking-widest text-arjuna-muted">
-          Arjuna · Learn &amp; Exam Prep
-        </p>
-        <Link href="/" className="text-sm text-arjuna-primaryDark underline">
-          Homework
-        </Link>
-      </div>
+      {mode === "list" && (
+        <>
+          <Card className="mb-4">
+            <TodayRing />
+          </Card>
+          <AppTabNav active="exam" />
+        </>
+      )}
+
+      {mode !== "list" && (
+        <div className="mb-4 flex items-center justify-between">
+          <button
+            type="button"
+            onClick={() => setMode("list")}
+            className="text-sm text-arjuna-primaryDark underline"
+          >
+            ← Back
+          </button>
+          <Link href="/" className="text-sm text-arjuna-primaryDark underline">
+            Homework
+          </Link>
+        </div>
+      )}
 
       {(mode === "revise" || mode === "quiz") && (
         <div className="mb-4 flex flex-col items-center gap-3">
@@ -456,7 +479,7 @@ export function ExamHub({ profile }: ExamHubProps) {
       )}
 
       {mode === "list" && (
-        <div className="space-y-4">
+        <div className="mt-4 space-y-4">
           <h1 className="text-xl font-semibold text-arjuna-text">
             {profile.childName}&apos;s learning
           </h1>

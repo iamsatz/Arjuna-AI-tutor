@@ -38,6 +38,8 @@ export type LessonState = {
   messages: ChatMessage[];
   doubtText?: string;
   parentSolution?: string;
+  /** Show retry after /api/chat teach failure */
+  teachFailed?: boolean;
   controller: "phone" | "tv";
   updatedAt: number;
 };

@@ -51,7 +51,12 @@ export async function arjunaFetch(
     body = JSON.stringify(payload);
   }
 
-  return fetch(input, { ...init, headers, body });
+  // Default to POST when a JSON body is present — a GET/HEAD request with a
+  // body throws in the browser before it is ever sent.
+  const method =
+    init.method ?? (init.json !== undefined ? "POST" : undefined);
+
+  return fetch(input, { ...init, method, headers, body });
 }
 
 export function getGeminiKeyHeader(): Record<string, string> {

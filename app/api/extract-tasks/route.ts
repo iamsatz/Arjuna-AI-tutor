@@ -35,6 +35,17 @@ export async function POST(request: NextRequest) {
       }
 
       if (photos.length > 0) {
+        const pdfOnly = photos.every((p) => p.type === "application/pdf");
+        if (pdfOnly) {
+          return NextResponse.json({
+            tasks: [],
+            confidence: "low",
+            reason: "pdf_unsupported",
+            error:
+              "PDF could not be converted — take a photo of each page or type tasks below.",
+          });
+        }
+
         const images = await Promise.all(
           photos.map(async (photo) => {
             const buffer = Buffer.from(await photo.arrayBuffer());

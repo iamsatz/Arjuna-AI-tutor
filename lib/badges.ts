@@ -1,4 +1,4 @@
-import { getStreak } from "@/lib/streak";
+import { getRewardStats, getStreak } from "@/lib/streak";
 
 export type Badge = {
   id: string;
@@ -8,7 +8,13 @@ export type Badge = {
 };
 
 export function getBadges(): Badge[] {
-  const { count, todayCompleted } = getStreak();
+  const { count, todayCompleted, todayActivities } = getStreak();
+  const stats = getRewardStats();
+
+  const tripleCrown =
+    todayActivities.includes("homework") &&
+    todayActivities.includes("english") &&
+    todayActivities.includes("words");
 
   return [
     {
@@ -34,6 +40,30 @@ export function getBadges(): Badge[] {
       label: "5 targets",
       emoji: "🏹",
       earned: todayCompleted >= 5,
+    },
+    {
+      id: "word_collector",
+      label: "Word collector",
+      emoji: "📚",
+      earned: stats.wordsDays >= 7,
+    },
+    {
+      id: "story_teller",
+      label: "Story teller",
+      emoji: "✍️",
+      earned: stats.journalEntries >= 5,
+    },
+    {
+      id: "grammar_hero",
+      label: "Grammar hero",
+      emoji: "🦸",
+      earned: stats.englishSessions >= 10,
+    },
+    {
+      id: "triple_crown",
+      label: "Triple crown",
+      emoji: "👑",
+      earned: tripleCrown,
     },
   ];
 }

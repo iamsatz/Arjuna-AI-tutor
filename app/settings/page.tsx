@@ -17,6 +17,7 @@ import {
   type DeviceMode,
   type LanguageMode,
 } from "@/lib/settings";
+import { setDailyRewardTarget } from "@/lib/streak";
 import { SettingsGeminiAndFeedback } from "@/components/SettingsGeminiAndFeedback";
 import { getGeminiKeyHeader } from "@/lib/apiClient";
 
@@ -66,6 +67,9 @@ export default function SettingsPage() {
 
   function update(partial: Partial<typeof settings>) {
     const next = saveSettings(partial);
+    if (partial.dailyRewardTarget !== undefined) {
+      setDailyRewardTarget(partial.dailyRewardTarget);
+    }
     setSettings(next);
     setSaved(true);
     setTimeout(() => setSaved(false), 2000);
@@ -208,6 +212,79 @@ export default function SettingsPage() {
         {saved && (
           <p className="text-sm text-green-700">Saved. Reload lesson to apply.</p>
         )}
+      </section>
+
+      <section className="mt-6 space-y-4 rounded-2xl bg-white/95 p-5 shadow-sm">
+        <h2 className="text-lg font-semibold text-arjuna-text">Daily habits</h2>
+        <p className="text-sm text-arjuna-muted">
+          Optional English habits and daily reward target for kids.
+        </p>
+
+        <label className="flex items-center justify-between gap-3">
+          <span className="text-sm font-medium">Daily English words</span>
+          <input
+            type="checkbox"
+            checked={settings.dailyWordsEnabled ?? false}
+            onChange={(e) => update({ dailyWordsEnabled: e.target.checked })}
+            className="h-5 w-5"
+          />
+        </label>
+
+        {settings.dailyWordsEnabled && (
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={() => update({ dailyWordsCount: 5 })}
+              className={`flex-1 rounded-xl py-2 text-sm font-semibold ${
+                (settings.dailyWordsCount ?? 5) === 5
+                  ? "bg-emerald-500 text-white"
+                  : "border bg-white"
+              }`}
+            >
+              5 words
+            </button>
+            <button
+              type="button"
+              onClick={() => update({ dailyWordsCount: 10 })}
+              className={`flex-1 rounded-xl py-2 text-sm font-semibold ${
+                settings.dailyWordsCount === 10
+                  ? "bg-emerald-500 text-white"
+                  : "border bg-white"
+              }`}
+            >
+              10 words
+            </button>
+          </div>
+        )}
+
+        <label className="flex items-center justify-between gap-3">
+          <span className="text-sm font-medium">Journal prompts</span>
+          <input
+            type="checkbox"
+            checked={settings.journalEnabled !== false}
+            onChange={(e) => update({ journalEnabled: e.target.checked })}
+            className="h-5 w-5"
+          />
+        </label>
+
+        <label className="block">
+          <span className="text-sm font-medium">
+            Daily reward target ({settings.dailyRewardTarget ?? 3} activities)
+          </span>
+          <input
+            type="range"
+            min={1}
+            max={5}
+            value={settings.dailyRewardTarget ?? 3}
+            onChange={(e) =>
+              update({ dailyRewardTarget: Number(e.target.value) })
+            }
+            className="mt-2 w-full"
+          />
+          <p className="mt-1 text-xs text-arjuna-muted">
+            Homework, English lesson, words, or journal each count once per day.
+          </p>
+        </label>
       </section>
 
       {profile && (

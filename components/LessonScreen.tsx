@@ -10,15 +10,14 @@ import { InstallPrompt } from "./InstallPrompt";
 import { CurriculumNudge } from "./CurriculumNudge";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
-import { StreakCounter } from "@/components/ui/StreakCounter";
-import { BadgePill } from "@/components/ui/BadgePill";
 import type { ChildProfile } from "@/lib/childProfile";
 import { useLessonSession } from "@/hooks/useLessonSession";
 import { loadSettings } from "@/lib/settings";
+import { recordDailyActivity } from "@/lib/streak";
 import { GeminiStatusPill } from "@/components/GeminiStatusPill";
 import type { StoredExam } from "@/lib/examTypes";
-import { getStreak, recordConceptMastered } from "@/lib/streak";
-import { getBadges } from "@/lib/badges";
+import { AppTabNav } from "@/components/AppTabNav";
+import { TodayRing } from "@/components/TodayRing";
 import { HomeworkCaptureTray, MAX_PHOTOS } from "./HomeworkCaptureTray";
 import { HomeworkTaskReview } from "./HomeworkTaskReview";
 import { LessonProgress } from "@/components/ui/LessonProgress";
@@ -39,6 +38,7 @@ import {
   loadTaskHistory,
   profileHistoryKey,
 } from "@/lib/taskHistoryStore";
+import { friendlyPdfExtractError } from "@/lib/userErrors";
 import type { AvatarState } from "@/lib/avatar";
 
 type HwPhase = "capture" | "extracting" | "review";
@@ -74,16 +74,14 @@ export function LessonScreen({
   const [pageHashes, setPageHashes] = useState<string[]>([]);
   const [startingLesson, setStartingLesson] = useState(false);
   const [upcomingExams, setUpcomingExams] = useState<StoredExam[]>([]);
-  const [streak, setStreak] = useState(getStreak);
-  const [badges, setBadges] = useState(getBadges);
+  const [ringKey, setRingKey] = useState(0);
   const [avatarOverride, setAvatarOverride] = useState<AvatarState | null>(null);
   const [showWelcome, setShowWelcome] = useState(
     () => searchParams.get("welcome") === "1",
   );
 
   useEffect(() => {
-    setStreak(getStreak());
-    setBadges(getBadges());
+    setRingKey((k) => k + 1);
   }, [profile.id]);
 
   useEffect(() => {
@@ -119,9 +117,8 @@ export function LessonScreen({
 
   const onUnderstood = useCallback(async () => {
     await lesson.handleUnderstood();
-    const next = recordConceptMastered();
-    setStreak(next);
-    setBadges(getBadges());
+    recordDailyActivity("homework");
+    setRingKey((k) => k + 1);
     setAvatarOverride("celebrate");
     setTimeout(() => setAvatarOverride(null), 1200);
   }, [lesson]);
@@ -194,8 +191,7 @@ export function LessonScreen({
           result.error ??
           "Couldn't read it clearly — type your homework below.";
         if (hadPdf) {
-          hint =
-            "PDF didn't read clearly — take a photo of each page instead, or type tasks below.";
+          hint = friendlyPdfExtractError();
         }
         openManualReview(hint);
         return;
@@ -471,40 +467,12 @@ export function LessonScreen({
               </div>
             </div>
             <div className="mt-4">
-              <StreakCounter
-                count={streak.count}
-                todayCompleted={streak.todayCompleted}
-                todayTarget={streak.todayTarget}
-              />
-            </div>
-            <div className="mt-4 flex gap-2 overflow-x-auto pb-1">
-              {badges.map((b) => (
-                <BadgePill
-                  key={b.id}
-                  emoji={b.emoji}
-                  label={b.label}
-                  earned={b.earned}
-                />
-              ))}
+              <TodayRing refreshKey={ringKey} />
             </div>
           </Card>
 
-          <div className="mb-4 grid grid-cols-2 gap-3">
-            <div className="rounded-3xl border-2 border-orange-300 bg-gradient-to-br from-orange-400 to-amber-500 p-4 text-center shadow-chunky">
-              <span className="text-3xl">📚</span>
-              <p className="mt-2 font-display font-bold text-white">Homework</p>
-              <p className="mt-1 text-xs text-orange-100">You&apos;re here</p>
-            </div>
-            <Link
-              href="/exam"
-              className="rounded-3xl border-2 border-purple-200 bg-white p-4 text-center shadow-chunky transition active:scale-95"
-            >
-              <span className="text-3xl">🎯</span>
-              <p className="mt-2 font-display font-bold text-arjuna-text">
-                Exam Prep
-              </p>
-              <p className="mt-1 text-xs text-arjuna-muted">Learn &amp; revise</p>
-            </Link>
+          <div className="mb-4">
+            <AppTabNav active="homework" />
           </div>
 
           <InstallPrompt />
@@ -618,6 +586,28 @@ export function LessonScreen({
               >
                 I&apos;ll try myself
               </Button>
+              <p className="pt-1 text-center text-xs text-arjuna-muted">
+                Or type: hint / explain fully / I&apos;ll try
+              </p>
+              <textarea
+                value={doubtInput}
+                onChange={(e) => setDoubtInput(e.target.value)}
+                placeholder="hint, explain fully, I'll try…"
+                className="w-full rounded-2xl border-2 border-orange-100 p-3 text-sm"
+                rows={2}
+              />
+              <Button
+                variant="secondary"
+                className="w-full"
+                disabled={!doubtInput.trim() || loading}
+                onClick={() => {
+                  void lesson.handleHelpModeText(doubtInput).then(() =>
+                    setDoubtInput(""),
+                  );
+                }}
+              >
+                Go
+              </Button>
             </div>
           )}
 
@@ -727,6 +717,17 @@ export function LessonScreen({
               Explain again
             </Button>
           </div>
+          {state.teachFailed && (
+            <Button
+              size="lg"
+              variant="secondary"
+              className="w-full"
+              disabled={loading}
+              onClick={() => void lesson.handleRetryTeach()}
+            >
+              Retry
+            </Button>
+          )}
           <textarea
             value={doubtInput}
             onChange={(e) => setDoubtInput(e.target.value)}

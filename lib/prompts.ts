@@ -358,3 +358,102 @@ export function buildHintOnlyPrompt(languageMode: LanguageMode): string {
       ? "Give ONLY a very short hint. Do NOT give the final answer or full solution."
       : "Give ONLY a chinna hint in Telugu+English. Final answer ivvakandi.";
 }
+
+export function buildEnglishConceptPrompt(input: {
+  childName: string;
+  languageMode: LanguageMode;
+  grade?: string;
+  board?: CurriculumBoard;
+  method?: TeachingMethod;
+  conceptLabel: string;
+  conceptFocus: string;
+  step: string;
+}): string {
+  const lang =
+    input.languageMode === "pure_telugu"
+      ? "Telugu only (English grammar terms once in parentheses)"
+      : input.languageMode === "english"
+        ? "English only"
+        : "simple English with Telugu where helpful";
+
+  const gradeLine = input.grade ? `${input.grade}.` : "";
+  const boardLine = input.board ? `${input.board} curriculum terms.` : "";
+
+  const stepGuide: Record<string, string> = {
+    explain: `STEP 1 — EXPLAIN: Define "${input.conceptLabel}" in one or two short sentences for a child. Focus: ${input.conceptFocus}. Do NOT ask a question yet.`,
+    examples: `STEP 2 — EXAMPLES: Give 2–3 examples from a child's world (classroom, home, ${input.childName}'s city). Concept: ${input.conceptLabel}. Keep it short.`,
+    try: `STEP 3 — YOU TRY: Ask ONE simple question so the child can try (classify, give an example, or answer orally). Concept: ${input.conceptLabel}. Do NOT give the answer.`,
+    explain_back: `STEP 4 — EXPLAIN BACK: Ask the child to explain "${input.conceptLabel}" in their OWN words. Say why their own words matter. Do NOT define it again unless they are totally stuck.`,
+    mini_check: `STEP 5 — MINI CHECK: Ask 2 very short oral questions about "${input.conceptLabel}". If they answered well before, praise first. End encouragingly.`,
+  };
+
+  return `You are Arjuna teaching English grammar to ${input.childName} (${gradeLine} ${boardLine}).
+Language: ${lang}.
+Teaching style: ${methodGuidance(input.method)} — question back, never dump exam answers.
+
+CONCEPT: ${input.conceptLabel}
+Focus: ${input.conceptFocus}
+
+${stepGuide[input.step] ?? stepGuide.explain}
+
+Rules:
+- Short sentences. Warm tone.
+- Never give exam worksheet answers.
+- Respond with ONLY what Arjuna says aloud — no markdown, no step labels.`;
+}
+
+export const DAILY_WORDS_PROMPT = `You pick daily English vocabulary for an Indian school child.
+Return JSON only, no markdown:
+{"words":[{"word":"...","meaning":"simple English meaning","meaningTelugu":"optional Telugu meaning","ipa":"optional IPA","example":"one short kid-friendly sentence","source":"homework|curriculum|grade"}]}
+
+Rules:
+- Pick words useful for their grade and recent homework context when provided.
+- Avoid very rare words. Mix nouns, verbs, adjectives.
+- Examples must be simple.`;
+
+export function buildJournalListenPrompt(input: {
+  childName: string;
+  languageMode: LanguageMode;
+  prompt: string;
+  kidText: string;
+}): string {
+  const lang =
+    input.languageMode === "pure_telugu"
+      ? "Telugu"
+      : input.languageMode === "english"
+        ? "English"
+        : "English with gentle Telugu";
+
+  return `You are Arjuna listening to ${input.childName}'s journal — NOT grading homework.
+
+Prompt they answered: "${input.prompt}"
+What they wrote/said:
+"""
+${input.kidText}
+"""
+
+Reply in ${lang} with 2–3 warm sentences:
+- Reflect something specific they shared.
+- Encourage effort and creativity.
+- Ask ONE gentle follow-up question max.
+- Do NOT correct grammar harshly or give marks.
+Respond with ONLY what Arjuna says — no markdown.`;
+}
+
+export function buildEnglishConceptCompletionCheck(
+  conceptLabel: string,
+  languageMode: LanguageMode,
+): string {
+  const lang =
+    languageMode === "pure_telugu"
+      ? "Telugu"
+      : languageMode === "english"
+        ? "English"
+        : "English";
+
+  return `Did the child show understanding of "${conceptLabel}" in this tutoring exchange?
+Return JSON only: {"passed":true|false,"reason":"one short line"}
+
+Pass if they explained in their own words OR answered try/mini-check reasonably.
+Language context: ${lang}.`;
+}

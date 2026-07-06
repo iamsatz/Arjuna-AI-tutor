@@ -13,12 +13,21 @@ export type AppSettings = {
   /** Last known result from Test connection in Settings. */
   geminiKeyStatus?: GeminiKeyStatus;
   geminiKeyCheckedAt?: string;
+  /** Optional daily English vocabulary habit. */
+  dailyWordsEnabled?: boolean;
+  dailyWordsCount?: 5 | 10;
+  journalEnabled?: boolean;
+  dailyRewardTarget?: number;
 };
 
 const DEFAULT_SETTINGS: AppSettings = {
   languageMode: "mixed",
   deviceMode: "phone_only",
   parentPin: "1234",
+  dailyWordsEnabled: false,
+  dailyWordsCount: 5,
+  journalEnabled: true,
+  dailyRewardTarget: 3,
 };
 
 export function loadSettings(): AppSettings {

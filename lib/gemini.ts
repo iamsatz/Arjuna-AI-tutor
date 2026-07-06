@@ -13,6 +13,10 @@ import {
   TEXT_EXTRACTION_PROMPT,
   TIMETABLE_EXTRACTION_PROMPT,
   CURRICULUM_EXTRACTION_PROMPT,
+  buildEnglishConceptCompletionCheck,
+  buildEnglishConceptPrompt,
+  buildJournalListenPrompt,
+  DAILY_WORDS_PROMPT,
 } from "./prompts";
 import type { CurriculumSubject } from "./curriculumTypes";
 import type { ExamQuizQuestion } from "./examTypes";
@@ -553,4 +557,138 @@ export async function extractCurriculum(
     notes,
     rawText: rawParts.join("\n---\n"),
   };
+}
+
+export async function englishConceptTurn(
+  apiKey: string,
+  input: {
+    childName: string;
+    languageMode: LanguageMode;
+    grade?: string;
+    board?: CurriculumBoard;
+    method?: TeachingMethod;
+    conceptLabel: string;
+    conceptFocus: string;
+    step: string;
+    messages: ChatMessage[];
+  },
+): Promise<string> {
+  const history = input.messages
+    .map((m) => `${m.role === "user" ? input.childName : "Arjuna"}: ${m.content}`)
+    .join("\n");
+
+  const system = buildEnglishConceptPrompt({
+    childName: input.childName,
+    languageMode: input.languageMode,
+    grade: input.grade,
+    board: input.board,
+    method: input.method,
+    conceptLabel: input.conceptLabel,
+    conceptFocus: input.conceptFocus,
+    step: input.step,
+  });
+
+  const prompt = history
+    ? `Conversation:\n${history}\n\nArjuna's next reply (stay on current step):`
+    : `Start the lesson. Arjuna's first reply:`;
+
+  return geminiGenerate(apiKey, [{ text: prompt }], system, 512);
+}
+
+export async function checkEnglishConceptPass(
+  apiKey: string,
+  conceptLabel: string,
+  languageMode: LanguageMode,
+  messages: ChatMessage[],
+): Promise<{ passed: boolean; reason: string }> {
+  const history = messages
+    .map((m) => `${m.role}: ${m.content}`)
+    .join("\n");
+  const prompt = `${buildEnglishConceptCompletionCheck(conceptLabel, languageMode)}\n\nTranscript:\n${history}`;
+  const raw = await geminiGenerate(apiKey, [{ text: prompt }], undefined, 256);
+  try {
+    return parseJson<{ passed: boolean; reason: string }>(raw);
+  } catch {
+    return { passed: messages.some((m) => m.role === "user"), reason: "completed" };
+  }
+}
+
+export async function generateDailyWords(
+  apiKey: string,
+  input: {
+    count: number;
+    grade?: string;
+    medium?: MediumOfInstruction;
+    languageMode: LanguageMode;
+    homeworkText?: string;
+    curriculumTopics?: string[];
+  },
+): Promise<
+  {
+    word: string;
+    meaning: string;
+    meaningTelugu?: string;
+    ipa?: string;
+    example: string;
+    source?: string;
+  }[]
+> {
+  const context = [
+    input.grade ? `Grade: ${input.grade}` : "",
+    input.medium ? `Medium: ${input.medium}` : "",
+    input.homeworkText ? `Recent English homework:\n${input.homeworkText.slice(0, 1500)}` : "",
+    input.curriculumTopics?.length
+      ? `School topics: ${input.curriculumTopics.join(", ")}`
+      : "",
+    `Pick exactly ${input.count} words.`,
+    input.languageMode === "pure_telugu" || input.languageMode === "mixed"
+      ? "Include meaningTelugu for each word."
+      : "",
+  ]
+    .filter(Boolean)
+    .join("\n");
+
+  const raw = await geminiGenerate(
+    apiKey,
+    [{ text: `${DAILY_WORDS_PROMPT}\n\n${context}` }],
+    undefined,
+    2048,
+  );
+  const parsed = parseJson<{
+    words: {
+      word: string;
+      meaning: string;
+      meaningTelugu?: string;
+      ipa?: string;
+      example: string;
+      source?: string;
+    }[];
+  }>(raw);
+  return (parsed.words ?? []).slice(0, input.count);
+}
+
+export async function journalListenReply(
+  apiKey: string,
+  input: {
+    childName: string;
+    languageMode: LanguageMode;
+    prompt: string;
+    kidText: string;
+  },
+): Promise<string> {
+  return geminiGenerate(
+    apiKey,
+    [
+      {
+        text: buildJournalListenPrompt({
+          childName: input.childName,
+          languageMode: input.languageMode,
+          prompt: input.prompt,
+          kidText: input.kidText,
+        }),
+      },
+    ],
+    undefined,
+    512,
+  );
 }

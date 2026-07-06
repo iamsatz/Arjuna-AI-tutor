@@ -13,6 +13,8 @@ import type {
   TeachingMethod,
 } from "@/lib/childProfile";
 
+const PLAN_TIMEOUT_MS = 3000;
+
 export async function POST(request: NextRequest) {
   const body = (await request.json()) as {
     messages: ChatMessage[];
@@ -27,6 +29,7 @@ export async function POST(request: NextRequest) {
     scopeKey?: string;
     subject?: string;
     topic?: string;
+    skipTeachingPlan?: boolean;
     geminiApiKey?: string;
   };
 
@@ -43,20 +46,33 @@ export async function POST(request: NextRequest) {
   const teachingNotes: string[] = [];
   const bridgeRules = buildBridgeSubjectRules(body.subject, body.medium);
 
-  if (body.scopeKey && body.subject && body.topic) {
+  if (
+    !body.skipTeachingPlan &&
+    body.scopeKey &&
+    body.subject &&
+    body.topic
+  ) {
     try {
-      const { plan } = await getTeachingPlan({
-        apiKey,
-        scopeKey: body.scopeKey,
-        subject: body.subject,
-        topic: body.topic,
-        board: body.board,
-        method: body.method,
-        grade: body.grade,
-        medium: body.medium,
-      });
-      const notes = teachingPlanToNotes(plan);
-      if (notes) teachingNotes.push(notes);
+      const planResult = await Promise.race([
+        getTeachingPlan({
+          apiKey,
+          scopeKey: body.scopeKey,
+          subject: body.subject,
+          topic: body.topic,
+          board: body.board,
+          method: body.method,
+          grade: body.grade,
+          medium: body.medium,
+        }),
+        new Promise<null>((resolve) =>
+          setTimeout(() => resolve(null), PLAN_TIMEOUT_MS),
+        ),
+      ]);
+
+      if (planResult && "plan" in planResult) {
+        const notes = teachingPlanToNotes(planResult.plan);
+        if (notes) teachingNotes.push(notes);
+      }
     } catch {
       // Plan is best-effort; fall back to plain teaching.
     }
