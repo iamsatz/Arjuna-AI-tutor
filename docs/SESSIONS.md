@@ -14,6 +14,15 @@ it's good — that's only possible once a valid Gemini key exists somewhere
 (currently: nowhere, see the open item below). Don't conflate the two; a
 session marked "done" can still ship a prompt that reads badly in practice.
 
+## Decision (2026-07-07) — AI provider stays Gemini
+
+Considered switching the built-in AI to Claude Haiku. Decided against: the
+Gemini API key is free (AI Studio, ₹0), while Anthropic has no free tier and
+Haiku costs ~10x per token — the free tier is load-bearing for the
+"free tier generous" product principle and the 15 alpha families. Revisit only
+if real testing shows Gemini quality is insufficient; the noted middle path is
+Haiku solely for the research-once-cached teaching plans (`lib/teachingPlan.ts`).
+
 ## 🔴 Open — production env vars missing (blocks everything AI/Supabase-backed)
 
 Confirmed via `curl https://arjuna-ai-tutor.vercel.app/api/health`: both
