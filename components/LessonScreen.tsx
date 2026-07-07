@@ -50,7 +50,6 @@ type LessonScreenProps = {
   controller?: "phone" | "tv";
   externalState?: ReturnType<typeof useLessonSession>["state"] | null;
   readOnly?: boolean;
-  onStateChange?: (state: ReturnType<typeof useLessonSession>["state"]) => void;
   onActiveChange?: (id: string) => void;
 };
 
@@ -59,7 +58,6 @@ export function LessonScreen({
   controller = "phone",
   externalState,
   readOnly,
-  onStateChange,
   onActiveChange,
 }: LessonScreenProps) {
   const searchParams = useSearchParams();
@@ -109,7 +107,6 @@ export function LessonScreen({
     profile,
     controller,
     externalState,
-    onStateChange,
     readOnly,
   });
 
@@ -323,16 +320,6 @@ export function LessonScreen({
     setHwPhase("capture");
   }
 
-  async function handleReviewDone() {
-    const selected = reviewableToHomework(reviewTasks);
-    if (!selected.length) return;
-    setStartingLesson(true);
-    await lesson.startSelectedTasks(selected, { pageHashes });
-    setStartingLesson(false);
-    setReviewEditMode(false);
-    setHwPhase("capture");
-  }
-
   const showInput = state.phase === "input" && !readOnly;
   const showReview = hwPhase === "review" && !readOnly;
   const showCaptureHome = showInput && hwPhase === "capture";
@@ -433,7 +420,7 @@ export function LessonScreen({
             onAddPage={() => addPageRef.current?.click()}
             onBack={closeReview}
             onStart={() => void handleStartSelected()}
-            onDone={() => void handleReviewDone()}
+            onDone={() => void handleStartSelected()}
             starting={startingLesson}
             onSpeakSubjectQuestion={(task, index) => {
               const snippet = task.task.trim().slice(0, 80);

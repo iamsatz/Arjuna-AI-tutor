@@ -58,7 +58,7 @@ after logging in locally). Re-verify with `/api/health` once set.
 | S4 | Lifecycle & robustness polish | P2 | S | `/`, `/english` | ✅ done + live-tested + deployed |
 | S5 | Scenario 1 — smart multi-subject read | P1 | M | `/` (4-subject photo) | ✅ done + live-tested + deployed |
 | S6 | Scenario 3 — revision scheduler | P1 | L | `/exam` | ✅ done + live-tested + deployed |
-| S7 | Consistency & cleanup (one AI client) | P2 | M | `/`, `/english`, `/exam` | ☐ |
+| S7 | Consistency & cleanup (one AI client) | P2 | M | `/`, `/english`, `/exam` | ✅ done + live-tested + deployed |
 | S8 | PDF polish + backlog + roadmap update | P2/P3 | S | `/`, `/roadmap` | ☐ |
 | S1.7 | Exam input parity (upload JPG/PDF/PNG, scan, type, speak) | P1 | M | `/exam` | ✅ done + live-tested + deployed |
 | S1.8 | Homework label clarity, curriculum preview+confirm, multi-subject exam create | P1/P2 | M | `/`, `/settings`, `/exam` | ✅ done + live-tested + deployed |
@@ -349,12 +349,46 @@ into the box also used to break (`/join/https%3A%2F%2F…`).
   prefilled wa.me message.
 
 ### S7 — Consistency & cleanup
-- One AI client everywhere; delete duplicate; drop unused prop; cap journal/daily-words storage.
-- Delete dead code found in S3: `lib/familyAuth.ts` (0 imports), and the
-  orphaned TV path `components/TvScreen.tsx` + `hooks/useRoomSync.ts` +
-  `app/api/room/route.ts` + `app/api/room/[code]/route.ts` (superseded by
-  the Supabase room system `TvLessonScreen.tsx`/`useSupabaseRoom.ts`/
-  `/api/room/supabase`). Confirm nothing else imports these first.
+- **Deleted 8 confirmed-orphaned files** (re-verified zero imports before
+  removal, since a lot changed since S3 flagged the first two):
+  `lib/familyAuth.ts`, `components/TvScreen.tsx`, `hooks/useRoomSync.ts`,
+  `app/api/room/route.ts`, `app/api/room/[code]/route.ts`, `lib/roomStore.ts`,
+  `lib/roomSync.ts` (the whole legacy polling room-sync path, superseded by
+  `TvLessonScreen.tsx`/`useSupabaseRoom.ts`/`/api/room/supabase`), and newly
+  found **`hooks/useArjunaSession.ts`** — a full parallel session
+  implementation with zero imports anywhere, entirely superseded by
+  `useLessonSession.ts`. `/api/room/supabase` (the live route) untouched.
+- **Collapsed the `handleStartSelected`/`handleReviewDone` duplicate** in
+  `LessonScreen.tsx` — confirmed byte-identical, confirmed `onStart` and
+  `onDone` never render simultaneously (mutually exclusive on
+  `HomeworkTaskReview`'s `editMode`), now both wired to one function.
+- **Removed the dead `onStateChange` prop** from `LessonScreenProps` and
+  `UseLessonSessionOptions` — threaded through both layers, invoked nowhere,
+  passed by zero callers.
+- **Audited "one AI client everywhere" and "cap journal/daily-words
+  storage"** — both turned out already correct, not bugs:
+  - The "3 different AI-call patterns" flagged in the original review are
+    legitimately 3 different needs, not inconsistency: `arjunaFetch` for
+    JSON bodies, manual `getGeminiKeyHeader()` for multipart/FormData
+    uploads (`arjunaFetch` only builds JSON bodies), and a fully raw
+    `fetch` for `/api/gemini-test` specifically because that route tests a
+    *candidate, not-yet-saved* key — it can't use `arjunaFetch`'s
+    auto-attach-the-saved-validated-key logic by design. No consolidation
+    needed; every remaining raw `fetch` call is either non-Gemini
+    (`/api/student/outcome`, `/api/exam` create, `/api/transcribe`) or
+    correctly multipart.
+  - `lib/englishJournalStore.ts` already caps at `MAX_ENTRIES = 14`.
+    `lib/englishDailyWordsStore.ts` was never at risk — it overwrites one
+    fixed key per profile (today's pack), never appends to a growing array.
+- **Verify:** tsc + build clean (including a stale-`.next`-cache scare from
+  the deleted route files, resolved by clearing `.next` — a real gotcha:
+  Next's generated route types lag a beat behind file deletion). Live-tested
+  the collapsed handler via the `onStart` path (capture → typed extract →
+  review → Start teaching → correctly enters the teaching phase); the
+  `onDone` path (mid-lesson "Edit / add page") needs a successful AI teach
+  call to reach, blocked by the same missing-Gemini-key env gap as always —
+  verified by code equivalence instead (both paths now call the identical
+  function, TS confirms the prop signature matches).
 
 ### S8 — PDF polish + backlog + roadmap
 - Use `reason:"pdf_unsupported"` for a sharper tip / per-page retry; update `/roadmap` (Spaced-repetition + Weekly-report → Shipped).

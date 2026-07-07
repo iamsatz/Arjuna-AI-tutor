@@ -84,7 +84,6 @@ type UseLessonSessionOptions = {
   profile: ChildProfile;
   controller: "phone" | "tv";
   externalState?: LessonState | null;
-  onStateChange?: (state: LessonState) => void;
   readOnly?: boolean;
 };
 
@@ -92,7 +91,6 @@ export function useLessonSession({
   profile,
   controller,
   externalState,
-  onStateChange,
   readOnly = false,
 }: UseLessonSessionOptions) {
   const settings = loadSettings();
