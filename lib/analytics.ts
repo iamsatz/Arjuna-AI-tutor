@@ -19,7 +19,9 @@ export type AnalyticsEventType =
   | "exam_material_uploaded"
   | "exam_revision_started"
   | "exam_quiz_started"
-  | "exam_quiz_answer";
+  | "exam_quiz_answer"
+  | "weekly_test_started"
+  | "spaced_revision_started";
 
 type TrackContext = {
   deviceMode?: DeviceMode;

@@ -57,7 +57,7 @@ after logging in locally). Re-verify with `/api/health` once set.
 | S3 | Sweep unverified (TV, owner, family, curriculum) | P1 | L | `/join/family01`, `/tv`, `/owner` | ✅ swept — no P0 bugs found |
 | S4 | Lifecycle & robustness polish | P2 | S | `/`, `/english` | ✅ done + live-tested + deployed |
 | S5 | Scenario 1 — smart multi-subject read | P1 | M | `/` (4-subject photo) | ✅ done + live-tested + deployed |
-| S6 | Scenario 3 — revision scheduler | P1 | L | `/exam`, `/owner` | ☐ |
+| S6 | Scenario 3 — revision scheduler | P1 | L | `/exam` | ✅ done + live-tested + deployed |
 | S7 | Consistency & cleanup (one AI client) | P2 | M | `/`, `/english`, `/exam` | ☐ |
 | S8 | PDF polish + backlog + roadmap update | P2/P3 | S | `/`, `/roadmap` | ☐ |
 | S1.7 | Exam input parity (upload JPG/PDF/PNG, scan, type, speak) | P1 | M | `/exam` | ✅ done + live-tested + deployed |
@@ -299,7 +299,36 @@ Partial extraction is no longer silent. Two helpers in `lib/homeworkReview.ts`:
   high-confidence tasks → compact "Found 3 tasks" with no false alarm.
 
 ### S6 — Scenario 3: revision scheduler
-- Per-child schedule store from term plan → weeks; reuse Vercel cron to auto-generate weekly quiz; spaced-revision queue at 20–30 days; parent reminder via `whatsapp.ts`/email placeholder.
+Built local-first/on-demand instead of the originally sketched Vercel cron —
+a deliberate deviation: there is no push channel families would see (WhatsApp
+env unconfigured, no notifications), so server-side overnight generation
+would be invisible until app-open anyway while burning server AI tokens.
+"Due" is computed when the exam tab opens:
+- **`lib/revisionPlan.ts`** (new, pure logic): `weeklyPlan(curriculum)` slices
+  the term plan into weeks — 2 topics per subject per week, advancing weekly
+  since the curriculum was uploaded (`created_at`), wrapping at the end so the
+  plan cycles all term; `dueRevisions(history)` returns tasks completed 20–35
+  days ago from local task history (deduped, max 6); weekly-test completion
+  tracked per profile+week in localStorage (`arjuna-weekly-test-<profileId>`).
+- **ExamHub**: two new cards on the list screen. "📅 Week N — this week's
+  plan" lists each subject's topics with a one-tap **Weekly test** button →
+  creates a ready exam from those topics (`topicsToConceptNotes`) and jumps
+  straight into the S1.5 mission quiz; button flips to "✅ Done — retake".
+  "🔁 Time to revise" shows chips for 20–35-day-old completed homework →
+  one tap creates a ready exam for that topic and opens the revision chat.
+- New analytics events: `weekly_test_started`, `spaced_revision_started`.
+- SSR-safe: plan/revisions load in effects (S4 hydration pattern), cards
+  hidden when no curriculum / no due items.
+- **Verify:** live-tested with mocked APIs + seeded 14-day-old curriculum and
+  history (2 entries 24–25 days old, 1 entry 10 days old): card showed
+  "Week 3" with the correct rotated topic slices (Maths: Decimals+Numbers
+  wrap, English: Nouns+Verbs); revision chips included exactly the two due
+  items and excluded the 10-day-old one; clicking Weekly test POSTed the
+  right topics with status ready and opened the mission quiz; the button
+  flipped to Done; clicking a revision chip created the topic exam and
+  opened the revision chat.
+- **Follow-up (needs env vars first):** server cron + WhatsApp parent
+  reminder once GEMINI/Supabase/WHATSAPP env vars exist in production.
 
 ### S7 — Consistency & cleanup
 - One AI client everywhere; delete duplicate; drop unused prop; cap journal/daily-words storage.

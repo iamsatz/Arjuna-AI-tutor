@@ -23,6 +23,16 @@ import { stripSpeechMarkers } from "@/lib/bridgeSubject";
 import type { ChatMessage } from "@/lib/types";
 import type { ExamQuizQuestion } from "@/lib/examTypes";
 import { logDevError } from "@/lib/devLog";
+import { loadTaskHistory, profileHistoryKey } from "@/lib/taskHistoryStore";
+import {
+  dueRevisions,
+  markWeeklyTestDone,
+  weeklyPlan,
+  weeklyTestDoneSubjects,
+  type DueRevision,
+  type WeeklyPlan,
+} from "@/lib/revisionPlan";
+import type { CurriculumTopic } from "@/lib/curriculumTypes";
 
 type ExamHubProps = {
   profile: ChildProfile;
@@ -96,6 +106,27 @@ export function ExamHub({ profile }: ExamHubProps) {
   const [curriculumSubject, setCurriculumSubject] = useState("");
   const [selectedTopicNames, setSelectedTopicNames] = useState<string[]>([]);
   const prefilledRef = useRef(false);
+
+  // Revision scheduler: computed at app-open (SSR-safe defaults, real values
+  // load in effects — localStorage reads during render cause hydration flashes)
+  const [plan, setPlan] = useState<WeeklyPlan | null>(null);
+  const [revisions, setRevisions] = useState<DueRevision[]>([]);
+  const [weeklyDone, setWeeklyDone] = useState<string[]>([]);
+
+  useEffect(() => {
+    if (!curriculum) {
+      setPlan(null);
+      setWeeklyDone([]);
+      return;
+    }
+    const p = weeklyPlan(curriculum);
+    setPlan(p);
+    setWeeklyDone(weeklyTestDoneSubjects(profileHistoryKey(profile), p.weekIndex));
+  }, [curriculum, profile]);
+
+  useEffect(() => {
+    setRevisions(dueRevisions(loadTaskHistory(profileHistoryKey(profile))));
+  }, [profile]);
 
   const loadExams = useCallback(async () => {
     setLoading(true);
@@ -559,6 +590,78 @@ export function ExamHub({ profile }: ExamHubProps) {
     }
   }
 
+  async function startWeeklyTest(subject: string, topics: CurriculumTopic[]) {
+    if (!plan) return;
+    setBusy(true);
+    setError(null);
+    try {
+      const res = await fetch("/api/exam", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          inviteCode: profile.inviteCode,
+          childName: profile.childName,
+          profileId: profile.id,
+          subject,
+          board: profile.board,
+          grade: profile.grade,
+          topics: topics.map((t) => t.name),
+          conceptNotes: topicsToConceptNotes(subject, topics),
+          status: "ready",
+        }),
+      });
+      if (!res.ok) throw new Error("weekly test create failed");
+      const data = (await res.json()) as { exam: StoredExam };
+      void track("weekly_test_started", { subject, week: plan.weekIndex });
+      markWeeklyTestDone(profileHistoryKey(profile), plan.weekIndex, subject);
+      setWeeklyDone((prev) =>
+        prev.includes(subject) ? prev : [...prev, subject],
+      );
+      await loadExams();
+      await startQuiz(data.exam);
+    } catch (err) {
+      logDevError("startWeeklyTest", err);
+      setError("Could not start this week's test.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function startRevisionNow(due: DueRevision) {
+    setBusy(true);
+    setError(null);
+    try {
+      const res = await fetch("/api/exam", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          inviteCode: profile.inviteCode,
+          childName: profile.childName,
+          profileId: profile.id,
+          subject: due.subject,
+          board: profile.board,
+          grade: profile.grade,
+          topics: [due.task],
+          conceptNotes: `- ${due.task}: homework completed ${due.daysAgo} days ago — revise the concept and check it stuck`,
+          status: "ready",
+        }),
+      });
+      if (!res.ok) throw new Error("revision create failed");
+      const data = (await res.json()) as { exam: StoredExam };
+      void track("spaced_revision_started", {
+        subject: due.subject,
+        daysAgo: due.daysAgo,
+      });
+      await loadExams();
+      await startRevision(data.exam);
+    } catch (err) {
+      logDevError("startRevisionNow", err);
+      setError("Could not start revision.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
   async function revealQuizAnswers() {
     if (!selectedExam) return;
     if (!verifyParentPin(pinInput)) {
@@ -644,6 +747,72 @@ export function ExamHub({ profile }: ExamHubProps) {
             <p className="text-sm text-arjuna-muted">
               {profile.board} · {profile.grade ?? "Grade not set"}
             </p>
+          )}
+
+          {plan && plan.subjects.length > 0 && (
+            <div className="rounded-xl border border-indigo-200 bg-indigo-50/60 p-4">
+              <p className="font-semibold text-indigo-900">
+                📅 Week {plan.weekIndex + 1} — this week&apos;s plan
+              </p>
+              <p className="mt-0.5 text-xs text-indigo-800">
+                From your school term plan. One tap for this week&apos;s test.
+              </p>
+              <ul className="mt-3 space-y-2">
+                {plan.subjects.map((s) => {
+                  const done = weeklyDone.includes(s.subject);
+                  return (
+                    <li
+                      key={s.subject}
+                      className="flex items-center justify-between gap-2"
+                    >
+                      <div className="min-w-0">
+                        <p className="text-sm font-medium text-arjuna-text">
+                          {s.subject}
+                        </p>
+                        <p className="truncate text-xs text-arjuna-muted">
+                          {s.topics.map((t) => t.name).join(", ")}
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        disabled={busy}
+                        onClick={() => void startWeeklyTest(s.subject, s.topics)}
+                        className={`shrink-0 rounded-lg px-3 py-1.5 text-xs font-semibold disabled:opacity-50 ${
+                          done
+                            ? "border border-green-300 bg-green-50 text-green-800"
+                            : "bg-indigo-600 text-white"
+                        }`}
+                      >
+                        {done ? "✅ Done — retake" : "Weekly test"}
+                      </button>
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
+          )}
+
+          {revisions.length > 0 && (
+            <div className="rounded-xl border border-amber-200 bg-amber-50/60 p-4">
+              <p className="font-semibold text-amber-900">🔁 Time to revise</p>
+              <p className="mt-0.5 text-xs text-amber-800">
+                Done 3–5 weeks ago — a quick check that it stuck.
+              </p>
+              <div className="mt-2 flex flex-wrap gap-2">
+                {revisions.map((r) => (
+                  <button
+                    key={`${r.subject}-${r.task}`}
+                    type="button"
+                    disabled={busy}
+                    onClick={() => void startRevisionNow(r)}
+                    className="rounded-full border border-amber-300 bg-white px-3 py-1.5 text-left text-xs font-semibold text-amber-900 disabled:opacity-50"
+                  >
+                    {r.subject}: {r.task.slice(0, 32)}
+                    {r.task.length > 32 ? "…" : ""}
+                  </button>
+                ))}
+              </div>
+            </div>
           )}
 
           <div className="flex flex-wrap gap-2">
