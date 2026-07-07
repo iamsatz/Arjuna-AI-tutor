@@ -126,6 +126,60 @@ export function tasksToReviewable(tasks: HomeworkTask[]): ReviewableTask[] {
   return homeworkToReviewable(tasks);
 }
 
+/** Subjects this child's homework usually has (seen 2+ times in history). */
+export function usualSubjectsFromHistory(
+  history: TaskHistoryEntry[],
+  limit = 6,
+): string[] {
+  const counts = new Map<string, { label: string; count: number }>();
+  for (const entry of history) {
+    const label = entry.subject?.trim();
+    if (!label || label.toLowerCase() === "other") continue;
+    const key = label.toLowerCase();
+    const existing = counts.get(key);
+    counts.set(key, { label: existing?.label ?? label, count: (existing?.count ?? 0) + 1 });
+  }
+  return Array.from(counts.values())
+    .filter((v) => v.count >= 2)
+    .sort((a, b) => b.count - a.count)
+    .slice(0, limit)
+    .map((v) => v.label);
+}
+
+/**
+ * Never let a partial read look like a complete one: say how many tasks were
+ * found, flag low confidence, and nudge toward Add page when subjects this
+ * child usually has are missing from the result.
+ */
+export function buildExtractionHint(input: {
+  foundTasks: HomeworkTask[];
+  confidence: string;
+  usualSubjects: string[];
+}): string {
+  const n = input.foundTasks.length;
+  const foundSubjects = new Set(
+    input.foundTasks.map((t) => (t.subject ?? "").trim().toLowerCase()),
+  );
+  const missing = input.usualSubjects.filter(
+    (s) => !foundSubjects.has(s.trim().toLowerCase()),
+  );
+
+  const parts: string[] = [n === 1 ? "Found 1 task." : `Found ${n} tasks.`];
+  if (input.confidence === "low") {
+    parts.push("Not fully sure I read the page right — check each one.");
+  }
+  if (missing.length > 0) {
+    parts.push(
+      `No ${missing.slice(0, 3).join(", ")} today? If I missed some, tap Add page or add them yourself.`,
+    );
+  } else if (n <= 1) {
+    parts.push("If the page had more subjects, tap Add page or add them yourself.");
+  } else {
+    parts.push("Tap a subject chip if Arjuna isn't sure.");
+  }
+  return parts.join(" ");
+}
+
 export function allSubjectsConfirmed(tasks: ReviewableTask[]): boolean {
   return tasks
     .filter((t) => t.selected && t.task.trim())

@@ -56,7 +56,7 @@ after logging in locally). Re-verify with `/api/health` once set.
 | S2 | Observability + smoke test net | P1 | M | `npm run smoke` | ✅ done + live-tested + deployed |
 | S3 | Sweep unverified (TV, owner, family, curriculum) | P1 | L | `/join/family01`, `/tv`, `/owner` | ✅ swept — no P0 bugs found |
 | S4 | Lifecycle & robustness polish | P2 | S | `/`, `/english` | ✅ done + live-tested + deployed |
-| S5 | Scenario 1 — smart multi-subject read | P1 | M | `/` (4-subject photo) | ☐ |
+| S5 | Scenario 1 — smart multi-subject read | P1 | M | `/` (4-subject photo) | ✅ done + live-tested + deployed |
 | S6 | Scenario 3 — revision scheduler | P1 | L | `/exam`, `/owner` | ☐ |
 | S7 | Consistency & cleanup (one AI client) | P2 | M | `/`, `/english`, `/exam` | ☐ |
 | S8 | PDF polish + backlog + roadmap update | P2/P3 | S | `/`, `/roadmap` | ☐ |
@@ -281,7 +281,22 @@ What was verified and found solid:
   needing `recordDailyActivity` to run first.
 
 ### S5 — Scenario 1: smart multi-subject read
-- Surface extraction count + confidence; nudge "add the rest if I missed some"; use profile's usual subjects as expectation.
+Partial extraction is no longer silent. Two helpers in `lib/homeworkReview.ts`:
+- `usualSubjectsFromHistory(history)` — subjects seen 2+ times in the child's
+  task history (excluding "Other"), most-frequent first.
+- `buildExtractionHint({foundTasks, confidence, usualSubjects})` — always says
+  how many tasks were found; flags low confidence ("Not fully sure I read the
+  page right"); if usual subjects are missing from the result, nudges by name
+  ("No English, Telugu today? If I missed some, tap Add page or add them
+  yourself"); if only 1 task and no history signal, generic add-more nudge;
+  otherwise the old compact chip hint.
+- Wired into `LessonScreen.runRead` (non-merge path) replacing the fixed
+  "Check each task…" string. The extractor's `confidence` field, previously
+  computed and thrown away, is now user-visible.
+- **Verify:** live-tested with a seeded 6-entry history (Maths/English/Telugu
+  ×2 each) + mocked extract responses: 1 low-confidence Maths task → hint
+  correctly named the two missing subjects and the confidence warning; 3
+  high-confidence tasks → compact "Found 3 tasks" with no false alarm.
 
 ### S6 — Scenario 3: revision scheduler
 - Per-child schedule store from term plan → weeks; reuse Vercel cron to auto-generate weekly quiz; spaced-revision queue at 20–30 days; parent reminder via `whatsapp.ts`/email placeholder.

@@ -22,11 +22,13 @@ import { HomeworkCaptureTray, MAX_PHOTOS } from "./HomeworkCaptureTray";
 import { HomeworkTaskReview } from "./HomeworkTaskReview";
 import { LessonProgress } from "@/components/ui/LessonProgress";
 import {
+  buildExtractionHint,
   emptyManualTask,
   homeworkToReviewable,
   mergeReviewTasks,
   reviewableToHomework,
   tasksToReviewable,
+  usualSubjectsFromHistory,
   dismissDuplicate,
   skipDuplicate,
   type ReviewableTask,
@@ -212,7 +214,11 @@ export function LessonScreen({
       setReviewTasks(rows);
       setExtractHint(
         result.error ??
-          "Check each task. Tap a subject chip if Arjuna isn't sure.",
+          buildExtractionHint({
+            foundTasks: result.tasks,
+            confidence: result.confidence,
+            usualSubjects: usualSubjectsFromHistory(history),
+          }),
       );
       setReviewEditMode(false);
       setHwPhase("review");
