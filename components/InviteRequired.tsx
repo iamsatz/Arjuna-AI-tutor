@@ -7,15 +7,27 @@ import { ArjunaAvatar } from "@/components/ArjunaAvatar";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 
+/**
+ * Accept whatever the parent has: a bare code ("family01"), the code with
+ * stray spaces/capitals, or the entire WhatsApp link pasted as-is.
+ */
+export function extractFamilyCode(raw: string): string {
+  const trimmed = raw.trim();
+  if (!trimmed) return "";
+  const fromLink = trimmed.match(/join\/([A-Za-z0-9_-]+)/);
+  if (fromLink) return fromLink[1].toLowerCase();
+  return trimmed.replace(/\s+/g, "").toLowerCase();
+}
+
 export function InviteRequired() {
   const router = useRouter();
   const [code, setCode] = useState("");
 
   function handleSubmit(event: FormEvent) {
     event.preventDefault();
-    const trimmed = code.trim();
-    if (!trimmed) return;
-    router.push(`/join/${encodeURIComponent(trimmed)}`);
+    const extracted = extractFamilyCode(code);
+    if (!extracted) return;
+    router.push(`/join/${encodeURIComponent(extracted)}`);
   }
 
   return (
@@ -27,25 +39,29 @@ export function InviteRequired() {
             Welcome to Arjuna
           </h1>
           <p className="mt-2 text-sm text-arjuna-muted">
-            Open the link your family sent on WhatsApp — or enter your family
-            code below.
+            Got a WhatsApp link from your family? Just tap it — or paste it
+            below, the whole link works.
           </p>
         </div>
 
         <form onSubmit={handleSubmit} className="mt-6 space-y-4">
           <label className="block">
             <span className="text-sm font-semibold text-arjuna-text">
-              Family code
+              Family code or link
             </span>
             <input
               type="text"
               value={code}
               onChange={(e) => setCode(e.target.value)}
-              placeholder="e.g. family01"
+              placeholder="family01 — or paste the WhatsApp link"
               autoComplete="off"
               autoCapitalize="none"
               className="mt-2 w-full rounded-2xl border-2 border-orange-100 bg-white px-4 py-3.5 font-semibold text-arjuna-text outline-none focus:border-arjuna-primary"
             />
+            <span className="mt-1.5 block text-xs text-arjuna-muted">
+              Your code is the last part of the link: …/join/
+              <strong>family01</strong>
+            </span>
           </label>
           <Button
             type="submit"

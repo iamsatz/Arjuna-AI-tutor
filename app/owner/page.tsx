@@ -123,6 +123,22 @@ export default function OwnerDashboardPage() {
     setTimeout(() => setCopiedCode(null), 2000);
   }
 
+  function whatsappInviteMessage(code: string) {
+    return [
+      "Hi! 🏹 Arjuna is a free AI homework tutor for your kids (Telugu + English).",
+      "",
+      "1. Open this link on your phone:",
+      inviteUrl(code),
+      "",
+      `2. If it asks for a family code, type: ${code}`,
+      "3. Enter your child's name — homework starts right away!",
+    ].join("\n");
+  }
+
+  function whatsappShareUrl(code: string) {
+    return `https://wa.me/?text=${encodeURIComponent(whatsappInviteMessage(code))}`;
+  }
+
   return (
     <main className="mx-auto min-h-dvh max-w-2xl bg-arjuna-bg px-6 py-10">
       <div className="mb-8 flex items-start justify-between gap-4">
@@ -179,13 +195,23 @@ export default function OwnerDashboardPage() {
                   <p className="text-sm font-medium text-arjuna-text">
                     {invite.label || "Invite"} · {invite.code}
                   </p>
-                  <button
-                    type="button"
-                    onClick={() => void copyInviteLink(invite.code)}
-                    className="rounded-lg bg-white px-3 py-1 text-xs font-medium text-arjuna-primaryDark"
-                  >
-                    {copiedCode === invite.code ? "Copied!" : "Copy link"}
-                  </button>
+                  <div className="flex gap-2">
+                    <a
+                      href={whatsappShareUrl(invite.code)}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="rounded-lg bg-green-600 px-3 py-1 text-xs font-medium text-white"
+                    >
+                      Share on WhatsApp
+                    </a>
+                    <button
+                      type="button"
+                      onClick={() => void copyInviteLink(invite.code)}
+                      className="rounded-lg bg-white px-3 py-1 text-xs font-medium text-arjuna-primaryDark"
+                    >
+                      {copiedCode === invite.code ? "Copied!" : "Copy link"}
+                    </button>
+                  </div>
                 </div>
                 <p className="mt-2 break-all text-xs text-arjuna-muted">
                   {inviteUrl(invite.code)}

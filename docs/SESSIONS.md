@@ -63,6 +63,7 @@ after logging in locally). Re-verify with `/api/health` once set.
 | S1.7 | Exam input parity (upload JPG/PDF/PNG, scan, type, speak) | P1 | M | `/exam` | ✅ done + live-tested + deployed |
 | S1.8 | Homework label clarity, curriculum preview+confirm, multi-subject exam create | P1/P2 | M | `/`, `/settings`, `/exam` | ✅ done + live-tested + deployed |
 | S9 | School Message Understanding Agent (homework + notices + timetables, learns from corrections) | P1 | L | `/`, new School Inbox | ☐ designed, not started |
+| S6.5 | Family-code UX: paste-the-link input + owner WhatsApp share | P2 | S | `/` (no profile), `/owner` | ✅ done + live-tested + deployed |
 
 ## Confirmed defects (source of truth)
 
@@ -329,6 +330,23 @@ would be invisible until app-open anyway while burning server AI tokens.
   opened the revision chat.
 - **Follow-up (needs env vars first):** server cron + WhatsApp parent
   reminder once GEMINI/Supabase/WHATSAPP env vars exist in production.
+
+### S6.5 — Family-code UX (user question: "how can a user get the family code?")
+Reality: the code only comes from the owner's WhatsApp link, and the app never
+said so — worst on the APK path, where a parent installing the app is asked
+for a "family code" they never explicitly received. Pasting the whole link
+into the box also used to break (`/join/https%3A%2F%2F…`).
+- `InviteRequired`: new `extractFamilyCode()` accepts anything — bare code,
+  stray capitals/spaces, or the entire pasted WhatsApp link (pulls the code
+  out of `/join/<code>`); label now "Family code or link"; helper text shows
+  where the code lives in the link.
+- `/owner`: per-invite **Share on WhatsApp** button (`wa.me` prefilled) with a
+  ready message containing the link AND the code spelled out + 3 steps —
+  fills the "WhatsApp template: I don't know" gap in the owner's links doc.
+- **Verify:** live-tested — pasted the full link with a capital letter and
+  trailing space into the code box → landed on `/join/family01` → "Family:
+  Family 1" name screen; owner dashboard button generates the correct
+  prefilled wa.me message.
 
 ### S7 — Consistency & cleanup
 - One AI client everywhere; delete duplicate; drop unused prop; cap journal/daily-words storage.
