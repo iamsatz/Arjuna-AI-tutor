@@ -134,11 +134,11 @@ export function HomeworkCaptureTray({
           placeholder={
             isAnswer
               ? "Type your answer…"
-              : "Type homework or diary note, then send…"
+              : "Type homework or tap mic to speak…"
           }
-          rows={1}
-          className="flex-1 resize-none bg-transparent py-2.5 text-sm text-arjuna-text placeholder-arjuna-muted/60 focus:outline-none leading-snug"
-          style={{ minHeight: "2.5rem", maxHeight: "7rem" }}
+          rows={2}
+          className="flex-1 resize-none bg-transparent py-2 text-sm text-arjuna-text placeholder-arjuna-muted/60 focus:outline-none leading-relaxed"
+          style={{ minHeight: "3rem", maxHeight: "7rem" }}
           onInput={(e) => {
             const el = e.currentTarget;
             el.style.height = "auto";
