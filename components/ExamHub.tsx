@@ -758,64 +758,85 @@ export function ExamHub({ profile }: ExamHubProps) {
       )}
 
       {mode === "list" && (
-        <div className="mt-4 space-y-4">
-          <h1 className="text-xl font-semibold text-arjuna-text">
-            {profile.childName}&apos;s learning
-          </h1>
-          {profile.board && (
-            <p className="text-sm text-arjuna-muted">
-              {profile.board} · {profile.grade ?? "Grade not set"}
+        <div className="space-y-5">
+          {/* Intent cards — what do you want to do? */}
+          <div className="space-y-3">
+            <p className="font-display text-lg font-bold text-arjuna-text">
+              What do you want to do?
             </p>
-          )}
 
-          {plan && plan.subjects.length > 0 && (
-            <div className="rounded-xl border border-indigo-200 bg-indigo-50/60 p-4">
-              <p className="font-semibold text-indigo-900">
-                📅 Week {plan.weekIndex + 1} — this week&apos;s plan
-              </p>
-              <p className="mt-0.5 text-xs text-indigo-800">
-                From your school term plan. One tap for this week&apos;s test.
-              </p>
-              <ul className="mt-3 space-y-2">
-                {plan.subjects.map((s) => {
-                  const done = weeklyDone.includes(s.subject);
-                  return (
-                    <li
-                      key={s.subject}
-                      className="flex items-center justify-between gap-2"
-                    >
-                      <div className="min-w-0">
-                        <p className="text-sm font-medium text-arjuna-text">
-                          {s.subject}
-                        </p>
-                        <p className="truncate text-xs text-arjuna-muted">
-                          {s.topics.map((t) => t.name).join(", ")}
-                        </p>
-                      </div>
-                      <button
-                        type="button"
-                        disabled={busy}
-                        onClick={() => void startWeeklyTest(s.subject, s.topics)}
-                        className={`shrink-0 rounded-lg px-3 py-1.5 text-xs font-semibold disabled:opacity-50 ${
-                          done
-                            ? "border border-green-300 bg-green-50 text-green-800"
-                            : "bg-indigo-600 text-white"
-                        }`}
-                      >
-                        {done ? "✅ Done — retake" : "Weekly test"}
-                      </button>
-                    </li>
-                  );
-                })}
-              </ul>
-            </div>
-          )}
+            {/* Primary: Practice test */}
+            <button
+              type="button"
+              disabled={busy || exams.filter((e) => e.concept_notes).length === 0}
+              onClick={() => {
+                const ready = exams.find((e) => e.concept_notes);
+                if (ready) void startQuiz(ready);
+              }}
+              className="flex w-full items-center gap-4 rounded-3xl bg-arjuna-primary px-5 py-4 text-left shadow-chunky transition active:scale-95 disabled:opacity-40"
+            >
+              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-white/20">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <circle cx="12" cy="12" r="10" />
+                  <polyline points="12 6 12 12 16 14" />
+                </svg>
+              </div>
+              <div>
+                <p className="font-display text-base font-bold text-white">Practice test</p>
+                <p className="text-xs text-white/75">Quiz yourself before the exam</p>
+              </div>
+            </button>
 
+            {/* Secondary: Revise a topic */}
+            <button
+              type="button"
+              disabled={busy || exams.filter((e) => e.concept_notes).length === 0}
+              onClick={() => {
+                const ready = exams.find((e) => e.concept_notes);
+                if (ready) void startRevision(ready);
+              }}
+              className="flex w-full items-center gap-4 rounded-3xl border-2 border-orange-100 bg-white px-5 py-4 text-left transition active:scale-95 disabled:opacity-40"
+            >
+              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-orange-50">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-arjuna-primary" aria-hidden="true">
+                  <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z" />
+                  <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z" />
+                </svg>
+              </div>
+              <div>
+                <p className="font-display text-base font-bold text-arjuna-text">Revise a topic</p>
+                <p className="text-xs text-arjuna-muted">Go through concepts with Arjuna</p>
+              </div>
+            </button>
+
+            {/* Add new exam */}
+            <button
+              type="button"
+              onClick={() => { setMode("create"); setError(null); }}
+              className="flex w-full items-center gap-4 rounded-3xl border-2 border-orange-100 bg-white px-5 py-4 text-left transition active:scale-95"
+            >
+              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-orange-50">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-arjuna-primary" aria-hidden="true">
+                  <circle cx="12" cy="12" r="10" />
+                  <line x1="12" y1="8" x2="12" y2="16" />
+                  <line x1="8" y1="12" x2="16" y2="12" />
+                </svg>
+              </div>
+              <div>
+                <p className="font-display text-base font-bold text-arjuna-text">Add new exam</p>
+                <p className="text-xs text-arjuna-muted">Set subject, date and upload pages</p>
+              </div>
+            </button>
+          </div>
+
+          {/* Revision nudge */}
           {revisions.length > 0 && (
-            <div className="rounded-xl border border-amber-200 bg-amber-50/60 p-4">
-              <p className="font-semibold text-amber-900">🔁 Time to revise</p>
+            <div className="rounded-3xl border-2 border-amber-200 bg-amber-50/60 px-4 py-3">
+              <p className="font-display text-sm font-bold text-amber-900">
+                Time to revise
+              </p>
               <p className="mt-0.5 text-xs text-amber-800">
-                Done 3–5 weeks ago — a quick check that it stuck.
+                These topics are due for a quick check.
               </p>
               <div className="mt-2 flex flex-wrap gap-2">
                 {revisions.map((r) => (
@@ -824,124 +845,145 @@ export function ExamHub({ profile }: ExamHubProps) {
                     type="button"
                     disabled={busy}
                     onClick={() => void startRevisionNow(r)}
-                    className="rounded-full border border-amber-300 bg-white px-3 py-1.5 text-left text-xs font-semibold text-amber-900 disabled:opacity-50"
+                    className="rounded-2xl border border-amber-300 bg-white px-3 py-1.5 text-left text-xs font-semibold text-amber-900 disabled:opacity-50 active:scale-95"
                   >
-                    {r.subject}: {r.task.slice(0, 32)}
-                    {r.task.length > 32 ? "…" : ""}
+                    {r.subject}: {r.task.slice(0, 28)}{r.task.length > 28 ? "..." : ""}
                   </button>
                 ))}
               </div>
             </div>
           )}
 
-          <div className="flex flex-wrap gap-2">
-            <button
-              type="button"
-              onClick={() => {
-                setMode("create");
-                setError(null);
-              }}
-              className="flex-1 rounded-xl bg-arjuna-primary py-3 text-sm font-semibold text-white"
-            >
-              + New exam
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                if (!curriculum) {
-                  setError(
-                    "No curriculum loaded. Ask parent to upload term plan in Settings.",
+          {/* Weekly plan nudge */}
+          {plan && plan.subjects.length > 0 && (
+            <div className="rounded-3xl border-2 border-indigo-200 bg-indigo-50/60 px-4 py-3">
+              <p className="font-display text-sm font-bold text-indigo-900">
+                Week {plan.weekIndex + 1} plan
+              </p>
+              <ul className="mt-2 space-y-2">
+                {plan.subjects.map((s) => {
+                  const done = weeklyDone.includes(s.subject);
+                  return (
+                    <li key={s.subject} className="flex items-center justify-between gap-2">
+                      <div className="min-w-0">
+                        <p className="text-sm font-semibold text-arjuna-text">{s.subject}</p>
+                        <p className="truncate text-xs text-arjuna-muted">
+                          {s.topics.map((t) => t.name).join(", ")}
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        disabled={busy}
+                        onClick={() => void startWeeklyTest(s.subject, s.topics)}
+                        className={`shrink-0 rounded-2xl px-3 py-1.5 text-xs font-bold disabled:opacity-50 ${
+                          done
+                            ? "border border-green-300 bg-green-50 text-green-800"
+                            : "bg-indigo-600 text-white"
+                        }`}
+                      >
+                        {done ? "Done — retake" : "Weekly test"}
+                      </button>
+                    </li>
                   );
-                  return;
-                }
-                setMode("curriculum");
-                setCurriculumSubject(curriculum.subjects[0]?.subject ?? "");
-                setSelectedTopicNames([]);
-                setError(null);
-              }}
-              disabled={busy}
-              className="flex-1 rounded-xl border border-green-600/40 bg-white py-3 text-sm font-semibold text-green-800"
-            >
-              📚 From curriculum
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                setMode("timetable");
-                setError(null);
-              }}
-              disabled={busy}
-              className="flex-1 rounded-xl border border-arjuna-primary/30 bg-white py-3 text-sm font-semibold"
-            >
-              📅 Timetable
-            </button>
-          </div>
+                })}
+              </ul>
+            </div>
+          )}
 
-          {loading && <p className="text-sm text-arjuna-muted">Loading…</p>}
+          {/* Upcoming exams horizontal scroll */}
+          {loading && (
+            <p className="text-sm text-arjuna-muted">Loading exams...</p>
+          )}
 
-          {!loading && upcoming.length === 0 && (
-            <p className="rounded-xl bg-white/90 p-4 text-sm text-arjuna-muted">
-              No exams yet. Upload a timetable or create one, then add book pages.
+          {!loading && exams.length > 0 && (
+            <div>
+              <p className="mb-3 font-display text-sm font-bold text-arjuna-text">
+                Upcoming exams
+              </p>
+              <div className="flex gap-3 overflow-x-auto pb-1">
+                {exams.map((exam) => {
+                  const daysLeft = exam.exam_date
+                    ? Math.ceil((new Date(exam.exam_date).getTime() - Date.now()) / 86400000)
+                    : null;
+                  return (
+                    <div
+                      key={exam.id}
+                      className="flex w-44 shrink-0 flex-col gap-2 rounded-3xl border-2 border-orange-100 bg-white p-4"
+                    >
+                      <p className="font-display text-sm font-bold text-arjuna-text leading-tight">
+                        {exam.subject}
+                      </p>
+                      {daysLeft !== null && (
+                        <p className={`text-xs font-semibold ${daysLeft <= 3 ? "text-red-600" : "text-arjuna-muted"}`}>
+                          {daysLeft <= 0 ? "Today!" : daysLeft === 1 ? "Tomorrow" : `${daysLeft} days away`}
+                        </p>
+                      )}
+                      <p className="text-xs text-arjuna-muted">
+                        {exam.status === "ready"
+                          ? `${exam.page_count} pages ready`
+                          : "Add book pages"}
+                      </p>
+                      <div className="mt-auto flex flex-col gap-1.5">
+                        <button
+                          type="button"
+                          disabled={!exam.concept_notes || busy}
+                          onClick={() => void startQuiz(exam)}
+                          className="w-full rounded-2xl bg-arjuna-primary py-2 font-display text-xs font-bold text-white disabled:opacity-40 active:scale-95"
+                        >
+                          Practice test
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setSelectedExam(exam);
+                            setTopicsText(exam.topics.join(", "));
+                            setMode("upload");
+                            setError(null);
+                          }}
+                          className="w-full rounded-2xl border border-orange-200 bg-white py-2 font-display text-xs font-bold text-arjuna-text active:scale-95"
+                        >
+                          Add pages
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {!loading && exams.length === 0 && (
+            <p className="rounded-3xl bg-white/90 px-4 py-4 text-sm text-arjuna-muted">
+              No exams yet. Tap &quot;Add new exam&quot; to get started.
             </p>
           )}
 
-          <ul className="space-y-3">
-            {exams.map((exam) => (
-              <li key={exam.id} className="rounded-xl bg-white/95 p-4 shadow-sm">
-                <div className="flex items-start justify-between gap-2">
-                  <div>
-                    <p className="font-semibold text-arjuna-text">{exam.subject}</p>
-                    {exam.exam_date && (
-                      <p className="text-xs text-arjuna-muted">
-                        {new Date(exam.exam_date).toLocaleDateString()}
-                      </p>
-                    )}
-                    {exam.topics.length > 0 && (
-                      <p className="mt-1 text-xs text-arjuna-muted">
-                        {exam.topics.slice(0, 3).join(", ")}
-                        {exam.topics.length > 3 ? "…" : ""}
-                      </p>
-                    )}
-                    <p className="mt-1 text-xs">
-                      {exam.status === "ready"
-                        ? `✅ ${exam.page_count} pages understood`
-                        : "📄 Add book pages"}
-                    </p>
-                  </div>
-                </div>
-                <div className="mt-3 flex flex-wrap gap-2">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setSelectedExam(exam);
-                      setTopicsText(exam.topics.join(", "));
-                      setMode("upload");
-                      setError(null);
-                    }}
-                    className="rounded-lg border px-3 py-1.5 text-xs font-medium"
-                  >
-                    Upload pages
-                  </button>
-                  <button
-                    type="button"
-                    disabled={!exam.concept_notes}
-                    onClick={() => void startRevision(exam)}
-                    className="rounded-lg bg-green-600 px-3 py-1.5 text-xs font-medium text-white disabled:opacity-40"
-                  >
-                    Revise
-                  </button>
-                  <button
-                    type="button"
-                    disabled={!exam.concept_notes}
-                    onClick={() => void startQuiz(exam)}
-                    className="rounded-lg bg-arjuna-primary px-3 py-1.5 text-xs font-medium text-white disabled:opacity-40"
-                  >
-                    Practice test
-                  </button>
-                </div>
-              </li>
-            ))}
-          </ul>
+          {/* Secondary actions */}
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={() => { setMode("timetable"); setError(null); }}
+              disabled={busy}
+              className="flex-1 rounded-2xl border-2 border-orange-100 bg-white py-3 font-display text-xs font-bold text-arjuna-text active:scale-95"
+            >
+              Add timetable
+            </button>
+            {curriculum && (
+              <button
+                type="button"
+                onClick={() => {
+                  setMode("curriculum");
+                  setCurriculumSubject(curriculum.subjects[0]?.subject ?? "");
+                  setSelectedTopicNames([]);
+                  setError(null);
+                }}
+                disabled={busy}
+                className="flex-1 rounded-2xl border-2 border-orange-100 bg-white py-3 font-display text-xs font-bold text-arjuna-text active:scale-95"
+              >
+                From curriculum
+              </button>
+            )}
+          </div>
         </div>
       )}
 
@@ -1131,26 +1173,29 @@ export function ExamHub({ profile }: ExamHubProps) {
 
       {mode === "create" && (
         <div className="space-y-4">
-          <h2 className="text-lg font-semibold">Create exam(s)</h2>
-          <p className="text-sm text-arjuna-muted">
-            Add one subject at a time. Type or speak the topics — no need to
-            format anything.
-          </p>
+          <div className="rounded-3xl bg-arjuna-primary px-5 py-4 shadow-chunky">
+            <p className="font-display text-base font-bold text-white">
+              New exam
+            </p>
+            <p className="mt-1 text-xs text-white/75">
+              Type the subject, date and topics — Arjuna will ask you to add pages next.
+            </p>
+          </div>
 
           {subjectRows.map((row, idx) => (
             <div
               key={row.id}
-              className="space-y-2 rounded-xl border border-arjuna-primary/20 bg-white p-3"
+              className="space-y-3 rounded-3xl border-2 border-orange-100 bg-white p-4"
             >
               <div className="flex items-center justify-between">
-                <p className="text-xs font-semibold uppercase text-arjuna-muted">
+                <p className="font-display text-xs font-bold uppercase text-arjuna-muted">
                   Subject {idx + 1}
                 </p>
                 {subjectRows.length > 1 && (
                   <button
                     type="button"
                     onClick={() => removeSubjectRow(row.id)}
-                    className="text-xs font-semibold text-red-600 underline"
+                    className="text-xs font-semibold text-red-500 underline"
                   >
                     Remove
                   </button>
@@ -1159,41 +1204,56 @@ export function ExamHub({ profile }: ExamHubProps) {
               <input
                 value={row.subject}
                 onChange={(e) => updateSubjectRow(row.id, { subject: e.target.value })}
-                placeholder="e.g. English"
-                className="w-full rounded-xl border p-3 text-sm"
+                placeholder="e.g. Maths"
+                className="w-full rounded-2xl border-2 border-orange-100 bg-arjuna-bg p-3 font-display text-sm font-semibold text-arjuna-text placeholder:font-normal placeholder:text-arjuna-muted focus:border-arjuna-primary focus:outline-none"
               />
-              <input
-                type="date"
-                value={row.examDate}
-                onChange={(e) => updateSubjectRow(row.id, { examDate: e.target.value })}
-                className="w-full rounded-xl border p-3 text-sm"
-              />
-              <div className="flex gap-2">
-                <textarea
-                  value={row.topicsText}
-                  onChange={(e) => updateSubjectRow(row.id, { topicsText: e.target.value })}
-                  placeholder="Topics — type or speak (e.g. Nouns, Verbs, Reading)"
-                  className="flex-1 rounded-xl border p-3 text-sm"
-                  rows={2}
+              <div>
+                <label className="mb-1 block text-xs font-semibold text-arjuna-muted">
+                  Exam date (optional)
+                </label>
+                <input
+                  type="date"
+                  value={row.examDate}
+                  onChange={(e) => updateSubjectRow(row.id, { examDate: e.target.value })}
+                  className="w-full rounded-2xl border-2 border-orange-100 bg-arjuna-bg p-3 text-sm text-arjuna-text focus:border-arjuna-primary focus:outline-none"
                 />
-                <button
-                  type="button"
-                  onClick={() =>
-                    void toggleMic(row.id, (text) =>
-                      updateSubjectRow(row.id, {
-                        topicsText: row.topicsText ? `${row.topicsText}, ${text}` : text,
-                      }),
-                    )
-                  }
-                  disabled={transcribing}
-                  className={`rounded-xl border px-3 text-sm font-semibold ${
-                    recording && micTarget === row.id
-                      ? "border-red-400 bg-red-50 text-red-700"
-                      : "border-arjuna-primary/30"
-                  }`}
-                >
-                  {recording && micTarget === row.id ? "⏹" : "🎤"}
-                </button>
+              </div>
+              <div>
+                <label className="mb-1 block text-xs font-semibold text-arjuna-muted">
+                  Topics — type or speak
+                </label>
+                <div className="flex gap-2">
+                  <textarea
+                    value={row.topicsText}
+                    onChange={(e) => updateSubjectRow(row.id, { topicsText: e.target.value })}
+                    placeholder="e.g. Nouns, Verbs, Reading comprehension"
+                    className="flex-1 rounded-2xl border-2 border-orange-100 bg-arjuna-bg p-3 text-sm text-arjuna-text focus:border-arjuna-primary focus:outline-none"
+                    rows={2}
+                  />
+                  <button
+                    type="button"
+                    onClick={() =>
+                      void toggleMic(row.id, (text) =>
+                        updateSubjectRow(row.id, {
+                          topicsText: row.topicsText ? `${row.topicsText}, ${text}` : text,
+                        }),
+                      )
+                    }
+                    disabled={transcribing}
+                    aria-label={recording && micTarget === row.id ? "Stop recording" : "Start recording"}
+                    className={`flex h-12 w-12 shrink-0 items-center justify-center self-end rounded-2xl border-2 transition active:scale-95 ${
+                      recording && micTarget === row.id
+                        ? "border-red-400 bg-red-50 text-red-600"
+                        : "border-orange-100 bg-white text-arjuna-primary"
+                    }`}
+                  >
+                    {recording && micTarget === row.id ? (
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><rect x="4" y="4" width="16" height="16" rx="2" /></svg>
+                    ) : (
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z" /><path d="M19 10v2a7 7 0 0 1-14 0v-2" /><line x1="12" y1="19" x2="12" y2="23" /><line x1="8" y1="23" x2="16" y2="23" /></svg>
+                    )}
+                  </button>
+                </div>
               </div>
             </div>
           ))}
@@ -1201,22 +1261,29 @@ export function ExamHub({ profile }: ExamHubProps) {
           <button
             type="button"
             onClick={addSubjectRow}
-            className="w-full rounded-xl border border-dashed border-arjuna-primary/40 py-2.5 text-sm font-semibold text-arjuna-primaryDark"
+            className="flex w-full items-center justify-center gap-2 rounded-3xl border-2 border-dashed border-arjuna-primary/40 py-3 font-display text-sm font-bold text-arjuna-primaryDark active:scale-95"
           >
-            + Add another subject
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>
+            Add another subject
           </button>
+
           <button
             type="button"
             disabled={busy || !subjectRows.some((r) => r.subject.trim())}
             onClick={() => void handleCreateMultipleExams()}
-            className="w-full rounded-xl bg-arjuna-primary py-3 font-semibold text-white disabled:opacity-50"
+            className="w-full rounded-3xl bg-arjuna-primary py-4 font-display text-sm font-bold text-white shadow-chunky disabled:opacity-50 active:scale-95"
           >
-            {subjectRows.filter((r) => r.subject.trim()).length > 1
-              ? "Create these exams"
-              : "Create exam"}{" "}
-            — add pages next
+            {busy
+              ? "Creating..."
+              : subjectRows.filter((r) => r.subject.trim()).length > 1
+                ? `Create ${subjectRows.filter((r) => r.subject.trim()).length} exams`
+                : "Create exam — add pages next"}
           </button>
-          <button type="button" onClick={() => setMode("list")} className="w-full text-sm underline">
+          <button
+            type="button"
+            onClick={() => setMode("list")}
+            className="w-full py-2 text-sm font-semibold text-arjuna-muted underline"
+          >
             Cancel
           </button>
         </div>
@@ -1371,45 +1438,62 @@ export function ExamHub({ profile }: ExamHubProps) {
 
       {mode === "quiz" && selectedExam && (
         <div className="space-y-4 pb-4">
-          <h2 className="text-lg font-semibold">{selectedExam.subject} practice</h2>
-          {missionTitle && (
-            <p className="rounded-xl bg-arjuna-primary/10 px-3 py-2 text-sm font-semibold text-arjuna-primaryDark">
-              🎯 {missionTitle}
+          {/* Quiz header */}
+          <div className="rounded-3xl bg-arjuna-primary px-5 py-4 shadow-chunky">
+            <p className="font-display text-base font-bold text-white">
+              {selectedExam.subject} practice
             </p>
-          )}
-          <p className="text-xs text-arjuna-muted">No marks — just practice</p>
-          {questions.map((q, idx) => (
-            <div key={q.id} className="rounded-xl bg-white/95 p-4 shadow-sm">
-              <p className="text-xs font-semibold uppercase text-arjuna-muted">
-                Checkpoint {idx + 1}
-              </p>
-              <p className="mt-1 text-sm font-medium">{q.prompt}</p>
-              <div className="mt-2 space-y-2">
-                {q.options.map((opt, idx) => {
-                  const selected = selectedAnswers[q.id] === idx;
-                  const correct =
-                    showAnswers &&
-                    fullQuestions.find((fq) => fq.id === q.id)?.correctIndex === idx;
-                  return (
-                    <button
-                      key={idx}
-                      type="button"
-                      onClick={() => handleQuizAnswer(q.id, idx)}
-                      className={`w-full rounded-lg border px-3 py-2 text-left text-sm ${
-                        correct
-                          ? "border-green-500 bg-green-50"
-                          : selected
-                            ? "border-arjuna-primary bg-arjuna-primary/10"
-                            : ""
-                      }`}
-                    >
-                      {opt}
-                    </button>
-                  );
-                })}
+            {missionTitle && (
+              <p className="mt-1 text-xs text-white/80">{missionTitle}</p>
+            )}
+            <p className="mt-1 text-xs text-white/60">No marks — just practice</p>
+          </div>
+
+          {questions.map((q, idx) => {
+            const answered = selectedAnswers[q.id] !== undefined;
+            const chosenIdx = selectedAnswers[q.id];
+            const fullQ = fullQuestions.find((fq) => fq.id === q.id);
+            return (
+              <div key={q.id} className="rounded-3xl border-2 border-orange-100 bg-white p-4">
+                <div className="mb-3 flex items-center gap-2">
+                  <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-arjuna-primary font-display text-xs font-bold text-white">
+                    {idx + 1}
+                  </span>
+                  <p className="text-sm font-semibold text-arjuna-text leading-snug">
+                    {q.prompt}
+                  </p>
+                </div>
+                <div className="space-y-2">
+                  {q.options.map((opt, optIdx) => {
+                    const isSelected = chosenIdx === optIdx;
+                    const isCorrect = showAnswers && fullQ?.correctIndex === optIdx;
+                    const isWrong = showAnswers && isSelected && !isCorrect;
+                    return (
+                      <button
+                        key={optIdx}
+                        type="button"
+                        onClick={() => handleQuizAnswer(q.id, optIdx)}
+                        className={`w-full rounded-2xl border-2 px-4 py-3 text-left font-display text-sm font-semibold transition active:scale-95 ${
+                          isCorrect
+                            ? "border-green-400 bg-green-50 text-green-900"
+                            : isWrong
+                              ? "border-red-300 bg-red-50 text-red-900"
+                              : isSelected
+                                ? "border-arjuna-primary bg-arjuna-primary/10 text-arjuna-text"
+                                : "border-orange-100 text-arjuna-text"
+                        }`}
+                      >
+                        {opt}
+                      </button>
+                    );
+                  })}
+                </div>
+                {answered && !showAnswers && (
+                  <p className="mt-2 text-xs text-arjuna-muted">Answer locked in</p>
+                )}
               </div>
-            </div>
-          ))}
+            );
+          })}
 
           {!showAnswers && questions.length > 0 && (
             <div className="rounded-xl border border-dashed p-4">

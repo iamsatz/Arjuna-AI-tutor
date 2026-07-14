@@ -147,6 +147,7 @@ export function EnglishHub({ profile }: EnglishHubProps) {
 
       <AppTabNav active="english" />
 
+      {/* Tab pills */}
       <div className="mt-4 flex gap-2 overflow-x-auto pb-1">
         {pills
           .filter((p) => !p.hidden)
@@ -158,41 +159,48 @@ export function EnglishHub({ profile }: EnglishHubProps) {
                 setPill(p.id);
                 setActiveConcept(null);
               }}
-              className={`shrink-0 rounded-2xl px-4 py-2 text-sm font-bold ${
+              className={`shrink-0 rounded-2xl px-4 py-2 font-display text-sm font-bold transition ${
                 pill === p.id
-                  ? "bg-emerald-500 text-white shadow-chunky"
+                  ? "bg-emerald-600 text-white shadow-chunky"
                   : "bg-white text-arjuna-text"
               }`}
             >
-              {p.emoji} {p.label}
+              {p.label}
             </button>
           ))}
       </div>
 
       {pill === "learn" && !activeConcept && (
-        <div className="mt-4 space-y-4">
-          <div className="flex gap-2">
+        <div className="mt-4 space-y-5">
+          {/* Ask bar */}
+          <div className="flex items-center gap-2 rounded-3xl border-2 border-orange-100 bg-white px-4 py-3">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 text-arjuna-muted" aria-hidden="true">
+              <circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
+            </svg>
             <input
               value={askQuery}
               onChange={(e) => setAskQuery(e.target.value)}
               placeholder='Ask: "What is a proper noun?"'
-              className="flex-1 rounded-xl border p-3 text-sm"
+              className="flex-1 bg-transparent text-sm text-arjuna-text placeholder:text-arjuna-muted focus:outline-none"
               onKeyDown={(e) => {
-                if (e.key === "Enter") handleAsk();
+                if (e.key === "Enter" && !e.nativeEvent.isComposing) handleAsk();
               }}
             />
-            <button
-              type="button"
-              onClick={handleAsk}
-              className="rounded-xl bg-arjuna-primary px-4 py-2 text-sm font-bold text-white"
-            >
-              Go
-            </button>
+            {askQuery.trim() && (
+              <button
+                type="button"
+                onClick={handleAsk}
+                className="rounded-xl bg-arjuna-primary px-3 py-1.5 font-display text-xs font-bold text-white active:scale-95"
+              >
+                Ask
+              </button>
+            )}
           </div>
 
+          {/* Recommended for you */}
           {recommended.length > 0 && (
             <section>
-              <p className="mb-2 text-sm font-bold text-arjuna-text">
+              <p className="mb-2.5 font-display text-sm font-bold text-arjuna-text">
                 Recommended for you
               </p>
               <div className="flex flex-wrap gap-2">
@@ -201,72 +209,98 @@ export function EnglishHub({ profile }: EnglishHubProps) {
                     key={c.id}
                     type="button"
                     onClick={() => setActiveConcept(c)}
-                    className="rounded-full border border-orange-200 bg-orange-50 px-3 py-1.5 text-left text-xs font-semibold text-orange-900"
+                    className="rounded-2xl border-2 border-orange-200 bg-orange-50 px-3 py-2 text-left transition active:scale-95"
                   >
-                    {c.label}
-                    <span className="mt-0.5 block font-normal text-orange-700">
-                      {c.reason}
-                    </span>
+                    <p className="font-display text-xs font-bold text-arjuna-text">{c.label}</p>
+                    {c.reason && (
+                      <p className="mt-0.5 text-[10px] text-arjuna-muted">{c.reason}</p>
+                    )}
                   </button>
                 ))}
               </div>
             </section>
           )}
 
+          {/* From your school plan */}
           {curriculumChips.length > 0 && (
             <section>
-              <p className="mb-2 text-sm font-bold text-arjuna-text">
+              <p className="mb-2.5 font-display text-sm font-bold text-arjuna-text">
                 From your school plan
               </p>
               <div className="flex flex-wrap gap-2">
                 {curriculumChips.slice(0, 8).map((chip) => (
-                  <span
+                  <button
                     key={chip.id}
-                    className="rounded-full bg-purple-100 px-3 py-1 text-xs font-semibold text-purple-900"
+                    type="button"
+                    onClick={() =>
+                      setActiveConcept({
+                        id: chip.id,
+                        label: chip.label,
+                        grade: "C",
+                        focus: "From school curriculum",
+                      })
+                    }
+                    className="rounded-2xl border-2 border-emerald-200 bg-emerald-50 px-3 py-1.5 font-display text-xs font-bold text-emerald-900 active:scale-95"
                   >
                     {chip.label}
-                  </span>
+                  </button>
                 ))}
               </div>
             </section>
           )}
 
+          {/* Category topic tiles */}
           {ENGLISH_CATEGORIES.map((cat) => (
-            <section key={cat.id} className="rounded-2xl border bg-white">
+            <section key={cat.id}>
               <button
                 type="button"
                 onClick={() =>
                   setOpenCategory(openCategory === cat.id ? null : cat.id)
                 }
-                className="flex w-full items-center justify-between px-4 py-3 text-left"
+                className="mb-2 flex w-full items-center justify-between"
               >
-                <span className="font-display font-bold text-arjuna-text">
-                  {cat.emoji} {cat.label}
-                </span>
-                <span className="text-arjuna-muted">
-                  {openCategory === cat.id ? "▲" : "▼"}
-                </span>
+                <p className="font-display text-sm font-bold text-arjuna-text">
+                  {cat.label}
+                </p>
+                <svg
+                  width="16"
+                  height="16"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2.5"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  className={`text-arjuna-muted transition-transform duration-200 ${openCategory === cat.id ? "rotate-180" : ""}`}
+                  aria-hidden="true"
+                >
+                  <polyline points="6 9 12 15 18 9" />
+                </svg>
               </button>
+
               {openCategory === cat.id && (
-                <ul className="border-t px-2 pb-2">
+                <div className="grid grid-cols-2 gap-2">
                   {cat.concepts.map((c) => (
-                    <li key={c.id}>
-                      <button
-                        type="button"
-                        onClick={() => setActiveConcept(c)}
-                        className="w-full rounded-xl px-3 py-2 text-left text-sm hover:bg-emerald-50"
-                      >
-                        <span className="font-semibold text-arjuna-text">
-                          {c.label}
-                        </span>
-                        <span className="ml-2 text-[10px] text-arjuna-muted">
-                          {c.grade}
-                        </span>
-                        <p className="text-xs text-arjuna-muted">{c.focus}</p>
-                      </button>
-                    </li>
+                    <button
+                      key={c.id}
+                      type="button"
+                      onClick={() => setActiveConcept(c)}
+                      className="flex flex-col items-start gap-1 rounded-3xl border-2 border-orange-100 bg-white px-4 py-3 text-left transition active:scale-95"
+                    >
+                      <p className="font-display text-sm font-bold text-arjuna-text leading-snug">
+                        {c.label}
+                      </p>
+                      <p className="text-[10px] text-arjuna-muted line-clamp-2">
+                        {c.focus}
+                      </p>
+                      <span className={`mt-0.5 rounded-full px-2 py-0.5 font-display text-[9px] font-bold uppercase ${
+                        c.grade === "B" ? "bg-green-100 text-green-800" : c.grade === "E" ? "bg-red-100 text-red-800" : "bg-orange-100 text-orange-800"
+                      }`}>
+                        {c.grade === "B" ? "Beginner" : c.grade === "E" ? "Expert" : "Class"}
+                      </span>
+                    </button>
                   ))}
-                </ul>
+                </div>
               )}
             </section>
           ))}
