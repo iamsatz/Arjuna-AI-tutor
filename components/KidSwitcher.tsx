@@ -106,47 +106,41 @@ export function KidSwitcher({ onActiveChange }: KidSwitcherProps) {
 
   return (
     <div className="mb-4">
-      <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-arjuna-muted">
+      <p className="mb-2 text-xs font-semibold uppercase tracking-widest text-arjuna-muted">
         Who&apos;s learning?
       </p>
-      <div className="flex flex-wrap items-end gap-3">
+      <div className="flex flex-wrap items-center gap-2">
         {profiles.map((p, index) => {
           const isActive = p.id === activeId;
           return (
-            <div key={p.id} className="flex flex-col items-center">
-              <button
-                type="button"
-                onClick={() => p.id && handleSwitch(p.id)}
-                className={`flex h-14 w-14 items-center justify-center rounded-full font-display text-xl font-bold text-white shadow-chunky transition ${
-                  kidColor(index)
-                } ${isActive ? "ring-4 ring-arjuna-primary ring-offset-2" : "opacity-80"}`}
+            <button
+              key={p.id}
+              type="button"
+              onClick={() => p.id && handleSwitch(p.id)}
+              className={`flex items-center gap-2 rounded-xl px-3 py-2 transition-all ${
+                isActive
+                  ? "bg-arjuna-surface shadow-card ring-1 ring-arjuna-primary/40"
+                  : "bg-arjuna-border/40 hover:bg-arjuna-border/60"
+              }`}
+            >
+              <span
+                className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-bold text-white ${kidColor(index)}`}
               >
                 {kidInitial(p.childName)}
-              </button>
-              <span
-                className={`mt-1 max-w-[4rem] truncate text-xs font-semibold ${
-                  isActive ? "text-arjuna-text" : "text-arjuna-muted"
-                }`}
-              >
-                {p.childName}
               </span>
-              {p.grade && (
-                <span className="max-w-[4rem] truncate text-[10px] text-arjuna-muted">
-                  {p.grade}
-                </span>
-              )}
-              {isActive && profiles.length > 1 && (
-                <button
-                  type="button"
-                  onClick={() =>
-                    setRemovingId((cur) => (cur === p.id ? null : p.id ?? null))
-                  }
-                  className="mt-0.5 text-[10px] text-arjuna-muted underline"
+              <div className="text-left">
+                <p
+                  className={`text-sm font-semibold leading-tight ${
+                    isActive ? "text-arjuna-text" : "text-arjuna-muted"
+                  }`}
                 >
-                  remove
-                </button>
-              )}
-            </div>
+                  {p.childName}
+                </p>
+                {p.grade && (
+                  <p className="text-[10px] text-arjuna-muted">{p.grade}</p>
+                )}
+              </div>
+            </button>
           );
         })}
 
@@ -158,55 +152,40 @@ export function KidSwitcher({ onActiveChange }: KidSwitcherProps) {
               setRemovingId(null);
               setError(null);
             }}
-            className="flex h-14 w-14 items-center justify-center rounded-full border-2 border-dashed border-arjuna-primary/40 font-display text-2xl text-arjuna-primaryDark"
+            className="flex h-9 w-9 items-center justify-center rounded-xl border border-dashed border-arjuna-primary/40 text-arjuna-muted hover:border-arjuna-primary hover:text-arjuna-primary transition-colors"
+            aria-label="Add child"
           >
-            +
+            <svg viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4">
+              <path
+                fillRule="evenodd"
+                d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z"
+                clipRule="evenodd"
+              />
+            </svg>
           </button>
         )}
       </div>
 
-      {error && <p className="mt-2 text-xs text-red-600">{error}</p>}
-
-      {removingId && (
-        <div className="mt-3 rounded-2xl border-2 border-amber-200 bg-amber-50 p-3">
-          <p className="text-xs text-amber-900">Parent PIN to remove this kid</p>
-          <div className="mt-2 flex gap-2">
-            <input
-              type="password"
-              value={pin}
-              onChange={(e) => setPin(e.target.value)}
-              placeholder="PIN"
-              className="flex-1 rounded-xl border-2 border-orange-100 p-2 text-sm"
-            />
-            <Button
-              variant="secondary"
-              className="!bg-red-600 !text-white"
-              onClick={() => handleRemove(removingId)}
-            >
-              Remove
-            </Button>
-          </div>
-        </div>
-      )}
+      {error && <p className="mt-2 text-xs text-arjuna-red">{error}</p>}
 
       {adding && (
         <form
           onSubmit={handleAdd}
-          className="mt-3 space-y-2 rounded-2xl border-2 border-orange-100 bg-white p-4"
+          className="mt-3 space-y-2 rounded-2xl border border-arjuna-border bg-arjuna-surface p-4 shadow-card"
         >
           <input
             type="text"
             value={name}
             onChange={(e) => setName(e.target.value)}
-            placeholder="Kid's name"
-            className="w-full rounded-xl border-2 border-orange-100 p-3 text-sm"
+            placeholder="Child's name"
+            className="input-base"
           />
           <select
             value={grade}
             onChange={(e) => setGrade(e.target.value as GradeOption | "")}
-            className="w-full rounded-xl border-2 border-orange-100 p-3 text-sm"
+            className="input-base"
           >
-            <option value="">Pick grade</option>
+            <option value="">Select grade</option>
             {GRADE_OPTIONS.map((g) => (
               <option key={g} value={g}>
                 {g}
@@ -216,7 +195,7 @@ export function KidSwitcher({ onActiveChange }: KidSwitcherProps) {
           <select
             value={medium}
             onChange={(e) => setMedium(e.target.value as MediumOfInstruction)}
-            className="w-full rounded-xl border-2 border-orange-100 p-3 text-sm"
+            className="input-base"
           >
             {MEDIUM_OPTIONS.map((opt) => (
               <option key={opt.value} value={opt.value}>
@@ -224,10 +203,45 @@ export function KidSwitcher({ onActiveChange }: KidSwitcherProps) {
               </option>
             ))}
           </select>
-          <Button type="submit" className="w-full">
-            Add &amp; switch
-          </Button>
+          <div className="flex gap-2">
+            <Button type="submit" className="flex-1">
+              Add &amp; switch
+            </Button>
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={() => {
+                setAdding(false);
+                setError(null);
+              }}
+            >
+              Cancel
+            </Button>
+          </div>
         </form>
+      )}
+
+      {removingId && (
+        <div className="mt-3 rounded-2xl border border-arjuna-border bg-arjuna-surface p-4 shadow-card">
+          <p className="mb-2 text-sm font-semibold text-arjuna-text">
+            Enter parent PIN to remove
+          </p>
+          <div className="flex gap-2">
+            <input
+              type="password"
+              value={pin}
+              onChange={(e) => setPin(e.target.value)}
+              placeholder="PIN"
+              className="input-base"
+            />
+            <Button
+              variant="danger"
+              onClick={() => handleRemove(removingId)}
+            >
+              Remove
+            </Button>
+          </div>
+        </div>
       )}
     </div>
   );

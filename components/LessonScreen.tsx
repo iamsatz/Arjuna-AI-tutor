@@ -352,48 +352,67 @@ export function LessonScreen({
   })();
 
   return (
-    <main className="mx-auto flex min-h-dvh max-w-md flex-col bg-arjuna-bg px-5 py-6">
+    <main className="mx-auto flex min-h-dvh max-w-md flex-col bg-arjuna-bg px-4 py-5">
+      {/* ── Top bar ── */}
       <header className="mb-4 flex items-center justify-between gap-2">
-        <div className="flex flex-col gap-1">
-          <p className="font-display text-lg font-bold text-arjuna-text">
-            Arjuna
-          </p>
+        <div className="flex items-center gap-2">
+          <span className="text-base font-bold text-arjuna-text">Arjuna</span>
           <GeminiStatusPill />
         </div>
         <Link
           href="/settings"
-          className="rounded-full bg-white px-3 py-1.5 text-sm font-semibold text-arjuna-primaryDark shadow-sm"
+          className="flex items-center gap-1.5 rounded-xl border border-arjuna-border bg-arjuna-surface px-3 py-1.5 text-sm font-semibold text-arjuna-text shadow-card hover:bg-arjuna-bg transition-colors"
         >
+          <svg viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4 text-arjuna-muted">
+            <path
+              fillRule="evenodd"
+              d="M11.49 3.17c-.38-1.56-2.6-1.56-2.98 0a1.532 1.532 0 01-2.286.948c-1.372-.836-2.942.734-2.106 2.106.54.886.061 2.042-.947 2.287-1.561.379-1.561 2.6 0 2.978a1.532 1.532 0 01.947 2.287c-.836 1.372.734 2.942 2.106 2.106a1.532 1.532 0 012.287.947c.379 1.561 2.6 1.561 2.978 0a1.533 1.533 0 012.287-.947c1.372.836 2.942-.734 2.106-2.106a1.533 1.533 0 01.947-2.287c1.561-.379 1.561-2.6 0-2.978a1.532 1.532 0 01-.947-2.287c.836-1.372-.734-2.942-2.106-2.106a1.532 1.532 0 01-2.287-.947zM10 13a3 3 0 100-6 3 3 0 000 6z"
+              clipRule="evenodd"
+            />
+          </svg>
           Settings
         </Link>
       </header>
 
+      {/* ── Kid switcher ── */}
       {controller === "phone" && !readOnly && (
         <KidSwitcher onActiveChange={onActiveChange} />
       )}
 
+      {/* ── Welcome banner ── */}
       {showWelcome && showInput && (
-        <Card className="mb-4 border-sky-200 bg-sky-50 py-3">
-          <p className="font-display font-bold text-arjuna-text">
-            You&apos;re all set, {profile.childName}!
-          </p>
-          <p className="mt-1 text-sm text-arjuna-muted">
-            Tap Scan homework below to get started.
-          </p>
+        <div className="mb-3 flex items-start justify-between gap-3 rounded-2xl border border-arjuna-sky/30 bg-sky-50 px-4 py-3">
+          <div>
+            <p className="text-sm font-semibold text-arjuna-text">
+              You&apos;re all set, {profile.childName}!
+            </p>
+            <p className="mt-0.5 text-xs text-arjuna-muted">
+              Type, speak, or attach your homework below.
+            </p>
+          </div>
           <button
             type="button"
             onClick={() => setShowWelcome(false)}
-            className="mt-2 text-xs text-arjuna-muted underline"
+            className="shrink-0 text-xs text-arjuna-muted hover:text-arjuna-text"
+            aria-label="Dismiss"
           >
-            Got it
+            <svg viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4">
+              <path
+                fillRule="evenodd"
+                d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
+                clipRule="evenodd"
+              />
+            </svg>
           </button>
-        </Card>
+        </div>
       )}
 
+      {/* ── Extracting progress ── */}
       {hwPhase === "extracting" && !readOnly && (
         <LessonProgress step="reading" />
       )}
 
+      {/* ── Capture composer (actions first) ── */}
       {showCaptureHome && (
         <div className="mb-4">
           <HomeworkCaptureTray
@@ -407,6 +426,7 @@ export function LessonScreen({
         </div>
       )}
 
+      {/* ── Task review ── */}
       {showReview && (
         <>
           <HomeworkTaskReview
@@ -457,24 +477,23 @@ export function LessonScreen({
         </>
       )}
 
+      {/* ── Greeting card + progress + nav (below composer) ── */}
       {showCaptureHome && (
         <>
-          <Card className="mb-4">
-            <div className="flex items-start gap-4">
-              <ArjunaAvatar state={avatarState} size="sm" showTarget />
-              <div className="flex-1">
-                <p className="font-display text-xl font-bold text-arjuna-text">
-                  {greeting}, {profile.childName}!
-                </p>
-                {profile.grade && (
-                  <p className="text-sm text-arjuna-muted">{profile.grade}</p>
-                )}
+          <div className="mb-3 flex items-center gap-3 rounded-2xl border border-arjuna-border bg-arjuna-surface p-3.5 shadow-card">
+            <ArjunaAvatar state={avatarState} size="sm" showTarget />
+            <div className="flex-1 min-w-0">
+              <p className="text-base font-semibold text-arjuna-text">
+                {greeting}, {profile.childName}!
+              </p>
+              {profile.grade && (
+                <p className="text-xs text-arjuna-muted">{profile.grade}</p>
+              )}
+              <div className="mt-2">
+                <TodayRing refreshKey={ringKey} />
               </div>
             </div>
-            <div className="mt-4">
-              <TodayRing refreshKey={ringKey} />
-            </div>
-          </Card>
+          </div>
 
           <div className="mb-4">
             <AppTabNav active="homework" />
@@ -484,13 +503,11 @@ export function LessonScreen({
           <CurriculumNudge profile={profile} />
 
           {upcomingExams.length > 0 && (
-            <Card className="mt-4 border-green-200 bg-green-50">
-              <p className="font-display font-bold text-arjuna-text">
-                Coming up
-              </p>
-              <ul className="mt-2 space-y-1 text-sm text-arjuna-muted">
+            <div className="mt-1 rounded-2xl border border-arjuna-border bg-arjuna-surface p-4 shadow-card">
+              <p className="text-sm font-semibold text-arjuna-text">Coming up</p>
+              <ul className="mt-2 space-y-1">
                 {upcomingExams.map((exam) => (
-                  <li key={exam.id}>
+                  <li key={exam.id} className="text-sm text-arjuna-muted">
                     {exam.subject}
                     {exam.exam_date
                       ? ` · ${new Date(exam.exam_date).toLocaleDateString()}`
@@ -503,7 +520,7 @@ export function LessonScreen({
                   Open Exam Prep
                 </Button>
               </Link>
-            </Card>
+            </div>
           )}
         </>
       )}
@@ -515,48 +532,48 @@ export function LessonScreen({
         />
       )}
 
+      {/* ── Teaching avatar + reply ── */}
       {(showGuided ||
         (!showInput && !showReview && hwPhase !== "extracting")) && (
-        <div className="flex flex-col items-center gap-4 py-4">
+        <div className="flex flex-col items-center gap-3 py-4">
           <ArjunaAvatar state={avatarState} showTarget />
-          <p className="max-w-xs text-center text-base font-medium text-arjuna-text">
+          <p className="max-w-xs text-center text-sm font-medium text-arjuna-muted">
             {state.statusMessage}
           </p>
           {state.lastReply &&
             state.phase !== "input" &&
             state.phase !== "capture_answer" && (
-            <Card className="w-full py-4">
+            <div className="w-full rounded-2xl border border-arjuna-border bg-arjuna-surface p-4 shadow-card">
               <p className="text-sm leading-relaxed text-arjuna-text">
                 {state.lastReply}
               </p>
-            </Card>
+            </div>
           )}
         </div>
       )}
 
       {showGuided && state.tasks[state.currentTaskIndex] && (
-        <div className="mt-auto space-y-3 pb-4">
-          <Card className="border-orange-200 bg-orange-50 py-3">
-            <p className="text-xs font-semibold uppercase text-arjuna-muted">
+        <div className="mt-auto space-y-2.5 pb-4">
+          {/* Task chip */}
+          <div className="rounded-2xl border border-orange-200 bg-arjuna-primaryLight px-4 py-3">
+            <p className="text-[10px] font-semibold uppercase tracking-widest text-arjuna-muted">
               Task {state.currentTaskIndex + 1} of {state.tasks.length}
             </p>
-            <p className="mt-1 font-display font-bold text-arjuna-text">
+            <p className="mt-1 text-sm font-semibold text-arjuna-text">
               {state.tasks[state.currentTaskIndex].subject}:{" "}
               {state.tasks[state.currentTaskIndex].task}
             </p>
-          </Card>
+          </div>
 
           {state.phase === "ask_explain" && (
             <div className="flex gap-2">
               <Button
-                size="lg"
                 className="flex-1"
                 onClick={() => void lesson.handleExplainChoice(true)}
               >
                 Yes, explain
               </Button>
               <Button
-                size="lg"
                 variant="secondary"
                 className="flex-1"
                 onClick={() => void lesson.handleExplainChoice(false)}
@@ -569,14 +586,12 @@ export function LessonScreen({
           {state.phase === "ask_help_mode" && (
             <div className="space-y-2">
               <Button
-                size="lg"
                 className="w-full"
                 onClick={() => void lesson.handleHelpMode("hint")}
               >
                 Give a hint
               </Button>
               <Button
-                size="lg"
                 variant="secondary"
                 className="w-full"
                 onClick={() => void lesson.handleHelpMode("explain")}
@@ -584,21 +599,17 @@ export function LessonScreen({
                 Explain fully
               </Button>
               <Button
-                size="lg"
                 variant="ghost"
                 className="w-full"
                 onClick={() => void lesson.handleHelpMode("try_self")}
               >
                 I&apos;ll try myself
               </Button>
-              <p className="pt-1 text-center text-xs text-arjuna-muted">
-                Or type: hint / explain fully / I&apos;ll try
-              </p>
               <textarea
                 value={doubtInput}
                 onChange={(e) => setDoubtInput(e.target.value)}
                 placeholder="hint, explain fully, I'll try…"
-                className="w-full rounded-2xl border-2 border-orange-100 p-3 text-sm"
+                className="input-base"
                 rows={2}
               />
               <Button
@@ -619,7 +630,6 @@ export function LessonScreen({
           {state.phase === "try_self" && (
             <div className="space-y-2">
               <Button
-                size="lg"
                 variant="success"
                 className="w-full"
                 onClick={() => void lesson.handleStartAnswerCapture()}
@@ -630,7 +640,7 @@ export function LessonScreen({
                 value={doubtInput}
                 onChange={(e) => setDoubtInput(e.target.value)}
                 placeholder="Ask a question…"
-                className="w-full rounded-2xl border-2 border-orange-100 p-3 text-sm"
+                className="input-base"
                 rows={2}
               />
               <Button
@@ -656,7 +666,6 @@ export function LessonScreen({
 
           {state.phase === "verify_result" && (
             <Button
-              size="lg"
               variant="success"
               className="w-full"
               onClick={() => void onUnderstood()}
@@ -668,18 +677,19 @@ export function LessonScreen({
       )}
 
       {showTeaching && !readOnly && (
-        <div className="mt-auto space-y-3 pb-4">
+        <div className="mt-auto space-y-2.5 pb-4">
+          {/* Task tabs */}
           {state.tasks.length > 1 && (
-            <div className="flex flex-wrap gap-2">
+            <div className="flex flex-wrap gap-1.5">
               {state.tasks.map((t, i) => (
                 <button
                   key={`${t.subject}-${i}`}
                   type="button"
                   onClick={() => void lesson.jumpToTask(i)}
-                  className={`rounded-full px-3 py-1 text-xs font-bold ${
+                  className={`rounded-lg px-2.5 py-1 text-xs font-semibold transition-colors ${
                     i === state.currentTaskIndex
                       ? "bg-arjuna-primary text-white"
-                      : "bg-white text-arjuna-muted ring-1 ring-orange-200"
+                      : "bg-arjuna-surface text-arjuna-muted ring-1 ring-arjuna-border hover:bg-arjuna-bg"
                   }`}
                 >
                   {i + 1}. {t.subject}
@@ -688,34 +698,33 @@ export function LessonScreen({
             </div>
           )}
           {state.tasks[state.currentTaskIndex] && (
-            <Card className="border-orange-200 bg-orange-50 py-3">
-              <p className="text-xs font-semibold uppercase text-arjuna-muted">
+            <div className="rounded-2xl border border-orange-200 bg-arjuna-primaryLight px-4 py-3">
+              <p className="text-[10px] font-semibold uppercase tracking-widest text-arjuna-muted">
                 Task {state.currentTaskIndex + 1} of {state.tasks.length}
               </p>
-              <p className="mt-1 font-display font-bold text-arjuna-text">
+              <p className="mt-1 text-sm font-semibold text-arjuna-text">
                 {state.tasks[state.currentTaskIndex].subject}:{" "}
                 {state.tasks[state.currentTaskIndex].task}
               </p>
-            </Card>
+            </div>
           )}
           <button
             type="button"
             onClick={openEditTasks}
-            className="w-full text-center text-xs font-semibold text-arjuna-primaryDark underline"
+            className="text-xs text-arjuna-muted hover:text-arjuna-text transition-colors"
           >
-            Edit / add page
+            Edit tasks / add page
           </button>
           <div className="flex gap-2">
             <Button
               variant="success"
-              size="lg"
               className="flex-1"
               onClick={() => void lesson.handleReadyToTry()}
             >
               Got it!
             </Button>
             <Button
-              size="lg"
+              variant="secondary"
               className="flex-1"
               onClick={() => void lesson.handleNotUnderstood()}
             >
@@ -724,7 +733,6 @@ export function LessonScreen({
           </div>
           {state.teachFailed && (
             <Button
-              size="lg"
               variant="secondary"
               className="w-full"
               disabled={loading}
@@ -737,7 +745,7 @@ export function LessonScreen({
             value={doubtInput}
             onChange={(e) => setDoubtInput(e.target.value)}
             placeholder="Ask a question…"
-            className="w-full rounded-2xl border-2 border-orange-100 p-3 text-sm"
+            className="input-base"
             rows={2}
           />
           <Button
@@ -752,21 +760,27 @@ export function LessonScreen({
       )}
 
       {showSessionDone && lastTask && (
-        <div className="mt-auto space-y-3 pb-4">
-          <Card className="border-green-300 bg-green-50 text-center">
-            <p className="text-4xl">🎯</p>
-            <p className="mt-2 font-display text-lg font-bold text-green-900">
-              Homework done!
-            </p>
-            <p className="mt-1 text-sm text-green-800">
+        <div className="mt-auto space-y-2.5 pb-4">
+          <div className="rounded-2xl border border-green-200 bg-green-50 p-5 text-center">
+            <div className="mx-auto mb-2 flex h-12 w-12 items-center justify-center rounded-full bg-green-100">
+              <svg viewBox="0 0 20 20" fill="currentColor" className="h-6 w-6 text-green-600">
+                <path
+                  fillRule="evenodd"
+                  d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                  clipRule="evenodd"
+                />
+              </svg>
+            </div>
+            <p className="text-base font-bold text-green-900">Homework done!</p>
+            <p className="mt-1 text-sm text-green-700">
               Want to practice this topic more?
             </p>
-          </Card>
+          </div>
           <Link
             href={`/exam?subject=${encodeURIComponent(lastTask.subject)}&topic=${encodeURIComponent(lastTask.task)}`}
             className="block"
           >
-            <Button variant="success" size="lg" className="w-full">
+            <Button variant="success" className="w-full">
               Strengthen this topic
             </Button>
           </Link>
@@ -779,14 +793,14 @@ export function LessonScreen({
       )}
 
       {showParent && (
-        <div className="mt-auto space-y-3 pb-4">
+        <div className="mt-auto space-y-2.5 pb-4">
           {state.phase === "parent_solution" && state.parentSolution ? (
-            <Card className="border-yellow-300 bg-yellow-50">
-              <p className="font-display font-bold">Parent answer</p>
-              <p className="mt-2 whitespace-pre-wrap text-sm">
+            <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4">
+              <p className="text-sm font-semibold text-amber-900">Parent answer</p>
+              <p className="mt-2 whitespace-pre-wrap text-sm text-amber-800">
                 {state.parentSolution}
               </p>
-            </Card>
+            </div>
           ) : (
             <>
               <p className="text-sm text-arjuna-muted">
@@ -797,7 +811,7 @@ export function LessonScreen({
                 value={pinInput}
                 onChange={(e) => setPinInput(e.target.value)}
                 placeholder="PIN"
-                className="w-full rounded-2xl border-2 border-orange-100 p-3"
+                className="input-base"
               />
               <Button
                 className="w-full"

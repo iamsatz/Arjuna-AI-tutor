@@ -14,23 +14,27 @@ const config: Config = {
       },
       colors: {
         arjuna: {
-          bg: "#FFF8F0",
+          bg: "#F7F4F0",
           surface: "#FFFFFF",
           primary: "#E8872A",
           primaryDark: "#C96A12",
-          text: "#2D2419",
-          muted: "#7A6B5A",
-          sky: "#38BDF8",
-          purple: "#A855F7",
-          green: "#22C55E",
-          yellow: "#FACC15",
+          primaryLight: "#FEF0E3",
+          text: "#1C1410",
+          muted: "#6B5B4E",
+          border: "#E8DDD4",
+          sky: "#0EA5E9",
+          green: "#16A34A",
+          yellow: "#CA8A04",
+          red: "#DC2626",
+          teal: "#0D9488",
         },
       },
       boxShadow: {
-        chunky:
-          "0 4px 0 0 rgba(45,36,25,0.15), 0 8px 16px rgba(45,36,25,0.08)",
-        "chunky-press":
-          "0 2px 0 0 rgba(45,36,25,0.15), 0 4px 8px rgba(45,36,25,0.08)",
+        card: "0 1px 3px rgba(28,20,16,0.07), 0 1px 2px rgba(28,20,16,0.05)",
+        "card-hover": "0 4px 12px rgba(28,20,16,0.10), 0 2px 4px rgba(28,20,16,0.06)",
+        // keep legacy names so nothing breaks
+        chunky: "0 1px 3px rgba(28,20,16,0.07), 0 1px 2px rgba(28,20,16,0.05)",
+        "chunky-press": "0 1px 2px rgba(28,20,16,0.06)",
       },
       animation: {
         "arrow-hit": "arrowHit 0.6s ease-out",

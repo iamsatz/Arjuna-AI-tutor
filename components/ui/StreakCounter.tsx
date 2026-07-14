@@ -13,23 +13,21 @@ export function StreakCounter({
 
   return (
     <div className="flex items-center gap-3">
-      <div className="flex items-center gap-1 rounded-2xl bg-orange-100 px-3 py-2">
-        <span className="text-lg">🔥</span>
-        <span className="font-display text-lg font-bold text-arjuna-primaryDark">
-          {count}
-        </span>
-        <span className="text-xs text-arjuna-muted">day streak</span>
+      <div className="flex shrink-0 items-center gap-1.5 rounded-lg bg-arjuna-primaryLight px-2.5 py-1.5">
+        <span className="text-base leading-none">🔥</span>
+        <span className="text-sm font-bold text-arjuna-primaryDark">{count}</span>
+        <span className="text-xs text-arjuna-muted">streak</span>
       </div>
-      <div className="flex-1">
-        <div className="mb-1 flex justify-between text-xs font-semibold text-arjuna-muted">
-          <span>Today&apos;s target</span>
-          <span>
+      <div className="flex-1 min-w-0">
+        <div className="mb-1 flex justify-between text-xs text-arjuna-muted">
+          <span>Today&apos;s goal</span>
+          <span className="font-semibold text-arjuna-text">
             {todayCompleted}/{todayTarget}
           </span>
         </div>
-        <div className="h-3 overflow-hidden rounded-full bg-orange-100">
+        <div className="h-1.5 overflow-hidden rounded-full bg-arjuna-border">
           <div
-            className="h-full rounded-full bg-gradient-to-r from-arjuna-primary to-arjuna-yellow transition-all"
+            className="h-full rounded-full bg-arjuna-primary transition-all duration-500"
             style={{ width: `${pct}%` }}
           />
         </div>

@@ -3,7 +3,6 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/Button";
-import { Card } from "@/components/ui/Card";
 
 type BeforeInstallPromptEvent = Event & {
   prompt: () => Promise<void>;
@@ -25,9 +24,7 @@ function isStandalone(): boolean {
 }
 
 export function InstallPrompt() {
-  const [deferred, setDeferred] = useState<BeforeInstallPromptEvent | null>(
-    null,
-  );
+  const [deferred, setDeferred] = useState<BeforeInstallPromptEvent | null>(null);
   const [dismissed, setDismissed] = useState(false);
   const [ios] = useState(() => isIos());
   const [standalone] = useState(() => isStandalone());
@@ -63,38 +60,47 @@ export function InstallPrompt() {
   }
 
   return (
-    <Card className="mb-4 border-sky-200 bg-gradient-to-br from-sky-50 to-white">
-      <p className="font-display text-lg font-bold text-arjuna-text">
-        Install Arjuna on this phone
-      </p>
-      <p className="mt-1 text-sm text-arjuna-muted">
-        Add to Home Screen for a full-screen app — faster mic and camera access.
-      </p>
-      <div className="mt-4 flex flex-col gap-2">
-        {deferred && (
-          <Button size="lg" className="w-full" onClick={() => void install()}>
-            Add to Home Screen
-          </Button>
-        )}
-        {ios && !deferred && (
-          <p className="rounded-xl bg-white px-3 py-2 text-sm text-arjuna-text">
-            Tap <strong>Share</strong> → <strong>Add to Home Screen</strong>
-          </p>
-        )}
-        <Link
-          href="/download"
-          className="text-center text-sm font-semibold text-arjuna-primaryDark underline"
-        >
-          Or download Android APK
-        </Link>
-        <button
-          type="button"
-          onClick={dismiss}
-          className="text-xs text-arjuna-muted underline"
-        >
-          Not now
-        </button>
+    <div className="mb-3 flex items-start gap-3 rounded-2xl border border-arjuna-border bg-arjuna-surface p-3.5 shadow-card">
+      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-arjuna-bg">
+        <svg viewBox="0 0 20 20" fill="currentColor" className="h-5 w-5 text-arjuna-muted">
+          <path
+            fillRule="evenodd"
+            d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z"
+            clipRule="evenodd"
+          />
+        </svg>
       </div>
-    </Card>
+      <div className="flex-1 min-w-0">
+        <p className="text-sm font-semibold text-arjuna-text">Install Arjuna</p>
+        <p className="mt-0.5 text-xs text-arjuna-muted">
+          Add to Home Screen for faster camera &amp; mic access.
+        </p>
+        <div className="mt-2 flex flex-wrap items-center gap-2">
+          {deferred && (
+            <Button size="sm" onClick={() => void install()}>
+              Add to Home Screen
+            </Button>
+          )}
+          {ios && !deferred && (
+            <p className="text-xs text-arjuna-muted">
+              Tap <strong>Share</strong> → <strong>Add to Home Screen</strong>
+            </p>
+          )}
+          <Link
+            href="/download"
+            className="text-xs font-semibold text-arjuna-primary hover:underline"
+          >
+            Download Android APK
+          </Link>
+          <button
+            type="button"
+            onClick={dismiss}
+            className="text-xs text-arjuna-muted hover:text-arjuna-text"
+          >
+            Dismiss
+          </button>
+        </div>
+      </div>
+    </div>
   );
 }

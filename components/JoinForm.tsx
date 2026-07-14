@@ -317,7 +317,6 @@ export function JoinForm({ code }: JoinFormProps) {
           {kids.map((child) => (
             <Button
               key={child.id || child.childName}
-              size="lg"
               className="w-full"
               variant={
                 localNames.has(child.childName.trim().toLowerCase())
@@ -346,7 +345,7 @@ export function JoinForm({ code }: JoinFormProps) {
           )}
         </div>
         {error && (
-          <p className="mt-3 rounded-xl bg-red-50 px-3 py-2 text-sm text-red-700">
+          <p className="mt-3 rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
             {error}
           </p>
         )}
@@ -358,7 +357,7 @@ export function JoinForm({ code }: JoinFormProps) {
   if (mode === "add_kid") {
     return (
       <Card>
-        <h1 className="font-display text-xl font-bold text-arjuna-text">
+        <h1 className="text-xl font-bold text-arjuna-text">
           Add a child
         </h1>
         <form
@@ -370,7 +369,7 @@ export function JoinForm({ code }: JoinFormProps) {
             }
             void addKidOnServer();
           }}
-          className="mt-4 space-y-4"
+          className="mt-4 space-y-3"
         >
           <input
             type="text"
@@ -378,10 +377,10 @@ export function JoinForm({ code }: JoinFormProps) {
             onChange={(e) => setChildName(e.target.value)}
             placeholder="Child's name"
             autoComplete="given-name"
-            className="w-full rounded-2xl border-2 border-orange-100 px-4 py-3.5 text-lg outline-none focus:border-arjuna-primary"
+            className="input-base"
           />
           {error && (
-            <p className="rounded-xl bg-red-50 px-3 py-2 text-sm text-red-700">
+            <p className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
               {error}
             </p>
           )}
@@ -408,22 +407,22 @@ export function JoinForm({ code }: JoinFormProps) {
     <Card>
       <div className="flex flex-col items-center text-center">
         <ArjunaAvatar state="idle" size="sm" />
-        <h1 className="mt-3 font-display text-2xl font-bold text-arjuna-text">
+        <h1 className="mt-3 text-2xl font-bold text-arjuna-text">
           Who are we helping?
         </h1>
         {label && (
-          <p className="mt-1 text-sm text-arjuna-muted">Family: {label}</p>
+          <p className="mt-1 text-xs text-arjuna-muted">Family: {label}</p>
         )}
-        <p className="mt-2 text-sm text-arjuna-muted">
+        <p className="mt-1.5 text-sm text-arjuna-muted">
           Enter your child&apos;s name — then straight to homework.
         </p>
       </div>
 
-      <form onSubmit={handleSetupSubmit} className="mt-4 space-y-4">
-        <label className="block">
-          <span className="text-sm font-semibold text-arjuna-text">
+      <form onSubmit={handleSetupSubmit} className="mt-5 space-y-3">
+        <div>
+          <label className="block text-sm font-semibold text-arjuna-text mb-1.5">
             Child&apos;s name
-          </span>
+          </label>
           <input
             type="text"
             value={childName}
@@ -431,84 +430,71 @@ export function JoinForm({ code }: JoinFormProps) {
             required
             autoComplete="given-name"
             placeholder="e.g. Aadya"
-            className="mt-2 w-full rounded-2xl border-2 border-orange-100 px-4 py-3.5 text-lg font-semibold outline-none focus:border-arjuna-primary"
+            className="input-base"
           />
-        </label>
+        </div>
 
         <button
           type="button"
           onClick={() => setShowDetails((v) => !v)}
-          className="text-sm font-semibold text-indigo-700 underline"
+          className="text-sm font-medium text-arjuna-primary hover:underline"
         >
-          {showDetails ? "Hide details" : "More details (grade, board — optional)"}
+          {showDetails ? "Hide details" : "Add grade, board (optional)"}
         </button>
 
         {showDetails && (
-          <>
-            <label className="block">
-              <span className="text-sm font-semibold text-arjuna-text">Grade</span>
+          <div className="space-y-3">
+            <div>
+              <label className="block text-sm font-semibold text-arjuna-text mb-1.5">Grade</label>
               <select
                 value={grade}
                 onChange={(e) => setGrade(e.target.value as GradeOption | "")}
-                className="mt-2 w-full rounded-2xl border-2 border-orange-100 px-4 py-3.5 outline-none focus:border-arjuna-primary"
+                className="input-base"
               >
-                <option value="">Pick a grade (optional)</option>
+                <option value="">Select grade</option>
                 {GRADE_OPTIONS.map((g) => (
-                  <option key={g} value={g}>
-                    {g}
-                  </option>
+                  <option key={g} value={g}>{g}</option>
                 ))}
               </select>
-            </label>
+            </div>
 
-            <label className="block">
-              <span className="text-sm font-semibold text-arjuna-text">Board</span>
+            <div>
+              <label className="block text-sm font-semibold text-arjuna-text mb-1.5">Board</label>
               <select
                 value={board}
-                onChange={(e) =>
-                  setBoard(e.target.value as CurriculumBoard | "")
-                }
-                className="mt-2 w-full rounded-2xl border-2 border-orange-100 px-4 py-3.5 outline-none focus:border-arjuna-primary"
+                onChange={(e) => setBoard(e.target.value as CurriculumBoard | "")}
+                className="input-base"
               >
-                <option value="">Pick board (optional)</option>
+                <option value="">Select board</option>
                 {BOARD_OPTIONS.map((opt) => (
-                  <option key={opt.value} value={opt.value}>
-                    {opt.label}
-                  </option>
+                  <option key={opt.value} value={opt.value}>{opt.label}</option>
                 ))}
               </select>
-            </label>
+            </div>
 
-            <label className="block">
-              <span className="text-sm font-semibold text-arjuna-text">
-                Language at school
-              </span>
+            <div>
+              <label className="block text-sm font-semibold text-arjuna-text mb-1.5">Language at school</label>
               <select
                 value={medium}
-                onChange={(e) =>
-                  setMedium(e.target.value as MediumOfInstruction)
-                }
-                className="mt-2 w-full rounded-2xl border-2 border-orange-100 px-4 py-3.5 outline-none focus:border-arjuna-primary"
+                onChange={(e) => setMedium(e.target.value as MediumOfInstruction)}
+                className="input-base"
               >
                 {MEDIUM_OPTIONS.map((opt) => (
-                  <option key={opt.value} value={opt.value}>
-                    {opt.label}
-                  </option>
+                  <option key={opt.value} value={opt.value}>{opt.label}</option>
                 ))}
               </select>
-            </label>
-          </>
+            </div>
+          </div>
         )}
 
         {error && (
-          <p className="rounded-xl bg-red-50 px-3 py-2 text-sm text-red-700">
+          <p className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
             {error}
           </p>
         )}
 
         <Button
           type="submit"
-          size="lg"
           disabled={submitting || !childName.trim()}
           className="w-full"
         >

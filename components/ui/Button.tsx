@@ -1,21 +1,27 @@
 import { type ButtonHTMLAttributes } from "react";
 
 type ButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
-  variant?: "primary" | "secondary" | "success" | "ghost";
-  size?: "md" | "lg";
+  variant?: "primary" | "secondary" | "success" | "ghost" | "danger";
+  size?: "sm" | "md" | "lg";
 };
 
 const variants = {
-  primary: "bg-arjuna-primary text-white hover:bg-arjuna-primaryDark",
+  primary:
+    "bg-arjuna-primary text-white hover:bg-arjuna-primaryDark active:bg-arjuna-primaryDark",
   secondary:
-    "border-2 border-arjuna-primary/25 bg-white text-arjuna-text hover:bg-orange-50",
-  success: "bg-arjuna-green text-white hover:bg-green-600",
-  ghost: "bg-transparent text-arjuna-muted shadow-none hover:bg-white/60",
+    "border border-arjuna-border bg-white text-arjuna-text hover:bg-arjuna-bg active:bg-arjuna-bg",
+  success:
+    "bg-arjuna-teal text-white hover:bg-teal-700 active:bg-teal-700",
+  ghost:
+    "bg-transparent text-arjuna-muted hover:bg-arjuna-border/40 active:bg-arjuna-border/60",
+  danger:
+    "bg-arjuna-red text-white hover:bg-red-700 active:bg-red-700",
 };
 
 const sizes = {
-  md: "px-5 py-3 text-base",
-  lg: "px-6 py-4 text-lg",
+  sm: "px-3 py-2 text-sm",
+  md: "px-4 py-2.5 text-sm",
+  lg: "px-5 py-3 text-base",
 };
 
 export function Button({
@@ -24,13 +30,14 @@ export function Button({
   className = "",
   type = "button",
   children,
+  disabled,
   ...props
 }: ButtonProps) {
-  const shadow = variant === "ghost" ? "" : "btn-chunky";
   return (
     <button
       type={type}
-      className={`${shadow} ${variants[variant]} ${sizes[size]} ${className}`}
+      disabled={disabled}
+      className={`inline-flex items-center justify-center gap-2 rounded-xl font-semibold shadow-card transition-all active:scale-[0.98] active:shadow-none disabled:cursor-not-allowed disabled:opacity-50 ${variants[variant]} ${sizes[size]} ${className}`}
       {...props}
     >
       {children}

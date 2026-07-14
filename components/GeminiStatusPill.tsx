@@ -69,20 +69,37 @@ export function GeminiStatusPill() {
   }, [hasKey, status]);
 
   const label = geminiStatusLabel(hasKey, status, serverOk);
-  const className =
+
+  const toneClasses =
     label.tone === "ok"
-      ? "rounded-full bg-green-100 px-3 py-1.5 text-xs font-semibold text-green-800"
+      ? "bg-green-50 text-green-700 border-green-200"
       : label.tone === "bad"
-        ? "rounded-full bg-red-100 px-3 py-1.5 text-xs font-semibold text-red-800 underline-offset-2 hover:underline"
-        : "rounded-full bg-amber-100 px-3 py-1.5 text-xs font-semibold text-amber-900 underline-offset-2 hover:underline";
+        ? "bg-red-50 text-red-700 border-red-200 hover:bg-red-100"
+        : "bg-amber-50 text-amber-800 border-amber-200 hover:bg-amber-100";
+
+  const base = `inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-xs font-semibold transition-colors ${toneClasses}`;
+
+  const dot =
+    label.tone === "ok"
+      ? "bg-green-500"
+      : label.tone === "bad"
+        ? "bg-red-500"
+        : "bg-amber-500";
+
+  const content = (
+    <>
+      <span className={`h-1.5 w-1.5 rounded-full ${dot}`} />
+      {label.text}
+    </>
+  );
 
   if (label.tone === "ok") {
-    return <div className={className}>{label.text}</div>;
+    return <div className={base}>{content}</div>;
   }
 
   return (
-    <Link href="/settings" className={className}>
-      {label.text}
+    <Link href="/settings" className={base}>
+      {content}
     </Link>
   );
 }

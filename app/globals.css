@@ -10,18 +10,11 @@ body {
 }
 
 body {
-  color: #2d2419;
-  background: #fff8f0;
+  color: #1c1410;
+  background: #f7f4f0;
   font-family: var(--font-inter), system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-}
-
-h1,
-h2,
-h3,
-.font-display {
-  font-family: var(--font-fredoka), system-ui, sans-serif;
 }
 
 * {
@@ -30,13 +23,35 @@ h3,
   margin: 0;
 }
 
+/* Focus ring */
+:focus-visible {
+  outline: 2px solid #e8872a;
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+
 .tv-focus:focus-visible {
   outline: 4px solid #e8872a;
   outline-offset: 4px;
 }
 
 @layer components {
+  /* Legacy — kept for compatibility, now just a subtle shadow + radius */
   .btn-chunky {
-    @apply rounded-2xl font-display font-semibold shadow-chunky transition active:translate-y-0.5 active:shadow-chunky-press;
+    @apply rounded-xl font-sans font-semibold transition-all active:scale-[0.98];
+    box-shadow: 0 1px 3px rgba(28,20,16,0.07), 0 1px 2px rgba(28,20,16,0.05);
+  }
+  .btn-chunky:active {
+    box-shadow: none;
+  }
+
+  /* Modern input base */
+  .input-base {
+    @apply w-full rounded-xl border border-arjuna-border bg-white px-4 py-3 text-sm text-arjuna-text placeholder-arjuna-muted/60 transition focus:border-arjuna-primary focus:outline-none focus:ring-2 focus:ring-arjuna-primary/20;
+  }
+
+  /* Subtle surface card */
+  .surface {
+    @apply rounded-2xl bg-arjuna-surface border border-arjuna-border shadow-card;
   }
 }

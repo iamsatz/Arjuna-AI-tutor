@@ -197,172 +197,186 @@ export default function SettingsPage() {
     setSelectedFiles([]);
   }
 
-  return (
-    <main className="mx-auto min-h-dvh max-w-md bg-arjuna-bg px-5 py-8">
-      <Link
-        href="/"
-        className="inline-flex items-center gap-1 rounded-full bg-white px-3 py-1.5 text-sm font-semibold text-arjuna-primaryDark shadow-sm"
-      >
-        ← Back
-      </Link>
-      <h1 className="mt-4 font-display text-2xl font-bold text-arjuna-text">
-        Settings
-      </h1>
-      <p className="mt-1 text-sm text-arjuna-muted">
-        For parents — AI key, language, TV, and app install
-      </p>
+  const sectionCls = "mt-4 rounded-2xl border border-arjuna-border bg-arjuna-surface p-5 shadow-card space-y-4";
+  const labelCls = "block text-sm font-semibold text-arjuna-text mb-1.5";
+  const inputCls = "input-base";
 
+  return (
+    <main className="mx-auto min-h-dvh max-w-md bg-arjuna-bg px-4 py-6 pb-16">
+      {/* Header */}
+      <div className="mb-5 flex items-center gap-3">
+        <Link
+          href="/"
+          className="flex h-9 w-9 items-center justify-center rounded-xl border border-arjuna-border bg-arjuna-surface text-arjuna-muted shadow-card hover:bg-arjuna-bg transition-colors"
+          aria-label="Back"
+        >
+          <svg viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4">
+            <path
+              fillRule="evenodd"
+              d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l4.293 4.293a1 1 0 010 1.414z"
+              clipRule="evenodd"
+            />
+          </svg>
+        </Link>
+        <div>
+          <h1 className="text-lg font-bold text-arjuna-text">Settings</h1>
+          <p className="text-xs text-arjuna-muted">AI key, language, TV, and habits</p>
+        </div>
+      </div>
+
+      {/* Install shortcut */}
       <Link
         href="/download"
-        className="mt-4 block rounded-2xl border-2 border-sky-200 bg-sky-50 p-4 text-center text-sm font-semibold text-sky-900 underline"
+        className="flex items-center gap-3 rounded-2xl border border-arjuna-sky/30 bg-sky-50 px-4 py-3 text-sm font-semibold text-sky-900 hover:bg-sky-100 transition-colors"
       >
-        Install Arjuna app (Add to Home Screen or APK)
+        <svg viewBox="0 0 20 20" fill="currentColor" className="h-5 w-5 shrink-0 text-sky-600">
+          <path
+            fillRule="evenodd"
+            d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z"
+            clipRule="evenodd"
+          />
+        </svg>
+        Install Arjuna (Add to Home Screen or APK)
       </Link>
 
-      <section className="mt-6 space-y-4 rounded-2xl bg-white/95 p-5 shadow-sm">
-        <label className="block">
-          <span className="text-sm font-medium">Language mode</span>
+      {/* General */}
+      <section className={sectionCls}>
+        <h2 className="text-sm font-bold uppercase tracking-widest text-arjuna-muted">General</h2>
+        <div>
+          <label className={labelCls}>Language mode</label>
           <select
             value={settings.languageMode}
-            onChange={(e) =>
-              update({ languageMode: e.target.value as LanguageMode })
-            }
-            className="mt-2 w-full rounded-xl border p-3"
+            onChange={(e) => update({ languageMode: e.target.value as LanguageMode })}
+            className={inputCls}
           >
             <option value="english">English only</option>
             <option value="pure_telugu">Pure Telugu</option>
             <option value="mixed">Mixed (English + Telugu)</option>
           </select>
-        </label>
+        </div>
 
-        <label className="block">
-          <span className="text-sm font-medium">Device mode</span>
+        <div>
+          <label className={labelCls}>Device mode</label>
           <select
             value={settings.deviceMode}
-            onChange={(e) =>
-              update({ deviceMode: e.target.value as DeviceMode })
-            }
-            className="mt-2 w-full rounded-xl border p-3"
+            onChange={(e) => update({ deviceMode: e.target.value as DeviceMode })}
+            className={inputCls}
           >
             <option value="phone_only">Phone only</option>
             <option value="phone_tv">Phone upload → TV lesson</option>
             <option value="tv_only">TV only (mic + type)</option>
           </select>
-        </label>
+        </div>
 
-        <label className="block">
-          <span className="text-sm font-medium">Parent PIN (default 1234)</span>
+        <div>
+          <label className={labelCls}>Parent PIN</label>
           <input
             type="password"
             value={settings.parentPin}
             onChange={(e) => update({ parentPin: e.target.value })}
-            className="mt-2 w-full rounded-xl border p-3"
+            className={inputCls}
+            placeholder="default: 1234"
           />
-        </label>
+        </div>
 
         {saved && (
-          <p className="text-sm text-green-700">Saved. Reload lesson to apply.</p>
+          <p className="flex items-center gap-1.5 text-sm text-arjuna-green">
+            <svg viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4 shrink-0">
+              <path
+                fillRule="evenodd"
+                d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                clipRule="evenodd"
+              />
+            </svg>
+            Saved
+          </p>
         )}
       </section>
 
-      <section className="mt-6 space-y-4 rounded-2xl bg-white/95 p-5 shadow-sm">
-        <h2 className="text-lg font-semibold text-arjuna-text">Daily habits</h2>
-        <p className="text-sm text-arjuna-muted">
-          Optional English habits and daily reward target for kids.
-        </p>
+      {/* Daily habits */}
+      <section className={sectionCls}>
+        <h2 className="text-sm font-bold uppercase tracking-widest text-arjuna-muted">Daily habits</h2>
+        <p className="text-sm text-arjuna-muted">Optional English practice and daily goal for kids.</p>
 
         <label className="flex items-center justify-between gap-3">
-          <span className="text-sm font-medium">Daily English words</span>
+          <span className="text-sm font-medium text-arjuna-text">Daily English words</span>
           <input
             type="checkbox"
             checked={settings.dailyWordsEnabled ?? false}
             onChange={(e) => update({ dailyWordsEnabled: e.target.checked })}
-            className="h-5 w-5"
+            className="h-5 w-5 accent-arjuna-primary"
           />
         </label>
 
         {settings.dailyWordsEnabled && (
           <div className="flex gap-2">
-            <button
-              type="button"
-              onClick={() => update({ dailyWordsCount: 5 })}
-              className={`flex-1 rounded-xl py-2 text-sm font-semibold ${
-                (settings.dailyWordsCount ?? 5) === 5
-                  ? "bg-emerald-500 text-white"
-                  : "border bg-white"
-              }`}
-            >
-              5 words
-            </button>
-            <button
-              type="button"
-              onClick={() => update({ dailyWordsCount: 10 })}
-              className={`flex-1 rounded-xl py-2 text-sm font-semibold ${
-                settings.dailyWordsCount === 10
-                  ? "bg-emerald-500 text-white"
-                  : "border bg-white"
-              }`}
-            >
-              10 words
-            </button>
+            {[5, 10].map((n) => (
+              <button
+                key={n}
+                type="button"
+                onClick={() => update({ dailyWordsCount: n })}
+                className={`flex-1 rounded-xl py-2 text-sm font-semibold transition-colors ${
+                  (settings.dailyWordsCount ?? 5) === n
+                    ? "bg-arjuna-teal text-white"
+                    : "border border-arjuna-border bg-arjuna-surface text-arjuna-text"
+                }`}
+              >
+                {n} words
+              </button>
+            ))}
           </div>
         )}
 
         <label className="flex items-center justify-between gap-3">
-          <span className="text-sm font-medium">Journal prompts</span>
+          <span className="text-sm font-medium text-arjuna-text">Journal prompts</span>
           <input
             type="checkbox"
             checked={settings.journalEnabled !== false}
             onChange={(e) => update({ journalEnabled: e.target.checked })}
-            className="h-5 w-5"
+            className="h-5 w-5 accent-arjuna-primary"
           />
         </label>
 
-        <label className="block">
-          <span className="text-sm font-medium">
-            Daily reward target ({settings.dailyRewardTarget ?? 3} activities)
-          </span>
+        <div>
+          <label className={labelCls}>
+            Daily goal — {settings.dailyRewardTarget ?? 3} activities
+          </label>
           <input
             type="range"
             min={1}
             max={5}
             value={settings.dailyRewardTarget ?? 3}
-            onChange={(e) =>
-              update({ dailyRewardTarget: Number(e.target.value) })
-            }
-            className="mt-2 w-full"
+            onChange={(e) => update({ dailyRewardTarget: Number(e.target.value) })}
+            className="mt-2 w-full accent-arjuna-primary"
           />
           <p className="mt-1 text-xs text-arjuna-muted">
             Homework, English lesson, words, or journal each count once per day.
           </p>
-        </label>
+        </div>
       </section>
 
+      {/* Teaching style */}
       {profile && (
-        <section className="mt-6 space-y-4 rounded-2xl bg-white/95 p-5 shadow-sm">
-          <h2 className="text-lg font-semibold text-arjuna-text">
+        <section className={sectionCls}>
+          <h2 className="text-sm font-bold uppercase tracking-widest text-arjuna-muted">
             Teaching style · {profile.childName}
           </h2>
-          <label className="block">
-            <span className="text-sm font-medium">Medium of instruction</span>
+          <div>
+            <label className={labelCls}>Medium of instruction</label>
             <select
               value={medium}
-              onChange={(e) =>
-                setMedium(e.target.value as MediumOfInstruction)
-              }
-              className="mt-2 w-full rounded-xl border p-3"
+              onChange={(e) => setMedium(e.target.value as MediumOfInstruction)}
+              className={inputCls}
             >
               {MEDIUM_OPTIONS.map((opt) => (
-                <option key={opt.value} value={opt.value}>
-                  {opt.label}
-                </option>
+                <option key={opt.value} value={opt.value}>{opt.label}</option>
               ))}
             </select>
-          </label>
+          </div>
           <button
             type="button"
             onClick={saveTeachingProfile}
-            className="w-full rounded-xl border border-arjuna-primary/30 bg-white py-2.5 text-sm font-semibold"
+            className="w-full rounded-xl border border-arjuna-border bg-arjuna-surface py-2.5 text-sm font-semibold text-arjuna-text hover:bg-arjuna-bg transition-colors"
           >
             Save medium
           </button>
@@ -374,12 +388,11 @@ export default function SettingsPage() {
         onProfileChange={() => setProfile(loadChildProfile())}
       />
 
-      <section className="mt-6 space-y-4 rounded-3xl border-2 border-purple-200 bg-purple-50/50 p-5 shadow-chunky">
-        <h2 className="font-display text-lg font-bold text-arjuna-text">
-          Diary term plan (optional fallback)
-        </h2>
+      {/* Syllabus */}
+      <section className={sectionCls}>
+        <h2 className="text-sm font-bold uppercase tracking-widest text-arjuna-muted">Syllabus</h2>
         <p className="text-sm text-arjuna-muted">
-          Primary: photo diary term pages during homework. Fallback: upload diary term pages or PDF here if unreadable.
+          Upload your school term plan once. Arjuna will teach in your school&apos;s style — no extra setup each day.
         </p>
 
         {profile && (
@@ -390,20 +403,20 @@ export default function SettingsPage() {
           </p>
         )}
 
-        <label className="block">
-          <span className="text-sm font-medium">School name</span>
+        <div>
+          <label className={labelCls}>School name</label>
           <input
             type="text"
             value={schoolName}
             onChange={(e) => setSchoolName(e.target.value)}
             placeholder="Silver Oaks, Delhi Public School…"
-            className="mt-2 w-full rounded-xl border p-3"
+            className={inputCls}
           />
-        </label>
+        </div>
         <button
           type="button"
           onClick={saveSchoolName}
-          className="w-full rounded-xl border border-arjuna-primary/30 bg-white py-2.5 text-sm font-semibold"
+          className="w-full rounded-xl border border-arjuna-border bg-arjuna-surface py-2.5 text-sm font-semibold text-arjuna-text hover:bg-arjuna-bg transition-colors"
         >
           Save school
         </button>
@@ -412,11 +425,9 @@ export default function SettingsPage() {
           type="button"
           disabled={curriculumBusy || !schoolName.trim() || !profile?.grade}
           onClick={() => fileRef.current?.click()}
-          className="w-full rounded-2xl bg-arjuna-primary py-3.5 font-display font-bold text-white shadow-chunky disabled:opacity-50"
+          className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-arjuna-primary px-4 py-3 text-sm font-semibold text-white shadow-card transition-all hover:bg-arjuna-primaryDark active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50"
         >
-          {curriculumBusy
-            ? "Reading your syllabus…"
-            : "Upload syllabus (PDF or photos)"}
+          {curriculumBusy ? "Reading your syllabus…" : "Upload syllabus (PDF or photos)"}
         </button>
         <input
           ref={fileRef}
@@ -432,43 +443,39 @@ export default function SettingsPage() {
         />
 
         {selectedFiles.length > 0 && !pendingPreview && (
-          <div className="rounded-lg bg-gray-50 px-3 py-2 text-xs text-arjuna-muted">
+          <p className="text-xs text-arjuna-muted">
             {curriculumBusy ? "Reading: " : "Selected: "}
             {selectedFiles.map((f) => f.name).join(", ")}
-          </div>
+          </p>
         )}
 
         {curriculumMsg && (
-          <p className="rounded-lg bg-green-50 px-3 py-2 text-sm text-green-800">
+          <p className="rounded-xl border border-green-200 bg-green-50 px-3 py-2.5 text-sm text-green-800">
             {curriculumMsg}
           </p>
         )}
         {curriculumError && (
-          <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">
+          <p className="rounded-xl border border-red-200 bg-red-50 px-3 py-2.5 text-sm text-red-700">
             {curriculumError}
           </p>
         )}
 
         {pendingPreview && (
-          <div className="rounded-xl border border-amber-300 bg-amber-50 p-4">
-            <p className="text-sm font-semibold text-amber-900">
-              Is this what you uploaded?
-            </p>
-            <p className="mt-1 text-xs text-amber-800">
+          <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4">
+            <p className="text-sm font-semibold text-amber-900">Is this what you uploaded?</p>
+            <p className="mt-0.5 text-xs text-amber-700">
               From: {selectedFiles.map((f) => f.name).join(", ")}
             </p>
             <p className="mt-2 text-sm font-semibold text-amber-900">
               {pendingPreview.term ?? "Term plan"}
             </p>
-            <ul className="mt-2 space-y-2 text-sm text-amber-900">
+            <ul className="mt-2 space-y-1.5 text-sm text-amber-800">
               {pendingPreview.subjects.map((s) => (
                 <li key={s.subject}>
-                  <strong>{s.subject}</strong>
-                  <span className="text-amber-800">
-                    {" "}
-                    — {s.topics.slice(0, 4).map((t) => t.name).join(", ")}
-                    {s.topics.length > 4 ? "…" : ""}
-                  </span>
+                  <strong className="text-amber-900">{s.subject}</strong>
+                  {" — "}
+                  {s.topics.slice(0, 4).map((t) => t.name).join(", ")}
+                  {s.topics.length > 4 ? "…" : ""}
                 </li>
               ))}
             </ul>
@@ -477,36 +484,34 @@ export default function SettingsPage() {
                 type="button"
                 disabled={curriculumBusy}
                 onClick={() => void confirmCurriculumSave()}
-                className="flex-1 rounded-xl bg-amber-600 py-2.5 text-sm font-semibold text-white disabled:opacity-50"
+                className="flex-1 rounded-xl bg-amber-600 py-2.5 text-sm font-semibold text-white disabled:opacity-50 hover:bg-amber-700 transition-colors"
               >
-                ✅ Yes, save this
+                Yes, save this
               </button>
               <button
                 type="button"
                 disabled={curriculumBusy}
                 onClick={discardCurriculumPreview}
-                className="flex-1 rounded-xl border border-amber-300 bg-white py-2.5 text-sm font-semibold text-amber-900"
+                className="flex-1 rounded-xl border border-amber-200 bg-arjuna-surface py-2.5 text-sm font-semibold text-amber-900 hover:bg-amber-50 transition-colors"
               >
-                ✕ Not right, discard
+                Discard
               </button>
             </div>
           </div>
         )}
 
         {curriculum && (
-          <div className="rounded-xl border border-green-200 bg-green-50/50 p-4">
+          <div className="rounded-2xl border border-green-200 bg-green-50 p-4">
             <p className="text-sm font-semibold text-green-900">
-              What Arjuna knows: {curriculum.term ?? "Term plan"}
+              Saved: {curriculum.term ?? "Term plan"}
             </p>
-            <ul className="mt-2 space-y-2 text-sm text-green-900">
+            <ul className="mt-2 space-y-1.5 text-sm text-green-800">
               {curriculum.subjects.map((s) => (
                 <li key={s.subject}>
-                  <strong>{s.subject}</strong>
-                  <span className="text-green-800">
-                    {" "}
-                    — {s.topics.slice(0, 4).map((t) => t.name).join(", ")}
-                    {s.topics.length > 4 ? "…" : ""}
-                  </span>
+                  <strong className="text-green-900">{s.subject}</strong>
+                  {" — "}
+                  {s.topics.slice(0, 4).map((t) => t.name).join(", ")}
+                  {s.topics.length > 4 ? "…" : ""}
                 </li>
               ))}
             </ul>
@@ -517,7 +522,7 @@ export default function SettingsPage() {
                 replaceRef.current = true;
                 fileRef.current?.click();
               }}
-              className="mt-3 w-full rounded-xl border border-green-300 bg-white py-2 text-sm font-semibold text-green-900"
+              className="mt-3 w-full rounded-xl border border-green-300 bg-arjuna-surface py-2 text-sm font-semibold text-green-800 hover:bg-green-50 transition-colors disabled:opacity-50"
             >
               Replace term plan
             </button>

@@ -85,41 +85,44 @@ export function JournalSection({ profile, onReward }: JournalSectionProps) {
   }
 
   return (
-    <div className="space-y-4">
-      <div className="rounded-2xl border border-purple-200 bg-purple-50 p-4">
-        <p className="text-xs font-semibold uppercase text-purple-700">
+    <div className="space-y-3">
+      {/* Prompt */}
+      <div className="rounded-2xl border border-arjuna-border bg-arjuna-surface p-4 shadow-card">
+        <p className="text-[10px] font-semibold uppercase tracking-widest text-arjuna-muted">
           Today&apos;s prompt
         </p>
-        <p className="mt-1 font-display text-lg font-bold text-purple-900">
-          {prompt}
-        </p>
+        <p className="mt-1 text-base font-semibold text-arjuna-text">{prompt}</p>
       </div>
 
-      <textarea
-        value={text}
-        onChange={(e) => setText(e.target.value)}
-        rows={4}
-        placeholder="Write your ideas here…"
-        className="w-full rounded-2xl border p-3 text-sm"
-      />
-
-      <Button
-        className="w-full"
-        disabled={busy || !text.trim()}
-        onClick={() => void handleSubmit()}
-      >
-        {busy ? "Arjuna is listening…" : "Share with Arjuna"}
-      </Button>
+      {/* Composer */}
+      <div className="rounded-2xl border border-arjuna-border bg-arjuna-surface p-1.5 shadow-card focus-within:border-arjuna-primary focus-within:ring-2 focus-within:ring-arjuna-primary/20 transition-all">
+        <textarea
+          value={text}
+          onChange={(e) => setText(e.target.value)}
+          rows={3}
+          placeholder="Write your ideas here…"
+          className="w-full resize-none bg-transparent px-2.5 py-2 text-sm text-arjuna-text placeholder-arjuna-muted/60 focus:outline-none leading-relaxed"
+        />
+        <div className="flex justify-end px-1 pb-1">
+          <Button
+            size="sm"
+            disabled={busy || !text.trim()}
+            onClick={() => void handleSubmit()}
+          >
+            {busy ? "Listening…" : "Share with Arjuna"}
+          </Button>
+        </div>
+      </div>
 
       {reply && (
-        <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4">
-          <p className="text-xs font-semibold text-emerald-800">Arjuna says</p>
-          <p className="mt-1 text-sm text-emerald-900">
+        <div className="rounded-2xl border border-arjuna-teal/30 bg-teal-50 p-4">
+          <p className="text-xs font-semibold text-arjuna-teal">Arjuna says</p>
+          <p className="mt-1 text-sm leading-relaxed text-teal-900">
             {stripSpeechMarkers(reply)}
           </p>
           {submittedToday && (
-            <p className="mt-2 text-xs font-semibold text-emerald-700">
-              +1 toward today! 🏹
+            <p className="mt-2 text-xs font-semibold text-arjuna-teal">
+              +1 toward today&apos;s goal
             </p>
           )}
         </div>
@@ -127,17 +130,17 @@ export function JournalSection({ profile, onReward }: JournalSectionProps) {
 
       {entries.length > 0 && (
         <div>
-          <p className="mb-2 text-sm font-semibold text-arjuna-muted">
+          <p className="mb-2 text-xs font-semibold uppercase tracking-widest text-arjuna-muted">
             Recent entries
           </p>
-          <ul className="space-y-2">
+          <ul className="space-y-1.5">
             {entries.slice(0, 5).map((e) => (
               <li
                 key={e.id}
-                className="rounded-xl border bg-white p-3 text-xs text-arjuna-muted"
+                className="rounded-xl border border-arjuna-border bg-arjuna-surface p-3"
               >
-                <p className="font-semibold text-arjuna-text">{e.prompt}</p>
-                <p className="mt-1 line-clamp-2">{e.kidText}</p>
+                <p className="text-xs font-semibold text-arjuna-text">{e.prompt}</p>
+                <p className="mt-0.5 line-clamp-2 text-xs text-arjuna-muted">{e.kidText}</p>
               </li>
             ))}
           </ul>
