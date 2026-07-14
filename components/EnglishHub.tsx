@@ -118,19 +118,28 @@ export function EnglishHub({ profile }: EnglishHubProps) {
   ];
 
   return (
-    <main className="mx-auto min-h-dvh max-w-md bg-arjuna-bg px-4 pb-8 pt-4">
-      <div className="mb-4 flex items-center justify-between">
+    <main className="mx-auto min-h-dvh max-w-md bg-arjuna-bg px-4 pb-28 pt-4">
+      {/* Header */}
+      <header className="mb-5 flex items-center justify-between gap-2">
+        <div className="flex items-center gap-2.5">
+          <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-arjuna-primary font-display text-base font-bold text-white shadow-chunky">
+            {profile.childName.trim().charAt(0).toUpperCase() || "?"}
+          </div>
+          <span className="font-display text-sm font-bold text-arjuna-text">
+            {profile.childName}
+          </span>
+        </div>
         <Link
           href="/settings"
-          className="rounded-full bg-white px-3 py-1.5 text-sm font-semibold shadow-sm"
+          aria-label="Settings"
+          className="flex h-9 w-9 items-center justify-center rounded-full bg-white shadow-sm transition active:scale-95"
         >
-          ⚙️
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-arjuna-muted" aria-hidden="true">
+            <circle cx="12" cy="12" r="3" />
+            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
+          </svg>
         </Link>
-        <p className="font-display text-lg font-bold text-arjuna-text">
-          English · {profile.childName}
-        </p>
-        <div className="w-10" />
-      </div>
+      </header>
 
       <Card className="mb-4">
         <TodayRing refreshKey={ringKey} />

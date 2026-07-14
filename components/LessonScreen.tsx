@@ -18,7 +18,8 @@ import { GeminiStatusPill } from "@/components/GeminiStatusPill";
 import type { StoredExam } from "@/lib/examTypes";
 import { AppTabNav } from "@/components/AppTabNav";
 import { TodayRing } from "@/components/TodayRing";
-import { HomeworkCaptureTray, MAX_PHOTOS } from "./HomeworkCaptureTray";
+import { HomeworkCaptureTray } from "./HomeworkCaptureTray";
+import { HomeworkInputBar, MAX_PHOTOS } from "./HomeworkInputBar";
 import { HomeworkTaskReview } from "./HomeworkTaskReview";
 import { LessonProgress } from "@/components/ui/LessonProgress";
 import {
@@ -79,6 +80,7 @@ export function LessonScreen({
   const [showWelcome, setShowWelcome] = useState(
     () => searchParams.get("welcome") === "1",
   );
+  const [kidSheetOpen, setKidSheetOpen] = useState(false);
 
   useEffect(() => {
     setRingKey((k) => k + 1);
@@ -352,42 +354,75 @@ export function LessonScreen({
   })();
 
   return (
-    <main className="mx-auto flex min-h-dvh max-w-md flex-col bg-arjuna-bg px-5 py-6">
-      <header className="mb-4 flex items-center justify-between gap-2">
-        <div className="flex flex-col gap-1">
-          <p className="font-display text-lg font-bold text-arjuna-text">
-            Arjuna
-          </p>
-          <GeminiStatusPill />
+    <main className="mx-auto flex min-h-dvh max-w-md flex-col bg-arjuna-bg px-5 pb-28 pt-5">
+      {/* ── Header ── */}
+      <header className="mb-5 flex items-center justify-between gap-2">
+        <div className="flex items-center gap-2.5">
+          {/* Avatar chip — tapping opens KidSwitcher sheet when multiple profiles exist */}
+          <button
+            type="button"
+            aria-label={`Switch student — currently ${profile.childName}`}
+            onClick={() => {
+              if (controller === "phone" && !readOnly) {
+                setKidSheetOpen(true);
+              }
+            }}
+            className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-arjuna-primary font-display text-base font-bold text-white shadow-chunky transition active:scale-95"
+          >
+            {profile.childName.trim().charAt(0).toUpperCase() || "?"}
+          </button>
+          <div className="flex flex-col leading-tight">
+            <span className="font-display text-sm font-bold text-arjuna-text">
+              {profile.childName}
+            </span>
+            <GeminiStatusPill />
+          </div>
         </div>
         <Link
           href="/settings"
-          className="rounded-full bg-white px-3 py-1.5 text-sm font-semibold text-arjuna-primaryDark shadow-sm"
+          aria-label="Settings"
+          className="flex h-9 w-9 items-center justify-center rounded-full bg-white shadow-sm transition active:scale-95"
         >
-          Settings
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-arjuna-muted" aria-hidden="true">
+            <circle cx="12" cy="12" r="3" />
+            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
+          </svg>
         </Link>
       </header>
 
-      {controller === "phone" && !readOnly && (
-        <KidSwitcher onActiveChange={onActiveChange} />
-      )}
-
-      {showWelcome && showInput && (
-        <Card className="mb-4 border-sky-200 bg-sky-50 py-3">
-          <p className="font-display font-bold text-arjuna-text">
-            You&apos;re all set, {profile.childName}!
-          </p>
-          <p className="mt-1 text-sm text-arjuna-muted">
-            Tap Scan homework below to get started.
-          </p>
-          <button
-            type="button"
-            onClick={() => setShowWelcome(false)}
-            className="mt-2 text-xs text-arjuna-muted underline"
-          >
-            Got it
-          </button>
-        </Card>
+      {/* ── KidSwitcher — bottom sheet ── */}
+      {kidSheetOpen && controller === "phone" && !readOnly && (
+        <>
+          <div
+            className="fixed inset-0 z-40 bg-black/30"
+            onClick={() => setKidSheetOpen(false)}
+            aria-hidden="true"
+          />
+          <div className="fixed bottom-0 left-0 right-0 z-50 mx-auto max-w-md rounded-t-3xl bg-white px-5 pb-8 pt-5 shadow-chunky">
+            <div className="mb-1 flex items-center justify-between">
+              <p className="font-display text-base font-bold text-arjuna-text">
+                Switch student
+              </p>
+              <button
+                type="button"
+                onClick={() => setKidSheetOpen(false)}
+                aria-label="Close"
+                className="rounded-full p-1 text-arjuna-muted hover:text-arjuna-text"
+              >
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <line x1="18" y1="6" x2="6" y2="18" />
+                  <line x1="6" y1="6" x2="18" y2="18" />
+                </svg>
+              </button>
+            </div>
+            <KidSwitcher
+              onActiveChange={(id) => {
+                setKidSheetOpen(false);
+                onActiveChange?.(id);
+              }}
+            />
+          </div>
+        </>
       )}
 
       {hwPhase === "extracting" && !readOnly && (
@@ -396,9 +431,10 @@ export function LessonScreen({
 
       {showCaptureHome && (
         <div className="mb-4">
-          <HomeworkCaptureTray
+          <HomeworkInputBar
             disabled={loading || startingLesson}
             recording={recording}
+            transcribing={transcribing}
             onCapture={handleCapture}
             onReadText={handleReadText}
             onToggleMic={() => void toggleMic()}
@@ -459,34 +495,55 @@ export function LessonScreen({
 
       {showCaptureHome && (
         <>
-          <Card className="mb-4">
-            <div className="flex items-start gap-4">
-              <ArjunaAvatar state={avatarState} size="sm" showTarget />
+          {/* Greeting hero card */}
+          <div className="mb-4 overflow-hidden rounded-3xl bg-arjuna-primary px-5 py-5 shadow-chunky">
+            <div className="flex items-start justify-between gap-4">
               <div className="flex-1">
-                <p className="font-display text-xl font-bold text-arjuna-text">
-                  {greeting}, {profile.childName}!
+                <p className="font-display text-2xl font-bold leading-tight text-white">
+                  {greeting},<br />{profile.childName}!
                 </p>
                 {profile.grade && (
-                  <p className="text-sm text-arjuna-muted">{profile.grade}</p>
+                  <p className="mt-1 text-sm font-medium text-white/70">
+                    {profile.grade}
+                  </p>
                 )}
+                <p className="mt-3 rounded-2xl bg-white/15 px-3 py-2 text-sm font-medium text-white/90">
+                  What homework do you have today?
+                </p>
               </div>
+              <ArjunaAvatar state={avatarState} size="sm" showTarget />
             </div>
             <div className="mt-4">
               <TodayRing refreshKey={ringKey} />
             </div>
-          </Card>
-
-          <div className="mb-4">
-            <AppTabNav active="homework" />
           </div>
+
+          {/* Welcome banner */}
+          {showWelcome && (
+            <Card className="mb-4 border-sky-200 bg-sky-50 py-3">
+              <p className="font-display font-bold text-arjuna-text">
+                You&apos;re all set, {profile.childName}!
+              </p>
+              <p className="mt-1 text-sm text-arjuna-muted">
+                Type your homework below, or attach a photo to scan it.
+              </p>
+              <button
+                type="button"
+                onClick={() => setShowWelcome(false)}
+                className="mt-2 text-xs text-arjuna-muted underline"
+              >
+                Got it
+              </button>
+            </Card>
+          )}
 
           <InstallPrompt />
           <CurriculumNudge profile={profile} />
 
           {upcomingExams.length > 0 && (
-            <Card className="mt-4 border-green-200 bg-green-50">
+            <Card className="mt-4 border-arjuna-primary/20 bg-orange-50">
               <p className="font-display font-bold text-arjuna-text">
-                Coming up
+                Upcoming exams
               </p>
               <ul className="mt-2 space-y-1 text-sm text-arjuna-muted">
                 {upcomingExams.map((exam) => (
@@ -567,37 +624,34 @@ export function LessonScreen({
           )}
 
           {state.phase === "ask_help_mode" && (
-            <div className="space-y-2">
-              <Button
-                size="lg"
-                className="w-full"
-                onClick={() => void lesson.handleHelpMode("hint")}
-              >
-                Give a hint
-              </Button>
-              <Button
-                size="lg"
-                variant="secondary"
-                className="w-full"
-                onClick={() => void lesson.handleHelpMode("explain")}
-              >
-                Explain fully
-              </Button>
-              <Button
-                size="lg"
-                variant="ghost"
-                className="w-full"
-                onClick={() => void lesson.handleHelpMode("try_self")}
-              >
-                I&apos;ll try myself
-              </Button>
-              <p className="pt-1 text-center text-xs text-arjuna-muted">
-                Or type: hint / explain fully / I&apos;ll try
-              </p>
+            <div className="space-y-3">
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => void lesson.handleHelpMode("explain")}
+                  className="flex-1 rounded-2xl border-2 border-arjuna-primary bg-arjuna-primary py-3 font-display text-sm font-bold text-white shadow-chunky-press transition active:scale-95"
+                >
+                  Explain it
+                </button>
+                <button
+                  type="button"
+                  onClick={() => void lesson.handleHelpMode("hint")}
+                  className="flex-1 rounded-2xl border-2 border-orange-200 bg-white py-3 font-display text-sm font-bold text-arjuna-primaryDark transition active:scale-95"
+                >
+                  Give a hint
+                </button>
+                <button
+                  type="button"
+                  onClick={() => void lesson.handleHelpMode("try_self")}
+                  className="flex-1 rounded-2xl border-2 border-orange-200 bg-white py-3 font-display text-sm font-bold text-arjuna-text transition active:scale-95"
+                >
+                  I&apos;ll try
+                </button>
+              </div>
               <textarea
                 value={doubtInput}
                 onChange={(e) => setDoubtInput(e.target.value)}
-                placeholder="hint, explain fully, I'll try…"
+                placeholder="Or ask Arjuna anything..."
                 className="w-full rounded-2xl border-2 border-orange-100 p-3 text-sm"
                 rows={2}
               />
@@ -611,7 +665,7 @@ export function LessonScreen({
                   );
                 }}
               >
-                Go
+                Ask Arjuna
               </Button>
             </div>
           )}
@@ -809,6 +863,9 @@ export function LessonScreen({
           )}
         </div>
       )}
+
+      {/* Fixed bottom tab bar — always visible */}
+      <AppTabNav active="homework" />
     </main>
   );
 }
