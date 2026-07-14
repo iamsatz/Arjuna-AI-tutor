@@ -106,9 +106,6 @@ export function KidSwitcher({ onActiveChange }: KidSwitcherProps) {
 
   return (
     <div className="mb-4">
-      <p className="mb-2 text-xs font-semibold uppercase tracking-widest text-arjuna-muted">
-        Who&apos;s learning?
-      </p>
       <div className="flex flex-wrap items-center gap-2">
         {profiles.map((p, index) => {
           const isActive = p.id === activeId;
@@ -117,29 +114,34 @@ export function KidSwitcher({ onActiveChange }: KidSwitcherProps) {
               key={p.id}
               type="button"
               onClick={() => p.id && handleSwitch(p.id)}
-              className={`flex items-center gap-2 rounded-xl px-3 py-2 transition-all ${
+              className={`flex items-center gap-2.5 rounded-2xl px-3 py-2 transition-all ${
                 isActive
-                  ? "bg-arjuna-surface shadow-card ring-1 ring-arjuna-primary/40"
-                  : "bg-arjuna-border/40 hover:bg-arjuna-border/60"
+                  ? "bg-arjuna-primary/10 ring-1 ring-arjuna-primary/50"
+                  : "bg-arjuna-surface border border-arjuna-border hover:border-arjuna-primary/30"
               }`}
             >
               <span
-                className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-bold text-white ${kidColor(index)}`}
+                className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-sm font-bold text-white ${kidColor(index)}`}
               >
                 {kidInitial(p.childName)}
               </span>
               <div className="text-left">
                 <p
                   className={`text-sm font-semibold leading-tight ${
-                    isActive ? "text-arjuna-text" : "text-arjuna-muted"
+                    isActive ? "text-arjuna-primaryDark" : "text-arjuna-muted"
                   }`}
                 >
                   {p.childName}
                 </p>
                 {p.grade && (
-                  <p className="text-[10px] text-arjuna-muted">{p.grade}</p>
+                  <p className={`text-[10px] ${isActive ? "text-arjuna-primary" : "text-arjuna-muted"}`}>{p.grade}</p>
                 )}
               </div>
+              {isActive && (
+                <svg viewBox="0 0 8 8" fill="currentColor" className="h-2 w-2 text-arjuna-primary">
+                  <circle cx="4" cy="4" r="4" />
+                </svg>
+              )}
             </button>
           );
         })}
