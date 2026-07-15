@@ -22,10 +22,10 @@ const config: Config = {
           body:    "#444444",   // body copy
           muted:   "#AAAAAA",   // placeholder, meta
 
-          // ── 10 % accent — warm coral (hero card + CTA only) ────────────
-          primary:      "#E05A2B",   // warm coral-red (matches reference gradient start)
-          primaryDark:  "#B84520",   // darker press state
-          primaryLight: "#FDF2EE",   // tinted chip / badge bg
+          // ── 10 % accent — electric blue (hero card + CTA only) ───────────
+          primary:      "#2563EB",   // electric blue
+          primaryDark:  "#1D4ED8",   // darker press state
+          primaryLight: "#EFF6FF",   // tinted chip / badge bg
 
           // ── Feedback ──────────────────────────────────────────────────
           success: "#16A34A",
@@ -42,13 +42,13 @@ const config: Config = {
         },
       },
       backgroundImage: {
-        // The hero card gradient — warm coral blob, exactly like the reference
-        "hero-gradient": "linear-gradient(135deg, #E05A2B 0%, #C23B00 60%, #A12E00 100%)",
+        // Hero card gradient — electric blue
+        "hero-gradient": "linear-gradient(135deg, #2563EB 0%, #1D4ED8 60%, #1E40AF 100%)",
       },
       boxShadow: {
         // Reference cards use a soft diffuse shadow, no borders
         card:   "0 4px 20px 0 rgba(0,0,0,0.07)",
-        hero:   "0 8px 32px 0 rgba(224,90,43,0.28)",
+        hero:   "0 8px 32px 0 rgba(37,99,235,0.28)",
         sm:     "0 2px 8px 0 rgba(0,0,0,0.05)",
         focus:  "0 0 0 3px rgba(224,90,43,0.20)",
         // legacy — keep so nothing breaks

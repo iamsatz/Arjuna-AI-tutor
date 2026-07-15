@@ -498,7 +498,7 @@ export function LessonScreen({
           {/* Hero card — compact warm gradient */}
           <div
             className="mb-5 overflow-hidden rounded-3xl px-5 py-4 shadow-hero"
-            style={{ background: "linear-gradient(135deg, #E05A2B 0%, #C23B00 55%, #A12E00 100%)" }}
+            style={{ background: "linear-gradient(135deg, #2563EB 0%, #1D4ED8 55%, #1E40AF 100%)" }}
           >
             <div className="flex items-center justify-between gap-4">
               {/* Prompt pill + streak — left side */}
