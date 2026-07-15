@@ -500,11 +500,14 @@ export function LessonScreen({
             className="mb-5 overflow-hidden rounded-3xl px-5 py-4 shadow-hero"
             style={{ background: "linear-gradient(135deg, #2563EB 0%, #1D4ED8 55%, #1E40AF 100%)" }}
           >
-            <div className="flex items-center justify-between gap-4">
-              {/* Prompt pill + streak — left side */}
+            <div className="flex items-start justify-between gap-4">
+              {/* Left — title + description + streak */}
               <div className="flex-1">
-                <p className="text-sm font-semibold text-white">
-                  What homework today?
+                <p className="font-display text-xl font-bold text-white">
+                  Homework
+                </p>
+                <p className="mt-0.5 text-xs font-medium text-white/80 leading-snug">
+                  Type or photo any subject — Arjuna explains, hints, and checks your answers step by step.
                 </p>
                 <div className="mt-3">
                   <TodayRing refreshKey={ringKey} />

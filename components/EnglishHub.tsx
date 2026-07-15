@@ -141,9 +141,18 @@ export function EnglishHub({ profile }: EnglishHubProps) {
         </Link>
       </header>
 
-      <Card className="mb-4">
-        <TodayRing refreshKey={ringKey} />
-      </Card>
+      <div
+        className="mb-4 overflow-hidden rounded-3xl px-5 py-4 shadow-hero"
+        style={{ background: "linear-gradient(135deg, #2563EB 0%, #1D4ED8 55%, #1E40AF 100%)" }}
+      >
+        <p className="font-display text-xl font-bold text-white">English</p>
+        <p className="mt-0.5 text-xs font-medium text-white/80 leading-snug">
+          Learn grammar, grow your vocabulary, and practise writing — all explained in simple language.
+        </p>
+        <div className="mt-3">
+          <TodayRing refreshKey={ringKey} />
+        </div>
+      </div>
 
       <AppTabNav active="english" />
 

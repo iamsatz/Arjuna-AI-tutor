@@ -147,22 +147,9 @@ export function HomeworkInputBar({
         </div>
       )}
 
-      {/* Input bar */}
-      <div className="flex items-end gap-2 rounded-[20px] border border-arjuna-border bg-white px-3 py-2.5 shadow-sm">
-        {/* Attach button */}
-        <button
-          type="button"
-          aria-label="Attach file"
-          disabled={disabled}
-          onClick={() => setSheetOpen((v) => !v)}
-          className="mb-0.5 flex-shrink-0 text-arjuna-muted transition hover:text-arjuna-primaryDark disabled:opacity-40"
-        >
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-            <path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48" />
-          </svg>
-        </button>
-
-        {/* Textarea */}
+      {/* Input bar — icons pinned to bottom, textarea grows freely */}
+      <div className="rounded-[22px] border border-arjuna-border bg-white px-4 pt-3.5 pb-3 shadow-sm">
+        {/* Textarea — full width, no side icons cluttering it */}
         <textarea
           ref={textareaRef}
           value={text}
@@ -173,62 +160,83 @@ export function HomeworkInputBar({
               ? "Describe your answer or attach a photo..."
               : transcribing
                 ? "Listening..."
-                : "Type your homework, or attach a photo..."
+                : isAnswer
+                  ? "Type your answer..."
+                  : "Type your homework here — e.g. \"Maths pg 42 Q1-5\" or attach a photo..."
           }
           disabled={disabled || transcribing}
-          rows={1}
-          className="flex-1 resize-none bg-transparent py-0.5 text-sm leading-relaxed text-arjuna-text outline-none placeholder:text-arjuna-muted/70 disabled:opacity-60"
-          style={{ maxHeight: 120 }}
+          rows={2}
+          className="w-full resize-none bg-transparent text-[15px] leading-relaxed text-arjuna-text outline-none placeholder:text-arjuna-muted/60 disabled:opacity-60"
+          style={{ maxHeight: 140 }}
         />
 
-        {/* Mic button */}
-        {onToggleMic && (
+        {/* Action row — sits below textarea, all icons perfectly centre-aligned */}
+        <div className="mt-2.5 flex items-center gap-1">
+          {/* Attach */}
           <button
             type="button"
-            aria-label={isRecording ? "Stop recording" : "Start voice input"}
-            disabled={disabled && !isRecording}
-            onClick={onToggleMic}
-            className={`mb-0.5 flex-shrink-0 transition active:scale-90 disabled:opacity-40 ${
-              isRecording
-                ? "animate-pulse text-red-500"
-                : transcribing
-                  ? "text-arjuna-primary"
-                  : "text-arjuna-muted hover:text-arjuna-primaryDark"
+            aria-label="Attach file"
+            disabled={disabled}
+            onClick={() => setSheetOpen((v) => !v)}
+            className="flex h-9 w-9 items-center justify-center rounded-full text-arjuna-muted transition hover:bg-arjuna-primaryLight hover:text-arjuna-primary disabled:opacity-40"
+          >
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48" />
+            </svg>
+          </button>
+
+          {/* Mic */}
+          {onToggleMic && (
+            <button
+              type="button"
+              aria-label={isRecording ? "Stop recording" : "Start voice input"}
+              disabled={disabled && !isRecording}
+              onClick={onToggleMic}
+              className={`flex h-9 w-9 items-center justify-center rounded-full transition active:scale-90 disabled:opacity-40 ${
+                isRecording
+                  ? "animate-pulse text-red-500"
+                  : transcribing
+                    ? "text-arjuna-primary"
+                    : "text-arjuna-muted hover:bg-arjuna-primaryLight hover:text-arjuna-primary"
+              }`}
+            >
+              {transcribing ? (
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <circle cx="12" cy="12" r="3" />
+                  <path d="M12 1v4M12 19v4M4.22 4.22l2.83 2.83M16.95 16.95l2.83 2.83M1 12h4M19 12h4M4.22 19.78l2.83-2.83M16.95 7.05l2.83-2.83" />
+                </svg>
+              ) : (
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z" />
+                  <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
+                  <line x1="12" y1="19" x2="12" y2="23" />
+                  <line x1="8" y1="23" x2="16" y2="23" />
+                </svg>
+              )}
+            </button>
+          )}
+
+          {/* Spacer */}
+          <div className="flex-1" />
+
+          {/* Send — filled circle, right-aligned */}
+          <button
+            type="button"
+            aria-label="Send"
+            onClick={handleSend}
+            disabled={!canSend}
+            className={`flex h-9 w-9 items-center justify-center rounded-full transition active:scale-90 ${
+              canSend
+                ? "bg-arjuna-primary text-white shadow-sm"
+                : "bg-arjuna-border text-arjuna-muted"
             }`}
           >
-            {transcribing ? (
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                <circle cx="12" cy="12" r="3" />
-                <path d="M12 1v4M12 19v4M4.22 4.22l2.83 2.83M16.95 16.95l2.83 2.83M1 12h4M19 12h4M4.22 19.78l2.83-2.83M16.95 7.05l2.83-2.83" />
-              </svg>
-            ) : (
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z" />
-                <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
-                <line x1="12" y1="19" x2="12" y2="23" />
-                <line x1="8" y1="23" x2="16" y2="23" />
-              </svg>
-            )}
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <line x1="22" y1="2" x2="11" y2="13" />
+              <polygon points="22 2 15 22 11 13 2 9 22 2" />
+            </svg>
           </button>
-        )}
-
-        {/* Send button */}
-        <button
-          type="button"
-          aria-label="Send"
-          onClick={handleSend}
-          disabled={!canSend}
-          className={`mb-0.5 flex-shrink-0 rounded-full p-1.5 transition active:scale-90 ${
-            canSend
-              ? "bg-arjuna-primary text-white shadow-sm"
-              : "bg-arjuna-border text-arjuna-muted"
-          }`}
-        >
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-            <line x1="22" y1="2" x2="11" y2="13" />
-            <polygon points="22 2 15 22 11 13 2 9 22 2" />
-          </svg>
-        </button>
+        </div>
       </div>
 
       {/* Attach bottom sheet */}

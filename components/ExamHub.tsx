@@ -737,9 +737,20 @@ export function ExamHub({ profile }: ExamHubProps) {
       </header>
 
       {mode === "list" && (
-        <Card className="mb-4">
-          <TodayRing />
-        </Card>
+        <>
+          <div
+            className="mb-4 overflow-hidden rounded-3xl px-5 py-4 shadow-hero"
+            style={{ background: "linear-gradient(135deg, #2563EB 0%, #1D4ED8 55%, #1E40AF 100%)" }}
+          >
+            <p className="font-display text-xl font-bold text-white">Exam Prep</p>
+            <p className="mt-0.5 text-xs font-medium text-white/80 leading-snug">
+              Add your upcoming exams, revise topics with Arjuna, and take practice tests to check how ready you are.
+            </p>
+            <div className="mt-3">
+              <TodayRing />
+            </div>
+          </div>
+        </>
       )}
 
       <AppTabNav active="exam" />
