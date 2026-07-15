@@ -4,8 +4,12 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import {
   buildSchoolKey,
+  clearAllProfiles,
+  listProfiles,
   loadChildProfile,
+  removeProfile,
   saveChildProfile,
+  setActiveProfile,
   type ChildProfile,
   type MediumOfInstruction,
 } from "@/lib/childProfile";
@@ -26,6 +30,8 @@ export default function SettingsPage() {
   const [settings, setSettings] = useState(loadSettings);
   const [saved, setSaved] = useState(false);
   const [profile, setProfile] = useState<ChildProfile | null>(null);
+  const [profiles, setProfiles] = useState<ChildProfile[]>(() => listProfiles());
+  const [confirmReset, setConfirmReset] = useState(false);
   const [schoolName, setSchoolName] = useState("");
   const [medium, setMedium] = useState<MediumOfInstruction>("english_medium");
   const [curriculum, setCurriculum] = useState<StoredCurriculum | null>(null);
@@ -211,6 +217,140 @@ export default function SettingsPage() {
       <p className="mt-1 text-sm text-arjuna-muted">
         For parents — AI key, language, TV, and app install
       </p>
+
+      {/* ── Students ─────────────────────────────── */}
+      <section className="mt-5 rounded-3xl border-2 border-orange-100 bg-white p-4">
+        <h2 className="mb-3 font-display text-base font-bold text-arjuna-text">
+          Students on this device
+        </h2>
+
+        {profiles.length === 0 && (
+          <p className="text-sm text-arjuna-muted">No students yet.</p>
+        )}
+
+        <ul className="space-y-2">
+          {profiles.map((p) => {
+            const isActive = p.id === profile?.id;
+            return (
+              <li
+                key={p.id}
+                className={`flex items-center gap-3 rounded-2xl border-2 px-3 py-2.5 transition ${
+                  isActive
+                    ? "border-arjuna-primary bg-orange-50"
+                    : "border-orange-100"
+                }`}
+              >
+                {/* Avatar */}
+                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-arjuna-primary font-display text-sm font-bold text-white">
+                  {p.childName.charAt(0).toUpperCase()}
+                </span>
+
+                {/* Name + grade */}
+                <div className="flex-1 min-w-0">
+                  <p className="font-display text-sm font-bold text-arjuna-text truncate">
+                    {p.childName}
+                  </p>
+                  {p.grade && (
+                    <p className="text-xs text-arjuna-muted">{p.grade}</p>
+                  )}
+                </div>
+
+                {/* Actions */}
+                {isActive ? (
+                  <span className="rounded-xl bg-arjuna-primary px-2.5 py-1 font-display text-xs font-bold text-white">
+                    Active
+                  </span>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const switched = setActiveProfile(p.id!);
+                      if (switched) {
+                        setProfile(switched);
+                        setProfiles(listProfiles());
+                      }
+                    }}
+                    className="rounded-xl border-2 border-arjuna-primary/40 px-2.5 py-1 font-display text-xs font-bold text-arjuna-primaryDark transition active:scale-95"
+                  >
+                    Switch
+                  </button>
+                )}
+
+                {/* Remove — only if not the last profile */}
+                {profiles.length > 1 && (
+                  <button
+                    type="button"
+                    aria-label={`Remove ${p.childName}`}
+                    onClick={() => {
+                      const next = removeProfile(p.id!);
+                      setProfile(next);
+                      setProfiles(listProfiles());
+                    }}
+                    className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-red-200 text-red-500 transition active:scale-95"
+                  >
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                      <line x1="18" y1="6" x2="6" y2="18" />
+                      <line x1="6" y1="6" x2="18" y2="18" />
+                    </svg>
+                  </button>
+                )}
+              </li>
+            );
+          })}
+        </ul>
+
+        {/* Add student — only shown if under cap */}
+        {profiles.length < 3 && (
+          <Link
+            href="/?addStudent=1"
+            className="mt-3 flex w-full items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-arjuna-primary/40 py-2.5 font-display text-sm font-bold text-arjuna-primaryDark transition active:scale-95"
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <line x1="12" y1="5" x2="12" y2="19" />
+              <line x1="5" y1="12" x2="19" y2="12" />
+            </svg>
+            Add student
+          </Link>
+        )}
+
+        {/* Reset everything */}
+        <div className="mt-4 border-t border-orange-100 pt-4">
+          {!confirmReset ? (
+            <button
+              type="button"
+              onClick={() => setConfirmReset(true)}
+              className="w-full rounded-2xl border-2 border-red-200 py-2.5 font-display text-sm font-bold text-red-600 transition active:scale-95"
+            >
+              Reset device (remove all students)
+            </button>
+          ) : (
+            <div className="space-y-2">
+              <p className="text-sm font-semibold text-red-700">
+                This will delete all student profiles. Are you sure?
+              </p>
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    clearAllProfiles();
+                    window.location.replace("/");
+                  }}
+                  className="flex-1 rounded-2xl bg-red-600 py-2.5 font-display text-sm font-bold text-white active:scale-95"
+                >
+                  Yes, reset
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setConfirmReset(false)}
+                  className="flex-1 rounded-2xl border-2 border-orange-100 py-2.5 font-display text-sm font-bold text-arjuna-text active:scale-95"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      </section>
 
       <Link
         href="/download"

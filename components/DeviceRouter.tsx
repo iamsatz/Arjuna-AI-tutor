@@ -1,19 +1,17 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import { InviteRequired } from "./InviteRequired";
 import { LessonScreen } from "./LessonScreen";
-import { TvLessonScreen } from "./TvLessonScreen";
 import {
   getActiveProfile,
   loadChildProfile,
   type ChildProfile,
 } from "@/lib/childProfile";
-import { isTvDevice } from "@/lib/platform";
 
 export function DeviceRouter() {
-  const router = useRouter();
+  const searchParams = useSearchParams();
   const [profile, setProfile] = useState<ChildProfile | null>(null);
   const [ready, setReady] = useState(false);
 
@@ -26,12 +24,6 @@ export function DeviceRouter() {
     setProfile(getActiveProfile());
   }
 
-  useEffect(() => {
-    if (isTvDevice() && window.location.pathname === "/") {
-      router.replace("/tv");
-    }
-  }, [router]);
-
   if (!ready) {
     return (
       <main className="mx-auto flex min-h-dvh max-w-md items-center justify-center bg-arjuna-bg px-6">
@@ -40,11 +32,8 @@ export function DeviceRouter() {
     );
   }
 
-  if (typeof window !== "undefined" && isTvDevice()) {
-    return <TvLessonScreen />;
-  }
-
-  if (!profile) {
+  // Show onboarding when there is no profile yet, or when Settings sends ?addStudent=1
+  if (!profile || searchParams.get("addStudent") === "1") {
     return <InviteRequired />;
   }
 
