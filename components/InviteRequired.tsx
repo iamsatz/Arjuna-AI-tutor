@@ -1,9 +1,12 @@
 "use client";
 
-import { FormEvent, useRef, useState } from "react";
+import { FormEvent, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ArjunaAvatar } from "@/components/ArjunaAvatar";
-import { tryAddProfile } from "@/lib/childProfile";
+import {
+  listProfiles,
+  tryAddProfile,
+} from "@/lib/childProfile";
 import { GRADE_OPTIONS, type GradeOption } from "@/lib/profileOptions";
 
 /** Keep the extractFamilyCode export so any existing callers don't break. */
@@ -22,6 +25,12 @@ const ALL_GRADES: Array<GradeOption | "College"> = [
   "College",
 ];
 
+function isDuplicateName(name: string): boolean {
+  const n = name.trim().toLowerCase();
+  if (!n) return false;
+  return listProfiles().some((p) => p.childName.trim().toLowerCase() === n);
+}
+
 export function InviteRequired() {
   const router = useRouter();
   const nameRef = useRef<HTMLInputElement>(null);
@@ -29,6 +38,20 @@ export function InviteRequired() {
   const [name, setName] = useState("");
   const [selectedGrade, setSelectedGrade] = useState<string>("");
   const [error, setError] = useState<string | null>(null);
+  const [dupError, setDupError] = useState<string | null>(null);
+
+  // Live duplicate check on every keystroke
+  useEffect(() => {
+    if (!name.trim()) {
+      setDupError(null);
+      return;
+    }
+    if (isDuplicateName(name)) {
+      setDupError(`"${name.trim()}" already exists — use a different name.`);
+    } else {
+      setDupError(null);
+    }
+  }, [name]);
 
   function handleNameSubmit(e: FormEvent) {
     e.preventDefault();
@@ -36,12 +59,9 @@ export function InviteRequired() {
       setError("Please enter your name.");
       return;
     }
+    if (dupError) return; // block if duplicate
     setError(null);
     setStep("grade");
-  }
-
-  function handleGradeSelect(grade: string) {
-    setSelectedGrade(grade);
   }
 
   function handleStart() {
@@ -61,7 +81,7 @@ export function InviteRequired() {
     if (!result.ok) {
       setError(
         result.reason === "duplicate_name"
-          ? `${name.trim()} already exists — try a different name.`
+          ? `"${name.trim()}" already exists — try a different name.`
           : "Maximum 3 students on one device.",
       );
       return;
@@ -70,102 +90,136 @@ export function InviteRequired() {
     router.replace("/?welcome=1");
   }
 
+  const nameIsBlocked = !!dupError || !name.trim();
+
   return (
     <main className="mx-auto flex min-h-dvh max-w-md flex-col bg-arjuna-bg">
-      {/* Top decorative band */}
-      <div className="h-2 w-full rounded-b-3xl bg-arjuna-primary" />
+      {/* Thin top accent */}
+      <div className="h-1.5 w-full bg-arjuna-primary" />
 
-      <div className="flex flex-1 flex-col px-6 py-8">
-        {/* Step 1 — name */}
+      <div className="flex flex-1 flex-col px-5 py-6">
+
+        {/* ── Step 1 — name ─────────────────────────── */}
         {step === "name" && (
-          <div className="flex flex-1 flex-col">
-            <div className="flex flex-col items-center text-center">
+          <div className="flex flex-1 flex-col gap-5">
+            {/* Avatar + headline inline to save vertical space */}
+            <div className="flex items-center gap-4">
               <ArjunaAvatar state="idle" size="sm" />
-              <h1 className="mt-5 font-display text-3xl font-bold text-arjuna-text">
-                Hi! I&apos;m Arjuna.
-              </h1>
-              <p className="mt-2 text-base leading-relaxed text-arjuna-muted">
-                Your personal homework friend. Let&apos;s get started!
-              </p>
+              <div>
+                <h1 className="font-display text-2xl font-bold leading-tight text-arjuna-text">
+                  Hi! I&apos;m Arjuna.
+                </h1>
+                <p className="mt-0.5 text-sm leading-relaxed text-arjuna-muted">
+                  Your personal homework friend.
+                </p>
+              </div>
             </div>
 
-            <form onSubmit={handleNameSubmit} className="mt-10 flex flex-col gap-4">
-              <div>
-                <label
-                  htmlFor="student-name"
-                  className="mb-2 block text-sm font-semibold text-arjuna-text"
-                >
-                  What&apos;s your name?
-                </label>
-                <input
-                  ref={nameRef}
-                  id="student-name"
-                  type="text"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  placeholder="e.g. Aadya"
-                  autoComplete="given-name"
-                  autoFocus
-                  className="w-full rounded-2xl border-2 border-orange-100 bg-white px-4 py-4 font-display text-lg font-semibold text-arjuna-text outline-none transition focus:border-arjuna-primary"
-                />
-              </div>
+            <form onSubmit={handleNameSubmit} className="flex flex-col gap-3">
+              <label
+                htmlFor="student-name"
+                className="text-sm font-semibold text-arjuna-text"
+              >
+                What&apos;s your name?
+              </label>
+              <input
+                ref={nameRef}
+                id="student-name"
+                type="text"
+                value={name}
+                onChange={(e) => {
+                  setName(e.target.value);
+                  setError(null);
+                }}
+                placeholder="e.g. Aadya"
+                autoComplete="given-name"
+                autoFocus
+                className={`w-full rounded-2xl border-2 bg-white px-4 py-3.5 font-display text-base font-semibold text-arjuna-text outline-none transition focus:border-arjuna-primary ${
+                  dupError
+                    ? "border-red-400 focus:border-red-500"
+                    : "border-orange-100"
+                }`}
+              />
 
-              {error && (
+              {/* Inline duplicate / generic error */}
+              {(dupError || error) && (
                 <p role="alert" className="text-sm font-medium text-red-600">
-                  {error}
+                  {dupError ?? error}
                 </p>
               )}
 
               <button
                 type="submit"
-                disabled={!name.trim()}
-                className="mt-2 w-full rounded-2xl bg-arjuna-primary px-6 py-4 font-display text-lg font-bold text-white shadow-chunky transition active:scale-95 disabled:opacity-40"
+                disabled={nameIsBlocked}
+                className="w-full rounded-2xl bg-arjuna-primary px-6 py-3.5 font-display text-base font-bold text-white shadow-chunky transition active:scale-95 disabled:opacity-40"
               >
                 Next
               </button>
             </form>
 
-            <p className="mt-auto pt-8 text-center text-xs text-arjuna-muted">
-              For students aged 6 – 20
+            {/* Existing students list — useful context, no wasted space */}
+            {listProfiles().length > 0 && (
+              <div className="rounded-2xl border-2 border-orange-100 bg-white px-4 py-3">
+                <p className="mb-2 text-xs font-bold uppercase tracking-wide text-arjuna-muted">
+                  Already on this device
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  {listProfiles().map((p) => (
+                    <span
+                      key={p.id}
+                      className="flex items-center gap-1.5 rounded-xl bg-orange-50 px-3 py-1.5 font-display text-sm font-bold text-arjuna-text"
+                    >
+                      <span className="flex h-5 w-5 items-center justify-center rounded-full bg-arjuna-primary text-[10px] font-bold text-white">
+                        {p.childName.charAt(0).toUpperCase()}
+                      </span>
+                      {p.childName}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            <p className="mt-auto text-center text-xs text-arjuna-muted">
+              For students aged 6 – 20 &middot; Up to 3 students per device
             </p>
           </div>
         )}
 
-        {/* Step 2 — grade */}
+        {/* ── Step 2 — grade ────────────────────────── */}
         {step === "grade" && (
-          <div className="flex flex-1 flex-col">
-            <button
-              type="button"
-              onClick={() => { setStep("name"); setError(null); }}
-              className="mb-6 flex items-center gap-1 text-sm font-semibold text-arjuna-primaryDark"
-            >
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                <polyline points="15 18 9 12 15 6" />
-              </svg>
-              Back
-            </button>
-
-            <div className="text-center">
-              <p className="font-display text-2xl font-bold text-arjuna-text">
-                Great, {name.trim()}!
-              </p>
-              <p className="mt-2 text-base text-arjuna-muted">
-                What class are you in?
-              </p>
+          <div className="flex flex-1 flex-col gap-4">
+            <div className="flex items-center gap-3">
+              <button
+                type="button"
+                onClick={() => { setStep("name"); setError(null); }}
+                aria-label="Back"
+                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white shadow-sm transition active:scale-95"
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <polyline points="15 18 9 12 15 6" />
+                </svg>
+              </button>
+              <div>
+                <p className="font-display text-xl font-bold text-arjuna-text">
+                  Hi {name.trim()}! What class?
+                </p>
+                <p className="text-sm text-arjuna-muted">Pick your current grade.</p>
+              </div>
             </div>
 
-            <div className="mt-8 flex flex-wrap justify-center gap-2.5">
+            {/* Grade chip grid — compact rows */}
+            <div className="flex flex-wrap gap-2">
               {ALL_GRADES.map((g) => {
                 const isSelected = selectedGrade === g;
                 return (
                   <button
                     key={g}
                     type="button"
-                    onClick={() => handleGradeSelect(g)}
-                    className={`rounded-2xl border-2 px-4 py-2.5 font-display text-sm font-bold transition active:scale-95 ${
+                    onClick={() => { setSelectedGrade(g); setError(null); }}
+                    className={`rounded-xl border-2 px-3.5 py-2 font-display text-sm font-bold transition active:scale-95 ${
                       isSelected
                         ? "border-arjuna-primary bg-arjuna-primary text-white shadow-chunky"
-                        : "border-orange-100 bg-white text-arjuna-text hover:border-arjuna-primary/40"
+                        : "border-orange-100 bg-white text-arjuna-text"
                     }`}
                   >
                     {g}
@@ -175,17 +229,17 @@ export function InviteRequired() {
             </div>
 
             {error && (
-              <p role="alert" className="mt-4 text-center text-sm font-medium text-red-600">
+              <p role="alert" className="text-sm font-medium text-red-600">
                 {error}
               </p>
             )}
 
-            <div className="mt-auto pt-8">
+            <div className="mt-auto">
               <button
                 type="button"
                 onClick={handleStart}
                 disabled={!selectedGrade}
-                className="w-full rounded-2xl bg-arjuna-primary px-6 py-4 font-display text-lg font-bold text-white shadow-chunky transition active:scale-95 disabled:opacity-40"
+                className="w-full rounded-2xl bg-arjuna-primary px-6 py-3.5 font-display text-base font-bold text-white shadow-chunky transition active:scale-95 disabled:opacity-40"
               >
                 Start learning
               </button>
