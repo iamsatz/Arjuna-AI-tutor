@@ -182,7 +182,7 @@ export function DailyWordsCard({
               <button
                 type="button"
                 onClick={() => void speakWord(w.word)}
-                className="rounded-full bg-orange-100 px-2 py-1 text-sm"
+                className="rounded-full bg-arjuna-primaryLight px-2 py-1 text-sm"
               >
                 🔊
               </button>

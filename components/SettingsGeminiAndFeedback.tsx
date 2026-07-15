@@ -243,7 +243,7 @@ export function SettingsGeminiAndFeedback({ profile, onProfileChange }: Props) {
               <label
                 key={opt.id}
                 className={`flex cursor-pointer gap-3 rounded-xl border p-3 ${
-                  method === opt.id ? "border-arjuna-primary bg-orange-50/50" : "border-gray-200"
+                  method === opt.id ? "border-arjuna-primary bg-arjuna-primaryLight/60" : "border-gray-200"
                 } ${!opt.available ? "opacity-60" : ""}`}
               >
                 <input

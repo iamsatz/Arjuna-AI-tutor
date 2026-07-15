@@ -795,9 +795,9 @@ export function ExamHub({ profile }: ExamHubProps) {
                 const ready = exams.find((e) => e.concept_notes);
                 if (ready) void startRevision(ready);
               }}
-              className="flex w-full items-center gap-4 rounded-3xl border-2 border-orange-100 bg-white px-5 py-4 text-left transition active:scale-95 disabled:opacity-40"
+              className="flex w-full items-center gap-4 rounded-3xl border border-arjuna-border bg-white px-5 py-4 text-left transition active:scale-95 disabled:opacity-40"
             >
-              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-orange-50">
+              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-arjuna-primaryLight">
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-arjuna-primary" aria-hidden="true">
                   <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z" />
                   <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z" />
@@ -813,9 +813,9 @@ export function ExamHub({ profile }: ExamHubProps) {
             <button
               type="button"
               onClick={() => { setMode("create"); setError(null); }}
-              className="flex w-full items-center gap-4 rounded-3xl border-2 border-orange-100 bg-white px-5 py-4 text-left transition active:scale-95"
+              className="flex w-full items-center gap-4 rounded-3xl border border-arjuna-border bg-white px-5 py-4 text-left transition active:scale-95"
             >
-              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-orange-50">
+              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-arjuna-primaryLight">
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-arjuna-primary" aria-hidden="true">
                   <circle cx="12" cy="12" r="10" />
                   <line x1="12" y1="8" x2="12" y2="16" />
@@ -835,7 +835,7 @@ export function ExamHub({ profile }: ExamHubProps) {
               <p className="font-display text-sm font-bold text-amber-900">
                 Time to revise
               </p>
-              <p className="mt-0.5 text-xs text-amber-800">
+              <p className="mt-0.5 text-xs text-arjuna-primaryDark">
                 These topics are due for a quick check.
               </p>
               <div className="mt-2 flex flex-wrap gap-2">
@@ -908,7 +908,7 @@ export function ExamHub({ profile }: ExamHubProps) {
                   return (
                     <div
                       key={exam.id}
-                      className="flex w-44 shrink-0 flex-col gap-2 rounded-3xl border-2 border-orange-100 bg-white p-4"
+                      className="flex w-44 shrink-0 flex-col gap-2 rounded-3xl border border-arjuna-border bg-white p-4"
                     >
                       <p className="font-display text-sm font-bold text-arjuna-text leading-tight">
                         {exam.subject}
@@ -940,7 +940,7 @@ export function ExamHub({ profile }: ExamHubProps) {
                             setMode("upload");
                             setError(null);
                           }}
-                          className="w-full rounded-2xl border border-orange-200 bg-white py-2 font-display text-xs font-bold text-arjuna-text active:scale-95"
+                          className="w-full rounded-2xl border border-arjuna-border bg-white py-2 font-display text-xs font-bold text-arjuna-text active:scale-95"
                         >
                           Add pages
                         </button>
@@ -964,7 +964,7 @@ export function ExamHub({ profile }: ExamHubProps) {
               type="button"
               onClick={() => { setMode("timetable"); setError(null); }}
               disabled={busy}
-              className="flex-1 rounded-2xl border-2 border-orange-100 bg-white py-3 font-display text-xs font-bold text-arjuna-text active:scale-95"
+              className="flex-1 rounded-2xl border border-arjuna-border bg-white py-3 font-display text-xs font-bold text-arjuna-text active:scale-95"
             >
               Add timetable
             </button>
@@ -978,7 +978,7 @@ export function ExamHub({ profile }: ExamHubProps) {
                   setError(null);
                 }}
                 disabled={busy}
-                className="flex-1 rounded-2xl border-2 border-orange-100 bg-white py-3 font-display text-xs font-bold text-arjuna-text active:scale-95"
+                className="flex-1 rounded-2xl border border-arjuna-border bg-white py-3 font-display text-xs font-bold text-arjuna-text active:scale-95"
               >
                 From curriculum
               </button>
@@ -1185,7 +1185,7 @@ export function ExamHub({ profile }: ExamHubProps) {
           {subjectRows.map((row, idx) => (
             <div
               key={row.id}
-              className="space-y-3 rounded-3xl border-2 border-orange-100 bg-white p-4"
+              className="space-y-3 rounded-3xl border border-arjuna-border bg-white p-4"
             >
               <div className="flex items-center justify-between">
                 <p className="font-display text-xs font-bold uppercase text-arjuna-muted">
@@ -1205,7 +1205,7 @@ export function ExamHub({ profile }: ExamHubProps) {
                 value={row.subject}
                 onChange={(e) => updateSubjectRow(row.id, { subject: e.target.value })}
                 placeholder="e.g. Maths"
-                className="w-full rounded-2xl border-2 border-orange-100 bg-arjuna-bg p-3 font-display text-sm font-semibold text-arjuna-text placeholder:font-normal placeholder:text-arjuna-muted focus:border-arjuna-primary focus:outline-none"
+                className="w-full rounded-2xl border border-arjuna-border bg-arjuna-bg p-3 font-display text-sm font-semibold text-arjuna-text placeholder:font-normal placeholder:text-arjuna-muted focus:border-arjuna-primary focus:outline-none"
               />
               <div>
                 <label className="mb-1 block text-xs font-semibold text-arjuna-muted">
@@ -1215,7 +1215,7 @@ export function ExamHub({ profile }: ExamHubProps) {
                   type="date"
                   value={row.examDate}
                   onChange={(e) => updateSubjectRow(row.id, { examDate: e.target.value })}
-                  className="w-full rounded-2xl border-2 border-orange-100 bg-arjuna-bg p-3 text-sm text-arjuna-text focus:border-arjuna-primary focus:outline-none"
+                  className="w-full rounded-2xl border border-arjuna-border bg-arjuna-bg p-3 text-sm text-arjuna-text focus:border-arjuna-primary focus:outline-none"
                 />
               </div>
               <div>
@@ -1227,7 +1227,7 @@ export function ExamHub({ profile }: ExamHubProps) {
                     value={row.topicsText}
                     onChange={(e) => updateSubjectRow(row.id, { topicsText: e.target.value })}
                     placeholder="e.g. Nouns, Verbs, Reading comprehension"
-                    className="flex-1 rounded-2xl border-2 border-orange-100 bg-arjuna-bg p-3 text-sm text-arjuna-text focus:border-arjuna-primary focus:outline-none"
+                    className="flex-1 rounded-2xl border border-arjuna-border bg-arjuna-bg p-3 text-sm text-arjuna-text focus:border-arjuna-primary focus:outline-none"
                     rows={2}
                   />
                   <button
@@ -1244,7 +1244,7 @@ export function ExamHub({ profile }: ExamHubProps) {
                     className={`flex h-12 w-12 shrink-0 items-center justify-center self-end rounded-2xl border-2 transition active:scale-95 ${
                       recording && micTarget === row.id
                         ? "border-red-400 bg-red-50 text-red-600"
-                        : "border-orange-100 bg-white text-arjuna-primary"
+                        : "border-arjuna-border bg-white text-arjuna-primary"
                     }`}
                   >
                     {recording && micTarget === row.id ? (
@@ -1454,7 +1454,7 @@ export function ExamHub({ profile }: ExamHubProps) {
             const chosenIdx = selectedAnswers[q.id];
             const fullQ = fullQuestions.find((fq) => fq.id === q.id);
             return (
-              <div key={q.id} className="rounded-3xl border-2 border-orange-100 bg-white p-4">
+              <div key={q.id} className="rounded-3xl border border-arjuna-border bg-white p-4">
                 <div className="mb-3 flex items-center gap-2">
                   <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-arjuna-primary font-display text-xs font-bold text-white">
                     {idx + 1}
@@ -1480,7 +1480,7 @@ export function ExamHub({ profile }: ExamHubProps) {
                               ? "border-red-300 bg-red-50 text-red-900"
                               : isSelected
                                 ? "border-arjuna-primary bg-arjuna-primary/10 text-arjuna-text"
-                                : "border-orange-100 text-arjuna-text"
+                                : "border-arjuna-border text-arjuna-text"
                         }`}
                       >
                         {opt}

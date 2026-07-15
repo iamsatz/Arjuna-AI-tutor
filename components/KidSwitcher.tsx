@@ -176,7 +176,7 @@ export function KidSwitcher({ onActiveChange }: KidSwitcherProps) {
               value={pin}
               onChange={(e) => setPin(e.target.value)}
               placeholder="PIN"
-              className="flex-1 rounded-xl border-2 border-orange-100 p-2 text-sm"
+              className="flex-1 rounded-xl border border-arjuna-border p-2 text-sm"
             />
             <Button
               variant="secondary"
@@ -192,19 +192,19 @@ export function KidSwitcher({ onActiveChange }: KidSwitcherProps) {
       {adding && (
         <form
           onSubmit={handleAdd}
-          className="mt-3 space-y-2 rounded-2xl border-2 border-orange-100 bg-white p-4"
+          className="mt-3 space-y-2 rounded-2xl border border-arjuna-border bg-white p-4"
         >
           <input
             type="text"
             value={name}
             onChange={(e) => setName(e.target.value)}
             placeholder="Kid's name"
-            className="w-full rounded-xl border-2 border-orange-100 p-3 text-sm"
+            className="w-full rounded-xl border border-arjuna-border p-3 text-sm"
           />
           <select
             value={grade}
             onChange={(e) => setGrade(e.target.value as GradeOption | "")}
-            className="w-full rounded-xl border-2 border-orange-100 p-3 text-sm"
+            className="w-full rounded-xl border border-arjuna-border p-3 text-sm"
           >
             <option value="">Pick grade</option>
             {GRADE_OPTIONS.map((g) => (
@@ -216,7 +216,7 @@ export function KidSwitcher({ onActiveChange }: KidSwitcherProps) {
           <select
             value={medium}
             onChange={(e) => setMedium(e.target.value as MediumOfInstruction)}
-            className="w-full rounded-xl border-2 border-orange-100 p-3 text-sm"
+            className="w-full rounded-xl border border-arjuna-border p-3 text-sm"
           >
             {MEDIUM_OPTIONS.map((opt) => (
               <option key={opt.value} value={opt.value}>

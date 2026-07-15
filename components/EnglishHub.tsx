@@ -173,7 +173,7 @@ export function EnglishHub({ profile }: EnglishHubProps) {
       {pill === "learn" && !activeConcept && (
         <div className="mt-4 space-y-5">
           {/* Ask bar */}
-          <div className="flex items-center gap-2 rounded-3xl border-2 border-orange-100 bg-white px-4 py-3">
+          <div className="flex items-center gap-2 rounded-3xl border border-arjuna-border bg-white px-4 py-3">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 text-arjuna-muted" aria-hidden="true">
               <circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
             </svg>
@@ -209,7 +209,7 @@ export function EnglishHub({ profile }: EnglishHubProps) {
                     key={c.id}
                     type="button"
                     onClick={() => setActiveConcept(c)}
-                    className="rounded-2xl border-2 border-orange-200 bg-orange-50 px-3 py-2 text-left transition active:scale-95"
+                    className="rounded-2xl border border-arjuna-border bg-arjuna-primaryLight px-3 py-2 text-left transition active:scale-95"
                   >
                     <p className="font-display text-xs font-bold text-arjuna-text">{c.label}</p>
                     {c.reason && (
@@ -285,7 +285,7 @@ export function EnglishHub({ profile }: EnglishHubProps) {
                       key={c.id}
                       type="button"
                       onClick={() => setActiveConcept(c)}
-                      className="flex flex-col items-start gap-1 rounded-3xl border-2 border-orange-100 bg-white px-4 py-3 text-left transition active:scale-95"
+                      className="flex flex-col items-start gap-1 rounded-3xl border border-arjuna-border bg-white px-4 py-3 text-left transition active:scale-95"
                     >
                       <p className="font-display text-sm font-bold text-arjuna-text leading-snug">
                         {c.label}
@@ -294,7 +294,7 @@ export function EnglishHub({ profile }: EnglishHubProps) {
                         {c.focus}
                       </p>
                       <span className={`mt-0.5 rounded-full px-2 py-0.5 font-display text-[9px] font-bold uppercase ${
-                        c.grade === "B" ? "bg-green-100 text-green-800" : c.grade === "E" ? "bg-red-100 text-red-800" : "bg-orange-100 text-orange-800"
+                        c.grade === "B" ? "bg-green-100 text-green-800" : c.grade === "E" ? "bg-red-100 text-red-800" : "bg-arjuna-primaryLight text-arjuna-primaryDark"
                       }`}>
                         {c.grade === "B" ? "Beginner" : c.grade === "E" ? "Expert" : "Class"}
                       </span>

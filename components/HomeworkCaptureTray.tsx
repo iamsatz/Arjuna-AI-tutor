@@ -109,12 +109,12 @@ export function HomeworkCaptureTray({
       )}
 
       {!isAnswer && showTypeInput && (
-        <div className="space-y-2 rounded-2xl border-2 border-orange-100 bg-white p-3">
+        <div className="space-y-2 rounded-2xl border border-arjuna-border bg-white p-3">
           <textarea
             value={typedNote}
             onChange={(e) => setTypedNote(e.target.value)}
             placeholder="Type the teacher's diary note…"
-            className="w-full rounded-xl border-2 border-orange-100 p-3 text-sm"
+            className="w-full rounded-xl border border-arjuna-border p-3 text-sm"
             rows={3}
             disabled={disabled}
           />

@@ -226,7 +226,7 @@ export function EnglishConceptSession({
           <button
             type="button"
             onClick={() => void speak(reply)}
-            className="rounded-full bg-orange-100 px-3 py-1 text-xs font-semibold text-orange-800"
+            className="rounded-full bg-arjuna-primaryLight px-3 py-1 text-xs font-semibold text-arjuna-primaryDark"
           >
             🔊 Hear again
           </button>

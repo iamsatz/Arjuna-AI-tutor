@@ -594,7 +594,7 @@ export default function SettingsPage() {
             <p className="text-sm font-semibold text-amber-900">
               Is this what you uploaded?
             </p>
-            <p className="mt-1 text-xs text-amber-800">
+            <p className="mt-1 text-xs text-arjuna-primaryDark">
               From: {selectedFiles.map((f) => f.name).join(", ")}
             </p>
             <p className="mt-2 text-sm font-semibold text-amber-900">
@@ -604,7 +604,7 @@ export default function SettingsPage() {
               {pendingPreview.subjects.map((s) => (
                 <li key={s.subject}>
                   <strong>{s.subject}</strong>
-                  <span className="text-amber-800">
+                  <span className="text-arjuna-primaryDark">
                     {" "}
                     — {s.topics.slice(0, 4).map((t) => t.name).join(", ")}
                     {s.topics.length > 4 ? "…" : ""}

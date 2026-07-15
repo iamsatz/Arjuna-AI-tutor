@@ -56,7 +56,7 @@ export function ArjunaAvatar({
         onClick={onTap}
         aria-label="Arjuna — your homework guru"
         disabled={isTv || !onTap}
-        className={`relative overflow-hidden rounded-full bg-gradient-to-b from-amber-100 to-orange-200 shadow-chunky transition active:scale-95 ${ringClass}`}
+        className={`relative overflow-hidden rounded-full bg-gradient-to-b from-arjuna-primaryLight to-indigo-100 shadow-chunky transition active:scale-95 ${ringClass}`}
         style={{ width: dim, height: dim }}
       >
         <Image

@@ -378,7 +378,7 @@ export function JoinForm({ code }: JoinFormProps) {
             onChange={(e) => setChildName(e.target.value)}
             placeholder="Child's name"
             autoComplete="given-name"
-            className="w-full rounded-2xl border-2 border-orange-100 px-4 py-3.5 text-lg outline-none focus:border-arjuna-primary"
+            className="w-full rounded-2xl border border-arjuna-border px-4 py-3.5 text-lg outline-none focus:border-arjuna-primary"
           />
           {error && (
             <p className="rounded-xl bg-red-50 px-3 py-2 text-sm text-red-700">
@@ -431,7 +431,7 @@ export function JoinForm({ code }: JoinFormProps) {
             required
             autoComplete="given-name"
             placeholder="e.g. Aadya"
-            className="mt-2 w-full rounded-2xl border-2 border-orange-100 px-4 py-3.5 text-lg font-semibold outline-none focus:border-arjuna-primary"
+            className="mt-2 w-full rounded-2xl border border-arjuna-border px-4 py-3.5 text-lg font-semibold outline-none focus:border-arjuna-primary"
           />
         </label>
 
@@ -450,7 +450,7 @@ export function JoinForm({ code }: JoinFormProps) {
               <select
                 value={grade}
                 onChange={(e) => setGrade(e.target.value as GradeOption | "")}
-                className="mt-2 w-full rounded-2xl border-2 border-orange-100 px-4 py-3.5 outline-none focus:border-arjuna-primary"
+                className="mt-2 w-full rounded-2xl border border-arjuna-border px-4 py-3.5 outline-none focus:border-arjuna-primary"
               >
                 <option value="">Pick a grade (optional)</option>
                 {GRADE_OPTIONS.map((g) => (
@@ -468,7 +468,7 @@ export function JoinForm({ code }: JoinFormProps) {
                 onChange={(e) =>
                   setBoard(e.target.value as CurriculumBoard | "")
                 }
-                className="mt-2 w-full rounded-2xl border-2 border-orange-100 px-4 py-3.5 outline-none focus:border-arjuna-primary"
+                className="mt-2 w-full rounded-2xl border border-arjuna-border px-4 py-3.5 outline-none focus:border-arjuna-primary"
               >
                 <option value="">Pick board (optional)</option>
                 {BOARD_OPTIONS.map((opt) => (
@@ -488,7 +488,7 @@ export function JoinForm({ code }: JoinFormProps) {
                 onChange={(e) =>
                   setMedium(e.target.value as MediumOfInstruction)
                 }
-                className="mt-2 w-full rounded-2xl border-2 border-orange-100 px-4 py-3.5 outline-none focus:border-arjuna-primary"
+                className="mt-2 w-full rounded-2xl border border-arjuna-border px-4 py-3.5 outline-none focus:border-arjuna-primary"
               >
                 {MEDIUM_OPTIONS.map((opt) => (
                   <option key={opt.value} value={opt.value}>

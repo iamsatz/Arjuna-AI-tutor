@@ -99,7 +99,7 @@ export function HomeworkTaskReview({
                   ? "border-sky-200 bg-sky-50/60"
                   : task.subjectUncertain && !task.subjectConfirmed
                     ? "border-amber-200 bg-amber-50/50"
-                    : "border-orange-100 bg-white"
+                    : "border-arjuna-border bg-white"
               }`}
             >
               <div className="mb-2 flex items-center gap-2">
@@ -121,14 +121,14 @@ export function HomeworkTaskReview({
               {/* Subject chips */}
               {task.subjectUncertain && !task.subjectConfirmed && (
                 <div className="mb-2">
-                  <p className="mb-1.5 text-xs font-semibold text-amber-800">Which subject?</p>
+                  <p className="mb-1.5 text-xs font-semibold text-arjuna-primaryDark">Which subject?</p>
                   <div className="flex flex-wrap gap-1.5">
                     {QUICK_SUBJECTS.map((s) => (
                       <button
                         key={s}
                         type="button"
                         onClick={() => confirmSubject(task.id, s)}
-                        className="rounded-full border border-amber-200 bg-white px-2.5 py-1 text-xs font-semibold text-arjuna-text active:bg-amber-100"
+                        className="rounded-full border border-amber-200 bg-white px-2.5 py-1 text-xs font-semibold text-arjuna-text active:bg-arjuna-primaryLight"
                       >
                         {s}
                       </button>
@@ -146,7 +146,7 @@ export function HomeworkTaskReview({
                     subjectConfirmed: true,
                   })
                 }
-                className="mb-2 w-full rounded-xl border-2 border-orange-100 bg-white p-2 text-sm"
+                className="mb-2 w-full rounded-xl border border-arjuna-border bg-white p-2 text-sm"
               >
                 {SUBJECT_OPTIONS.map((s) => (
                   <option key={s} value={s}>{s}</option>
@@ -157,7 +157,7 @@ export function HomeworkTaskReview({
                 value={task.task}
                 onChange={(e) => updateTask(task.id, { task: e.target.value })}
                 placeholder="What is the homework?"
-                className="mb-2 w-full rounded-xl border-2 border-orange-100 bg-white p-2 text-sm"
+                className="mb-2 w-full rounded-xl border border-arjuna-border bg-white p-2 text-sm"
                 rows={2}
               />
             </li>
@@ -196,7 +196,7 @@ export function HomeworkTaskReview({
     return (
       <Card className="space-y-4 text-center">
         <div className="flex flex-col items-center gap-3 py-4">
-          <div className="flex h-14 w-14 items-center justify-center rounded-full bg-orange-100">
+          <div className="flex h-14 w-14 items-center justify-center rounded-full bg-arjuna-primaryLight">
             <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="text-arjuna-primary" aria-hidden="true">
               <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
               <polyline points="14 2 14 8 20 8" />
@@ -280,7 +280,7 @@ export function HomeworkTaskReview({
                 ? "w-6 bg-arjuna-primary"
                 : i < currentIndex
                   ? "w-2.5 bg-arjuna-primary/40"
-                  : "w-2.5 bg-orange-200"
+                  : "w-2.5 bg-arjuna-border"
             }`}
           />
         ))}
@@ -295,7 +295,7 @@ export function HomeworkTaskReview({
               ? "border-sky-300 bg-sky-50/40"
               : currentTask.subjectUncertain && !currentTask.subjectConfirmed
                 ? "border-amber-300"
-                : "border-orange-100"
+                : "border-arjuna-border"
           }`}
         >
           {/* Task number + text */}
@@ -361,7 +361,7 @@ export function HomeworkTaskReview({
                     className={`rounded-2xl border-2 px-3 py-1.5 font-display text-sm font-bold transition active:scale-95 ${
                       isActive
                         ? "border-arjuna-primary bg-arjuna-primary text-white shadow-chunky"
-                        : "border-orange-100 bg-white text-arjuna-text hover:border-arjuna-primary/40"
+                        : "border-arjuna-border bg-white text-arjuna-text hover:border-arjuna-primary/40"
                     }`}
                   >
                     {s}
@@ -374,7 +374,7 @@ export function HomeworkTaskReview({
                 className={`rounded-2xl border-2 px-3 py-1.5 font-display text-sm font-bold transition active:scale-95 ${
                   currentTask.subject === "Other" && currentTask.subjectConfirmed
                     ? "border-arjuna-primary bg-arjuna-primary text-white"
-                    : "border-orange-100 bg-white text-arjuna-text"
+                    : "border-arjuna-border bg-white text-arjuna-text"
                 }`}
               >
                 Other
@@ -409,7 +409,7 @@ export function HomeworkTaskReview({
               type="button"
               onClick={() => setCurrentIndex((i) => Math.max(0, i - 1))}
               disabled={currentIndex === 0}
-              className="flex-1 rounded-2xl border-2 border-orange-100 bg-white py-3 font-display text-sm font-bold text-arjuna-text disabled:opacity-30 active:scale-95"
+              className="flex-1 rounded-2xl border border-arjuna-border bg-white py-3 font-display text-sm font-bold text-arjuna-text disabled:opacity-30 active:scale-95"
             >
               Previous
             </button>
@@ -440,7 +440,7 @@ export function HomeworkTaskReview({
         <button
           type="button"
           onClick={onAddPage}
-          className="flex flex-1 items-center justify-center gap-1.5 rounded-2xl border-2 border-orange-100 bg-white py-3 font-display text-sm font-bold text-arjuna-text active:scale-95"
+          className="flex flex-1 items-center justify-center gap-1.5 rounded-2xl border border-arjuna-border bg-white py-3 font-display text-sm font-bold text-arjuna-text active:scale-95"
         >
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
             <rect x="3" y="3" width="18" height="18" rx="3" />
@@ -452,7 +452,7 @@ export function HomeworkTaskReview({
         <button
           type="button"
           onClick={onAddManual}
-          className="flex flex-1 items-center justify-center gap-1.5 rounded-2xl border-2 border-orange-100 bg-white py-3 font-display text-sm font-bold text-arjuna-text active:scale-95"
+          className="flex flex-1 items-center justify-center gap-1.5 rounded-2xl border border-arjuna-border bg-white py-3 font-display text-sm font-bold text-arjuna-text active:scale-95"
         >
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
             <line x1="12" y1="5" x2="12" y2="19" />

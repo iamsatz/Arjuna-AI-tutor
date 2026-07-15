@@ -34,7 +34,7 @@ export default function DownloadPage() {
             </p>
           </div>
 
-          <div className="rounded-2xl bg-orange-50 p-4">
+          <div className="rounded-2xl bg-arjuna-primaryLight p-4">
             <p className="font-display font-bold text-arjuna-text">
               Option 2 — Download APK
             </p>
