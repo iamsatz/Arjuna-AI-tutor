@@ -116,7 +116,7 @@ export function HomeworkInputBar({
     <div className="relative">
       {/* Thumbnail strip */}
       {pendingFiles.length > 0 && (
-        <div className="mb-2 flex gap-2 overflow-x-auto pb-1">
+        <div className="mb-2 flex flex-wrap gap-2">
           {pendingFiles.map((file, i) => (
             <div key={i} className="relative flex-shrink-0">
               {file.type === "application/pdf" ? (

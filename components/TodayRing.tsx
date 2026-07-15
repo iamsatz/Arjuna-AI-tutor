@@ -38,7 +38,7 @@ export function TodayRing({ refreshKey, className = "" }: TodayRingProps) {
         todayCompleted={streak.todayCompleted}
         todayTarget={streak.todayTarget}
       />
-      <div className="mt-3 flex gap-2 overflow-x-auto pb-1">
+      <div className="mt-3 flex flex-wrap gap-2">
         {badges.map((b) => (
           <BadgePill
             key={b.id}

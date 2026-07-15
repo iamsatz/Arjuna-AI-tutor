@@ -900,7 +900,7 @@ export function ExamHub({ profile }: ExamHubProps) {
               <p className="mb-3 font-display text-sm font-bold text-arjuna-text">
                 Upcoming exams
               </p>
-              <div className="flex gap-3 overflow-x-auto pb-1">
+              <div className="grid grid-cols-2 gap-3">
                 {exams.map((exam) => {
                   const daysLeft = exam.exam_date
                     ? Math.ceil((new Date(exam.exam_date).getTime() - Date.now()) / 86400000)
@@ -908,7 +908,7 @@ export function ExamHub({ profile }: ExamHubProps) {
                   return (
                     <div
                       key={exam.id}
-                      className="flex w-44 shrink-0 flex-col gap-2 rounded-3xl border border-arjuna-border bg-white p-4"
+                      className="flex min-w-0 flex-col gap-2 rounded-3xl border border-arjuna-border bg-white p-4"
                     >
                       <p className="font-display text-sm font-bold text-arjuna-text leading-tight">
                         {exam.subject}
