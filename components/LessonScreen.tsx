@@ -495,32 +495,23 @@ export function LessonScreen({
 
       {showCaptureHome && (
         <>
-          {/* Hero card — warm gradient matching reference design */}
+          {/* Hero card — compact warm gradient */}
           <div
-            className="mb-5 overflow-hidden rounded-3xl px-5 py-6 shadow-hero"
+            className="mb-5 overflow-hidden rounded-3xl px-5 py-4 shadow-hero"
             style={{ background: "linear-gradient(135deg, #E05A2B 0%, #C23B00 55%, #A12E00 100%)" }}
           >
-            <div className="flex items-start justify-between gap-4">
+            <div className="flex items-center justify-between gap-4">
+              {/* Prompt pill + streak — left side */}
               <div className="flex-1">
-                <p className="text-sm font-semibold text-white/70">
-                  {greeting}
-                </p>
-                <p className="font-display text-3xl font-bold leading-tight text-white">
-                  {profile.childName}!
-                </p>
-                {profile.grade && (
-                  <p className="mt-0.5 text-sm font-medium text-white/60">
-                    {profile.grade}
-                  </p>
-                )}
-                <p className="mt-4 inline-block rounded-full bg-white/20 px-4 py-1.5 text-sm font-semibold text-white/95 backdrop-blur-sm">
+                <p className="text-sm font-semibold text-white">
                   What homework today?
                 </p>
+                <div className="mt-3">
+                  <TodayRing refreshKey={ringKey} />
+                </div>
               </div>
+              {/* Avatar — right side */}
               <ArjunaAvatar state={avatarState} size="sm" showTarget />
-            </div>
-            <div className="mt-4">
-              <TodayRing refreshKey={ringKey} />
             </div>
           </div>
 

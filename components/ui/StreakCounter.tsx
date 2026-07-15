@@ -13,23 +13,25 @@ export function StreakCounter({
 
   return (
     <div className="flex items-center gap-3">
-      <div className="flex items-center gap-1 rounded-2xl bg-arjuna-primaryLight px-3 py-2">
-        <span className="text-lg">🔥</span>
-        <span className="font-display text-lg font-bold text-arjuna-primary">
+      {/* Streak pill — white/25 bg so it reads on any dark gradient */}
+      <div className="flex items-center gap-1 rounded-2xl bg-white/25 px-3 py-1.5">
+        <span className="text-base leading-none">🔥</span>
+        <span className="font-display text-base font-bold text-white">
           {count}
         </span>
-        <span className="text-xs text-arjuna-muted">day streak</span>
+        <span className="text-xs font-medium text-white">day streak</span>
       </div>
       <div className="flex-1">
-        <div className="mb-1 flex justify-between text-xs font-semibold text-arjuna-muted">
+        <div className="mb-1 flex justify-between text-xs font-semibold text-white">
           <span>Today&apos;s target</span>
           <span>
             {todayCompleted}/{todayTarget}
           </span>
         </div>
-        <div className="h-3 overflow-hidden rounded-full bg-arjuna-primaryLight">
+        {/* Progress bar — white/30 track, white fill */}
+        <div className="h-2 overflow-hidden rounded-full bg-white/30">
           <div
-            className="h-full rounded-full bg-arjuna-primary transition-all"
+            className="h-full rounded-full bg-white transition-all"
             style={{ width: `${pct}%` }}
           />
         </div>
