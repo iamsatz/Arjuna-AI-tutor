@@ -219,7 +219,7 @@ export default function SettingsPage() {
       </p>
 
       {/* ── Students ─────────────────────────────── */}
-      <section className="mt-5 rounded-3xl border-2 border-orange-100 bg-white p-4">
+      <section className="mt-5 rounded-3xl border border-arjuna-border bg-white p-4">
         <h2 className="mb-3 font-display text-base font-bold text-arjuna-text">
           Students on this device
         </h2>
@@ -236,8 +236,8 @@ export default function SettingsPage() {
                 key={p.id}
                 className={`flex items-center gap-3 rounded-2xl border-2 px-3 py-2.5 transition ${
                   isActive
-                    ? "border-arjuna-primary bg-orange-50"
-                    : "border-orange-100"
+                    ? "border-arjuna-primary bg-arjuna-primaryLight"
+                    : "border-arjuna-border"
                 }`}
               >
                 {/* Avatar */}
@@ -314,7 +314,7 @@ export default function SettingsPage() {
         )}
 
         {/* Reset everything */}
-        <div className="mt-4 border-t border-orange-100 pt-4">
+        <div className="mt-4 border-t border-arjuna-border pt-4">
           {!confirmReset ? (
             <button
               type="button"
@@ -342,7 +342,7 @@ export default function SettingsPage() {
                 <button
                   type="button"
                   onClick={() => setConfirmReset(false)}
-                  className="flex-1 rounded-2xl border-2 border-orange-100 py-2.5 font-display text-sm font-bold text-arjuna-text active:scale-95"
+                  className="flex-1 rounded-2xl border border-arjuna-border py-2.5 font-display text-sm font-bold text-arjuna-text active:scale-95"
                 >
                   Cancel
                 </button>

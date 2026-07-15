@@ -14,7 +14,7 @@ export function StepDots({ current, total }: StepDotsProps) {
               ? "w-8 bg-arjuna-primary"
               : i + 1 < current
                 ? "w-2.5 bg-arjuna-green"
-                : "w-2.5 bg-orange-200"
+                : "w-2.5 bg-arjuna-border"
           }`}
         />
       ))}

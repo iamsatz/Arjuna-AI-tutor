@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Fredoka, Inter } from "next/font/google";
+import { Fredoka, Plus_Jakarta_Sans } from "next/font/google";
 import "./globals.css";
 
 const fredoka = Fredoka({
@@ -8,15 +8,17 @@ const fredoka = Fredoka({
   display: "swap",
 });
 
-const inter = Inter({
+const jakarta = Plus_Jakarta_Sans({
   subsets: ["latin"],
-  variable: "--font-inter",
+  variable: "--font-jakarta",
   display: "swap",
+  weight: ["400", "500", "600", "700"],
 });
 
 export const metadata: Metadata = {
   title: "Arjuna — Homework Tutor",
-  description: "Playful AI homework tutor for kids. Photo, speak, or type homework.",
+  description:
+    "Playful AI homework tutor for kids. Photo, speak, or type homework.",
   manifest: "/manifest.json",
   appleWebApp: {
     capable: true,
@@ -26,7 +28,7 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#E8872A",
+  themeColor: "#4F46E5",
   width: "device-width",
   initialScale: 1,
   maximumScale: 1,
@@ -39,7 +41,10 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={`${fredoka.variable} ${inter.variable}`}>
+    <html
+      lang="en"
+      className={`${fredoka.variable} ${jakarta.variable} bg-arjuna-bg`}
+    >
       <body className="font-sans antialiased">{children}</body>
     </html>
   );

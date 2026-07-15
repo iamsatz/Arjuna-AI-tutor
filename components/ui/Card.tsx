@@ -12,7 +12,7 @@ export function Card({
 }: CardProps) {
   return (
     <div
-      className={`rounded-3xl border-2 border-orange-100 bg-white shadow-chunky ${
+      className={`rounded-3xl border border-arjuna-border bg-white shadow-chunky ${
         padded ? "p-5" : ""
       } ${className}`}
       {...props}

@@ -30,7 +30,7 @@ export function LessonProgress({ step }: LessonProgressProps) {
               key={s.id}
               className={`flex items-center gap-2 rounded-xl px-3 py-2 text-sm ${
                 current
-                  ? "bg-orange-100 font-semibold text-arjuna-text"
+                  ? "bg-arjuna-primaryLight font-semibold text-arjuna-text"
                   : done
                     ? "text-green-700"
                     : "text-arjuna-muted"
@@ -49,7 +49,7 @@ export function LessonProgress({ step }: LessonProgressProps) {
 function CardOverlay({ children }: { children: React.ReactNode }) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 p-6">
-      <div className="w-full max-w-sm rounded-3xl border-2 border-orange-200 bg-white p-6 shadow-chunky">
+      <div className="w-full max-w-sm rounded-3xl border border-arjuna-border bg-white p-6 shadow-chunky">
         <div className="flex flex-col items-center">{children}</div>
       </div>
     </div>

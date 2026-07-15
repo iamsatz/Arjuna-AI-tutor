@@ -43,7 +43,7 @@ export function AppTabNav({ active }: AppTabNavProps) {
 
   return (
     <nav aria-label="Main navigation" className="fixed bottom-0 left-0 right-0 z-50 mx-auto max-w-md px-4 pb-3">
-      <div className="flex items-center justify-around rounded-[28px] bg-arjuna-text px-2 py-2 shadow-chunky">
+      <div className="flex items-center justify-around rounded-[28px] bg-[#111827] px-2 py-2 shadow-card">
         {tabs.map((tab) => {
           const isActive = tab.id === active;
           return (
@@ -54,11 +54,11 @@ export function AppTabNav({ active }: AppTabNavProps) {
               className={`flex flex-1 flex-col items-center justify-center gap-1 rounded-[22px] py-2.5 transition-all active:scale-95 ${
                 isActive
                   ? "bg-arjuna-primary text-white"
-                  : "text-white/50 hover:text-white/80"
+                  : "text-white/40 hover:text-white/70"
               }`}
             >
               {tab.icon}
-              <span className="font-display text-[10px] font-bold leading-none">
+              <span className="font-sans text-[10px] font-semibold leading-none tracking-wide">
                 {tab.label}
               </span>
               <span className="sr-only">{isActive ? "(current)" : ""}</span>

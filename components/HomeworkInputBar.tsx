@@ -148,7 +148,7 @@ export function HomeworkInputBar({
       )}
 
       {/* Input bar */}
-      <div className="flex items-end gap-2 rounded-[20px] border-2 border-orange-100 bg-white px-3 py-2.5 shadow-sm">
+      <div className="flex items-end gap-2 rounded-[20px] border border-arjuna-border bg-white px-3 py-2.5 shadow-sm">
         {/* Attach button */}
         <button
           type="button"
@@ -221,7 +221,7 @@ export function HomeworkInputBar({
           className={`mb-0.5 flex-shrink-0 rounded-full p-1.5 transition active:scale-90 ${
             canSend
               ? "bg-arjuna-primary text-white shadow-sm"
-              : "bg-orange-100 text-arjuna-muted"
+              : "bg-arjuna-border text-arjuna-muted"
           }`}
         >
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -239,29 +239,29 @@ export function HomeworkInputBar({
             onClick={() => setSheetOpen(false)}
             aria-hidden="true"
           />
-          <div className="absolute bottom-full left-0 right-0 z-50 mb-2 overflow-hidden rounded-2xl border-2 border-orange-100 bg-white shadow-chunky">
+          <div className="absolute bottom-full left-0 right-0 z-50 mb-2 overflow-hidden rounded-2xl border border-arjuna-border bg-white shadow-card">
             {attachOptions.map((opt) => (
               <button
                 key={opt.id}
                 type="button"
                 onClick={() => triggerAttach(opt.id)}
-                className="flex w-full items-center gap-3 px-4 py-3.5 text-left text-sm font-semibold text-arjuna-text transition hover:bg-orange-50 active:bg-orange-100"
+                className="flex w-full items-center gap-3 px-4 py-3.5 text-left text-sm font-semibold text-arjuna-text transition hover:bg-arjuna-bg active:bg-arjuna-primaryLight"
               >
                 {opt.id === "camera" && (
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-arjuna-primaryDark" aria-hidden="true">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-arjuna-primary" aria-hidden="true">
                     <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
                     <circle cx="12" cy="13" r="4" />
                   </svg>
                 )}
                 {opt.id === "gallery" && (
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-arjuna-primaryDark" aria-hidden="true">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-arjuna-primary" aria-hidden="true">
                     <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
                     <circle cx="8.5" cy="8.5" r="1.5" />
                     <polyline points="21 15 16 10 5 21" />
                   </svg>
                 )}
                 {opt.id === "pdf" && (
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-arjuna-primaryDark" aria-hidden="true">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-arjuna-primary" aria-hidden="true">
                     <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
                     <polyline points="14 2 14 8 20 8" />
                   </svg>
@@ -273,7 +273,7 @@ export function HomeworkInputBar({
               <button
                 type="button"
                 onClick={() => { onManualEntry(); setSheetOpen(false); }}
-                className="flex w-full items-center gap-3 border-t border-orange-100 px-4 py-3 text-left text-sm font-semibold text-arjuna-muted transition hover:bg-orange-50"
+                className="flex w-full items-center gap-3 border-t border-arjuna-border px-4 py-3 text-left text-sm font-semibold text-arjuna-muted transition hover:bg-arjuna-bg"
               >
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                   <line x1="12" y1="5" x2="12" y2="19" />

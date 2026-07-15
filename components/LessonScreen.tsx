@@ -495,8 +495,8 @@ export function LessonScreen({
 
       {showCaptureHome && (
         <>
-          {/* Greeting hero card */}
-          <div className="mb-4 overflow-hidden rounded-3xl bg-arjuna-primary px-5 py-5 shadow-chunky">
+          {/* Greeting hero card — indigo gradient */}
+          <div className="mb-4 overflow-hidden rounded-3xl bg-gradient-to-br from-arjuna-primary to-arjuna-primaryDark px-5 py-5 shadow-card">
             <div className="flex items-start justify-between gap-4">
               <div className="flex-1">
                 <p className="font-display text-2xl font-bold leading-tight text-white">
@@ -541,7 +541,7 @@ export function LessonScreen({
           <CurriculumNudge profile={profile} />
 
           {upcomingExams.length > 0 && (
-            <Card className="mt-4 border-arjuna-primary/20 bg-orange-50">
+            <Card className="mt-4 border-arjuna-primaryLight bg-arjuna-primaryLight">
               <p className="font-display font-bold text-arjuna-text">
                 Upcoming exams
               </p>
@@ -593,7 +593,7 @@ export function LessonScreen({
 
       {showGuided && state.tasks[state.currentTaskIndex] && (
         <div className="mt-auto space-y-3 pb-4">
-          <Card className="border-orange-200 bg-orange-50 py-3">
+          <Card className="border-arjuna-border bg-arjuna-bg py-3">
             <p className="text-xs font-semibold uppercase text-arjuna-muted">
               Task {state.currentTaskIndex + 1} of {state.tasks.length}
             </p>
@@ -636,14 +636,14 @@ export function LessonScreen({
                 <button
                   type="button"
                   onClick={() => void lesson.handleHelpMode("hint")}
-                  className="flex-1 rounded-2xl border-2 border-orange-200 bg-white py-3 font-display text-sm font-bold text-arjuna-primaryDark transition active:scale-95"
+                  className="flex-1 rounded-2xl border border-arjuna-border bg-white py-3 font-display text-sm font-bold text-arjuna-primaryDark transition active:scale-95"
                 >
                   Give a hint
                 </button>
                 <button
                   type="button"
                   onClick={() => void lesson.handleHelpMode("try_self")}
-                  className="flex-1 rounded-2xl border-2 border-orange-200 bg-white py-3 font-display text-sm font-bold text-arjuna-text transition active:scale-95"
+                  className="flex-1 rounded-2xl border border-arjuna-border bg-white py-3 font-display text-sm font-bold text-arjuna-text transition active:scale-95"
                 >
                   I&apos;ll try
                 </button>
@@ -652,7 +652,7 @@ export function LessonScreen({
                 value={doubtInput}
                 onChange={(e) => setDoubtInput(e.target.value)}
                 placeholder="Or ask Arjuna anything..."
-                className="w-full rounded-2xl border-2 border-orange-100 p-3 text-sm"
+                className="w-full rounded-2xl border border-arjuna-border p-3 text-sm"
                 rows={2}
               />
               <Button
@@ -684,7 +684,7 @@ export function LessonScreen({
                 value={doubtInput}
                 onChange={(e) => setDoubtInput(e.target.value)}
                 placeholder="Ask a question…"
-                className="w-full rounded-2xl border-2 border-orange-100 p-3 text-sm"
+                className="w-full rounded-2xl border border-arjuna-border p-3 text-sm"
                 rows={2}
               />
               <Button
@@ -733,7 +733,7 @@ export function LessonScreen({
                   className={`rounded-full px-3 py-1 text-xs font-bold ${
                     i === state.currentTaskIndex
                       ? "bg-arjuna-primary text-white"
-                      : "bg-white text-arjuna-muted ring-1 ring-orange-200"
+                      : "bg-white text-arjuna-muted ring-1 ring-arjuna-border"
                   }`}
                 >
                   {i + 1}. {t.subject}
@@ -742,7 +742,7 @@ export function LessonScreen({
             </div>
           )}
           {state.tasks[state.currentTaskIndex] && (
-            <Card className="border-orange-200 bg-orange-50 py-3">
+            <Card className="border-arjuna-border bg-arjuna-bg py-3">
               <p className="text-xs font-semibold uppercase text-arjuna-muted">
                 Task {state.currentTaskIndex + 1} of {state.tasks.length}
               </p>
@@ -791,7 +791,7 @@ export function LessonScreen({
             value={doubtInput}
             onChange={(e) => setDoubtInput(e.target.value)}
             placeholder="Ask a question…"
-            className="w-full rounded-2xl border-2 border-orange-100 p-3 text-sm"
+            className="w-full rounded-2xl border border-arjuna-border p-3 text-sm"
             rows={2}
           />
           <Button
@@ -851,7 +851,7 @@ export function LessonScreen({
                 value={pinInput}
                 onChange={(e) => setPinInput(e.target.value)}
                 placeholder="PIN"
-                className="w-full rounded-2xl border-2 border-orange-100 p-3"
+                className="w-full rounded-2xl border border-arjuna-border p-3"
               />
               <Button
                 className="w-full"

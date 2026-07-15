@@ -31,7 +31,7 @@ function isDuplicateName(name: string): boolean {
   return listProfiles().some((p) => p.childName.trim().toLowerCase() === n);
 }
 
-export function InviteRequired() {
+export function InviteRequired({ onComplete }: { onComplete?: () => void } = {}) {
   const router = useRouter();
   const nameRef = useRef<HTMLInputElement>(null);
   const [step, setStep] = useState<Step>("name");
@@ -87,15 +87,19 @@ export function InviteRequired() {
       return;
     }
 
-    router.replace("/?welcome=1");
+    if (onComplete) {
+      onComplete();
+    } else {
+      router.replace("/?welcome=1");
+    }
   }
 
   const nameIsBlocked = !!dupError || !name.trim();
 
   return (
     <main className="mx-auto flex min-h-dvh max-w-md flex-col bg-arjuna-bg">
-      {/* Thin top accent */}
-      <div className="h-1.5 w-full bg-arjuna-primary" />
+      {/* Thin indigo top accent */}
+      <div className="h-1 w-full bg-arjuna-primary" />
 
       <div className="flex flex-1 flex-col px-5 py-6">
 
@@ -137,7 +141,7 @@ export function InviteRequired() {
                 className={`w-full rounded-2xl border-2 bg-white px-4 py-3.5 font-display text-base font-semibold text-arjuna-text outline-none transition focus:border-arjuna-primary ${
                   dupError
                     ? "border-red-400 focus:border-red-500"
-                    : "border-orange-100"
+                    : "border-arjuna-border"
                 }`}
               />
 
@@ -159,15 +163,15 @@ export function InviteRequired() {
 
             {/* Existing students list — useful context, no wasted space */}
             {listProfiles().length > 0 && (
-              <div className="rounded-2xl border-2 border-orange-100 bg-white px-4 py-3">
-                <p className="mb-2 text-xs font-bold uppercase tracking-wide text-arjuna-muted">
+              <div className="rounded-2xl border border-arjuna-border bg-white px-4 py-3">
+                <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-arjuna-muted">
                   Already on this device
                 </p>
                 <div className="flex flex-wrap gap-2">
                   {listProfiles().map((p) => (
                     <span
                       key={p.id}
-                      className="flex items-center gap-1.5 rounded-xl bg-orange-50 px-3 py-1.5 font-display text-sm font-bold text-arjuna-text"
+                      className="flex items-center gap-1.5 rounded-xl bg-arjuna-primaryLight px-3 py-1.5 font-display text-sm font-bold text-arjuna-primaryDark"
                     >
                       <span className="flex h-5 w-5 items-center justify-center rounded-full bg-arjuna-primary text-[10px] font-bold text-white">
                         {p.childName.charAt(0).toUpperCase()}
@@ -216,10 +220,10 @@ export function InviteRequired() {
                     key={g}
                     type="button"
                     onClick={() => { setSelectedGrade(g); setError(null); }}
-                    className={`rounded-xl border-2 px-3.5 py-2 font-display text-sm font-bold transition active:scale-95 ${
+                    className={`rounded-xl border px-3.5 py-2 font-display text-sm font-bold transition active:scale-95 ${
                       isSelected
-                        ? "border-arjuna-primary bg-arjuna-primary text-white shadow-chunky"
-                        : "border-orange-100 bg-white text-arjuna-text"
+                        ? "border-arjuna-primary bg-arjuna-primary text-white shadow-sm"
+                        : "border-arjuna-border bg-white text-arjuna-body"
                     }`}
                   >
                     {g}
