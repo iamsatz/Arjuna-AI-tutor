@@ -39,7 +39,8 @@ h3,
 @layer components {
   /* Shared card style */
   .card {
-    @apply rounded-2xl bg-arjuna-surface shadow-card;
+    @apply rounded-2xl bg-arjuna-surface;
+    box-shadow: 0 2px 8px 0 rgba(0, 0, 0, 0.06);
   }
 
   /* Primary button */
