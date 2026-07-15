@@ -700,7 +700,7 @@ export function ExamHub({ profile }: ExamHubProps) {
   const upcoming = exams.filter((e) => e.status === "ready" || e.topics.length);
 
   return (
-    <main className="mx-auto flex min-h-dvh max-w-md flex-col bg-arjuna-bg px-6 pb-28 pt-8">
+    <main className="mx-auto flex min-h-dvh max-w-md flex-col bg-white px-6 pb-28 pt-8">
       {/* Consistent header across all modes */}
       <header className="mb-5 flex items-center justify-between gap-2">
         <div className="flex items-center gap-2.5">
@@ -856,8 +856,8 @@ export function ExamHub({ profile }: ExamHubProps) {
 
           {/* Weekly plan nudge */}
           {plan && plan.subjects.length > 0 && (
-            <div className="rounded-3xl border-2 border-indigo-200 bg-indigo-50/60 px-4 py-3">
-              <p className="font-display text-sm font-bold text-indigo-900">
+            <div className="rounded-3xl border-2 border-arjuna-border bg-arjuna-primaryLight/60 px-4 py-3">
+              <p className="font-display text-sm font-bold text-arjuna-text">
                 Week {plan.weekIndex + 1} plan
               </p>
               <ul className="mt-2 space-y-2">
@@ -878,7 +878,7 @@ export function ExamHub({ profile }: ExamHubProps) {
                         className={`shrink-0 rounded-2xl px-3 py-1.5 text-xs font-bold disabled:opacity-50 ${
                           done
                             ? "border border-green-300 bg-green-50 text-green-800"
-                            : "bg-indigo-600 text-white"
+                            : "bg-arjuna-primary text-white"
                         }`}
                       >
                         {done ? "Done — retake" : "Weekly test"}
@@ -1205,7 +1205,7 @@ export function ExamHub({ profile }: ExamHubProps) {
                 value={row.subject}
                 onChange={(e) => updateSubjectRow(row.id, { subject: e.target.value })}
                 placeholder="e.g. Maths"
-                className="w-full rounded-2xl border border-arjuna-border bg-arjuna-bg p-3 font-display text-sm font-semibold text-arjuna-text placeholder:font-normal placeholder:text-arjuna-muted focus:border-arjuna-primary focus:outline-none"
+                className="w-full rounded-2xl border border-arjuna-border bg-white p-3 font-display text-sm font-semibold text-arjuna-text placeholder:font-normal placeholder:text-arjuna-muted focus:border-arjuna-primary focus:outline-none"
               />
               <div>
                 <label className="mb-1 block text-xs font-semibold text-arjuna-muted">
@@ -1215,7 +1215,7 @@ export function ExamHub({ profile }: ExamHubProps) {
                   type="date"
                   value={row.examDate}
                   onChange={(e) => updateSubjectRow(row.id, { examDate: e.target.value })}
-                  className="w-full rounded-2xl border border-arjuna-border bg-arjuna-bg p-3 text-sm text-arjuna-text focus:border-arjuna-primary focus:outline-none"
+                  className="w-full rounded-2xl border border-arjuna-border bg-white p-3 text-sm text-arjuna-text focus:border-arjuna-primary focus:outline-none"
                 />
               </div>
               <div>
@@ -1227,7 +1227,7 @@ export function ExamHub({ profile }: ExamHubProps) {
                     value={row.topicsText}
                     onChange={(e) => updateSubjectRow(row.id, { topicsText: e.target.value })}
                     placeholder="e.g. Nouns, Verbs, Reading comprehension"
-                    className="flex-1 rounded-2xl border border-arjuna-border bg-arjuna-bg p-3 text-sm text-arjuna-text focus:border-arjuna-primary focus:outline-none"
+                    className="flex-1 rounded-2xl border border-arjuna-border bg-white p-3 text-sm text-arjuna-text focus:border-arjuna-primary focus:outline-none"
                     rows={2}
                   />
                   <button

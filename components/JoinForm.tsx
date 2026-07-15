@@ -37,7 +37,7 @@ function DownloadHint() {
   return (
     <p className="mt-4 text-center text-xs text-arjuna-muted">
       Need the app on TV or Android?{" "}
-      <Link href="/download" className="font-semibold text-indigo-700 underline">
+      <Link href="/download" className="font-semibold text-arjuna-primary underline">
         Get the app
       </Link>
     </p>
@@ -438,7 +438,7 @@ export function JoinForm({ code }: JoinFormProps) {
         <button
           type="button"
           onClick={() => setShowDetails((v) => !v)}
-          className="text-sm font-semibold text-indigo-700 underline"
+          className="text-sm font-semibold text-arjuna-primary underline"
         >
           {showDetails ? "Hide details" : "More details (grade, board — optional)"}
         </button>

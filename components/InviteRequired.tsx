@@ -97,7 +97,7 @@ export function InviteRequired({ onComplete }: { onComplete?: () => void } = {})
   const nameIsBlocked = !!dupError || !name.trim();
 
   return (
-    <main className="mx-auto flex min-h-dvh max-w-md flex-col bg-arjuna-bg">
+    <main className="mx-auto flex min-h-dvh max-w-md flex-col bg-white">
       {/* Thin indigo top accent */}
       <div className="h-1 w-full bg-arjuna-primary" />
 

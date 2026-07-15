@@ -68,7 +68,7 @@ const BACKLOG = [
 
 export default function RoadmapPage() {
   return (
-    <main className="mx-auto min-h-dvh max-w-md bg-arjuna-bg px-6 py-10">
+    <main className="mx-auto min-h-dvh max-w-md bg-white px-6 py-10">
       <Link href="/" className="text-sm text-arjuna-primaryDark underline">
         ← Back
       </Link>

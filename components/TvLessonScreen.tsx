@@ -73,7 +73,7 @@ export function TvLessonScreen() {
   if (settings.deviceMode === "tv_only") {
     if (!profile) {
       return (
-        <main className="flex min-h-dvh items-center justify-center bg-arjuna-bg p-10">
+        <main className="flex min-h-dvh items-center justify-center bg-white p-10">
           <p className="text-2xl text-arjuna-text">
             Open invite link on phone first to set child name.
           </p>
@@ -83,7 +83,7 @@ export function TvLessonScreen() {
 
     if (!activeCode || !state) {
       return (
-        <main className="flex min-h-dvh items-center justify-center bg-arjuna-bg">
+        <main className="flex min-h-dvh items-center justify-center bg-white">
           <p className="text-xl text-arjuna-muted">Starting TV session…</p>
         </main>
       );
@@ -96,7 +96,7 @@ export function TvLessonScreen() {
 
   if (!activeCode || !connected || !state || !profile) {
     return (
-      <main className="mx-auto flex min-h-dvh max-w-5xl flex-col items-center justify-center gap-8 bg-arjuna-bg px-10 py-12">
+      <main className="mx-auto flex min-h-dvh max-w-5xl flex-col items-center justify-center gap-8 bg-white px-10 py-12">
         <div className="text-center">
           <p className="text-sm font-medium uppercase tracking-[0.35em] text-arjuna-muted">
             Arjuna · TV
@@ -150,7 +150,7 @@ export function TvLessonScreen() {
   }
 
   return (
-    <main className="mx-auto min-h-dvh max-w-6xl bg-arjuna-bg px-8 py-6">
+    <main className="mx-auto min-h-dvh max-w-6xl bg-white px-8 py-6">
       <LessonScreen
         profile={profile}
         controller="tv"

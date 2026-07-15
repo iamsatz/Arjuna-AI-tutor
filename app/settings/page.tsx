@@ -204,7 +204,7 @@ export default function SettingsPage() {
   }
 
   return (
-    <main className="mx-auto min-h-dvh max-w-md bg-arjuna-bg px-5 py-8">
+    <main className="mx-auto min-h-dvh max-w-md bg-white px-5 py-8">
       <Link
         href="/"
         className="inline-flex items-center gap-1 rounded-full bg-white px-3 py-1.5 text-sm font-semibold text-arjuna-primaryDark shadow-sm"

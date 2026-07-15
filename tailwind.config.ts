@@ -9,47 +9,51 @@ const config: Config = {
   theme: {
     extend: {
       fontFamily: {
-        // Fredoka stays for display/heading; Plus Jakarta Sans replaces Inter for body
         display: ["var(--font-fredoka)", "system-ui", "sans-serif"],
-        sans: ["var(--font-jakarta)", "system-ui", "sans-serif"],
+        sans:    ["var(--font-jakarta)", "system-ui", "sans-serif"],
       },
       colors: {
         arjuna: {
-          // ── 90 % neutral surfaces ──────────────────────────────────────
-          bg:      "#F4F6F9",   // cool light grey page background
+          // ── 90 % neutral ───────────────────────────────────────────────
+          bg:      "#FFFFFF",   // pure white page background
           surface: "#FFFFFF",   // white cards
-          border:  "#E4E8EF",   // neutral card/input border
-          text:    "#111827",   // near-black heading
-          body:    "#374151",   // body copy — readable, not harsh
-          muted:   "#9CA3AF",   // placeholder, meta text
+          border:  "#EFEFEF",   // hairline borders — very subtle
+          text:    "#111111",   // near-black heading
+          body:    "#444444",   // body copy
+          muted:   "#AAAAAA",   // placeholder, meta
 
-          // ── 10 % accent — single indigo ──────────────────────────────
-          primary:     "#4F46E5",   // indigo — CTA, active tab, hero card
-          primaryDark: "#3730A3",   // pressed state
-          primaryLight:"#EEF2FF",  // tinted bg (chips, badges)
+          // ── 10 % accent — warm coral (hero card + CTA only) ────────────
+          primary:      "#E05A2B",   // warm coral-red (matches reference gradient start)
+          primaryDark:  "#B84520",   // darker press state
+          primaryLight: "#FDF2EE",   // tinted chip / badge bg
 
-          // ── Feedback (used sparingly) ─────────────────────────────────
+          // ── Feedback ──────────────────────────────────────────────────
           success: "#16A34A",
-          warning: "#CA8A04",
+          warning: "#D97706",
           error:   "#DC2626",
           info:    "#0284C7",
 
-          // ── Subject dots (tiny only, never fills) ────────────────────
-          maths:   "#7C3AED",   // violet
-          english: "#0284C7",   // sky blue
-          science: "#059669",   // emerald
-          hindi:   "#DB2777",   // rose
-          sst:     "#D97706",   // amber
+          // ── Subject dots ──────────────────────────────────────────────
+          maths:   "#7C3AED",
+          english: "#0284C7",
+          science: "#059669",
+          hindi:   "#DB2777",
+          sst:     "#D97706",
         },
       },
+      backgroundImage: {
+        // The hero card gradient — warm coral blob, exactly like the reference
+        "hero-gradient": "linear-gradient(135deg, #E05A2B 0%, #C23B00 60%, #A12E00 100%)",
+      },
       boxShadow: {
-        // Softer shadows to match the clean neutral palette
-        sm:    "0 1px 3px 0 rgba(0,0,0,0.06), 0 1px 2px 0 rgba(0,0,0,0.04)",
-        card:  "0 2px 8px 0 rgba(0,0,0,0.06)",
-        focus: "0 0 0 3px rgba(79,70,229,0.25)",
-        // Keep legacy names so existing components don't break
-        chunky:       "0 2px 8px 0 rgba(0,0,0,0.08)",
-        "chunky-press":"0 1px 4px 0 rgba(0,0,0,0.06)",
+        // Reference cards use a soft diffuse shadow, no borders
+        card:   "0 4px 20px 0 rgba(0,0,0,0.07)",
+        hero:   "0 8px 32px 0 rgba(224,90,43,0.28)",
+        sm:     "0 2px 8px 0 rgba(0,0,0,0.05)",
+        focus:  "0 0 0 3px rgba(224,90,43,0.20)",
+        // legacy — keep so nothing breaks
+        chunky:        "0 4px 20px 0 rgba(0,0,0,0.07)",
+        "chunky-press":"0 2px 8px 0 rgba(0,0,0,0.05)",
       },
       animation: {
         "arrow-hit": "arrowHit 0.6s ease-out",

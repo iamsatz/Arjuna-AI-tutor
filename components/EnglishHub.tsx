@@ -118,7 +118,7 @@ export function EnglishHub({ profile }: EnglishHubProps) {
   ];
 
   return (
-    <main className="mx-auto min-h-dvh max-w-md bg-arjuna-bg px-4 pb-28 pt-4">
+    <main className="mx-auto min-h-dvh max-w-md bg-white px-4 pb-28 pt-4">
       {/* Header */}
       <header className="mb-5 flex items-center justify-between gap-2">
         <div className="flex items-center gap-2.5">

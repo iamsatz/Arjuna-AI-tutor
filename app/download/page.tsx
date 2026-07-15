@@ -11,7 +11,7 @@ export default function DownloadPage() {
   const apkAvailable = existsSync(apkPath);
 
   return (
-    <main className="mx-auto flex min-h-dvh max-w-md flex-col justify-center bg-arjuna-bg px-6 py-10">
+    <main className="mx-auto flex min-h-dvh max-w-md flex-col justify-center bg-white px-6 py-10">
       <Card>
         <div className="flex flex-col items-center text-center">
           <ArjunaAvatar state="idle" size="sm" />
@@ -58,7 +58,7 @@ export default function DownloadPage() {
             )}
           </div>
 
-          <div className="rounded-2xl bg-indigo-50 p-4">
+          <div className="rounded-2xl bg-arjuna-primaryLight p-4">
             <p className="font-display font-bold text-arjuna-text">TV mode</p>
             <p className="mt-1 text-sm text-arjuna-muted">
               On Android TV: install the APK or open your family link in Chrome,

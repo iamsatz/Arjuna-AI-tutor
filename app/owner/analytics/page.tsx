@@ -63,7 +63,7 @@ export default function OwnerAnalyticsPage() {
       : 0;
 
   return (
-    <main className="mx-auto min-h-dvh max-w-3xl bg-arjuna-bg px-6 py-10">
+    <main className="mx-auto min-h-dvh max-w-3xl bg-white px-6 py-10">
       <div className="mb-6 flex items-center justify-between">
         <div>
           <p className="text-sm uppercase tracking-widest text-arjuna-muted">

@@ -16,7 +16,7 @@ export default function EnglishPage() {
 
   if (!ready) {
     return (
-      <main className="flex min-h-dvh items-center justify-center bg-arjuna-bg">
+      <main className="flex min-h-dvh items-center justify-center bg-white">
         <p className="text-sm text-arjuna-muted">Loading…</p>
       </main>
     );
@@ -29,7 +29,7 @@ export default function EnglishPage() {
   return (
     <Suspense
       fallback={
-        <main className="flex min-h-dvh items-center justify-center bg-arjuna-bg">
+        <main className="flex min-h-dvh items-center justify-center bg-white">
           <p className="text-sm text-arjuna-muted">Loading…</p>
         </main>
       }

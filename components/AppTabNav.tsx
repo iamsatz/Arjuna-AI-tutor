@@ -43,7 +43,7 @@ export function AppTabNav({ active }: AppTabNavProps) {
 
   return (
     <nav aria-label="Main navigation" className="fixed bottom-0 left-0 right-0 z-50 mx-auto max-w-md px-4 pb-3">
-      <div className="flex items-center justify-around rounded-[28px] bg-[#111827] px-2 py-2 shadow-card">
+      <div className="flex items-center justify-around rounded-[28px] bg-[#111111] px-2 py-2 shadow-card">
         {tabs.map((tab) => {
           const isActive = tab.id === active;
           return (

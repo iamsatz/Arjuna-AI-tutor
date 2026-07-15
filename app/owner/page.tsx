@@ -140,7 +140,7 @@ export default function OwnerDashboardPage() {
   }
 
   return (
-    <main className="mx-auto min-h-dvh max-w-2xl bg-arjuna-bg px-6 py-10">
+    <main className="mx-auto min-h-dvh max-w-2xl bg-white px-6 py-10">
       <div className="mb-8 flex items-start justify-between gap-4">
         <div>
           <p className="text-sm font-medium uppercase tracking-widest text-arjuna-muted">
@@ -189,7 +189,7 @@ export default function OwnerDashboardPage() {
             {invites.map((invite) => (
               <li
                 key={invite.code}
-                className="rounded-xl border border-arjuna-primary/10 bg-arjuna-bg px-4 py-3"
+                className="rounded-xl border border-arjuna-primary/10 bg-white px-4 py-3"
               >
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <p className="text-sm font-medium text-arjuna-text">
@@ -244,7 +244,7 @@ export default function OwnerDashboardPage() {
                     ? "bg-red-50 text-red-700"
                     : check.status === "ok"
                       ? "bg-green-50 text-green-800"
-                      : "bg-arjuna-bg text-arjuna-muted"
+                      : "bg-white text-arjuna-muted"
                 }`}
                 title={check.detail}
               >
@@ -366,7 +366,7 @@ export default function OwnerDashboardPage() {
             {sessions.map((session) => (
               <li
                 key={session.id}
-                className="rounded-xl border border-arjuna-primary/10 bg-arjuna-bg px-4 py-3"
+                className="rounded-xl border border-arjuna-primary/10 bg-white px-4 py-3"
               >
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <p className="text-sm font-medium text-arjuna-text">

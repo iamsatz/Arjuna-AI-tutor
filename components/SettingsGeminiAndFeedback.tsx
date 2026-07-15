@@ -161,7 +161,7 @@ export function SettingsGeminiAndFeedback({ profile, onProfileChange }: Props) {
 
   return (
     <>
-      <section className="mt-6 space-y-4 rounded-2xl border-2 border-indigo-200 bg-indigo-50/40 p-5 shadow-sm">
+      <section className="mt-6 space-y-4 rounded-2xl border-2 border-arjuna-border bg-arjuna-primaryLight p-5 shadow-sm">
         <h2 className="font-display text-lg font-bold text-arjuna-text">
           Gemini AI key
         </h2>
@@ -171,7 +171,7 @@ export function SettingsGeminiAndFeedback({ profile, onProfileChange }: Props) {
             href="https://aistudio.google.com/apikey"
             target="_blank"
             rel="noreferrer"
-            className="font-semibold text-indigo-700 underline"
+            className="font-semibold text-arjuna-primary underline"
           >
             Google AI Studio
           </a>{" "}
@@ -201,7 +201,7 @@ export function SettingsGeminiAndFeedback({ profile, onProfileChange }: Props) {
             type="button"
             onClick={saveGeminiKey}
             disabled={!geminiInput.trim()}
-            className="flex-1 rounded-xl bg-indigo-600 py-2.5 text-sm font-semibold text-white disabled:opacity-50"
+            className="flex-1 rounded-xl bg-arjuna-primary py-2.5 text-sm font-semibold text-white disabled:opacity-50"
           >
             Save key
           </button>
@@ -209,7 +209,7 @@ export function SettingsGeminiAndFeedback({ profile, onProfileChange }: Props) {
             type="button"
             onClick={() => void testGemini()}
             disabled={geminiBusy}
-            className="flex-1 rounded-xl border border-indigo-300 bg-white py-2.5 text-sm font-semibold disabled:opacity-50"
+            className="flex-1 rounded-xl border border-arjuna-border bg-white py-2.5 text-sm font-semibold disabled:opacity-50"
           >
             {geminiBusy ? "Testing…" : "Test connection"}
           </button>
@@ -224,7 +224,7 @@ export function SettingsGeminiAndFeedback({ profile, onProfileChange }: Props) {
         <button
           type="button"
           onClick={copyAppUrl}
-          className="w-full rounded-xl border border-indigo-200 bg-white py-2 text-sm font-semibold"
+          className="w-full rounded-xl border border-arjuna-border bg-white py-2 text-sm font-semibold"
         >
           Copy app URL (for Postman / testing)
         </button>

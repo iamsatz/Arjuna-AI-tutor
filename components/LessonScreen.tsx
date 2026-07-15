@@ -354,7 +354,7 @@ export function LessonScreen({
   })();
 
   return (
-    <main className="mx-auto flex min-h-dvh max-w-md flex-col bg-arjuna-bg px-5 pb-28 pt-5">
+    <main className="mx-auto flex min-h-dvh max-w-md flex-col bg-white px-5 pb-28 pt-5">
       {/* ── Header ── */}
       <header className="mb-5 flex items-center justify-between gap-2">
         <div className="flex items-center gap-2.5">
@@ -367,7 +367,7 @@ export function LessonScreen({
                 setKidSheetOpen(true);
               }
             }}
-            className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-arjuna-primary font-display text-base font-bold text-white shadow-chunky transition active:scale-95"
+            className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-arjuna-primary font-display text-base font-bold text-white shadow-sm transition active:scale-95"
           >
             {profile.childName.trim().charAt(0).toUpperCase() || "?"}
           </button>
@@ -495,20 +495,26 @@ export function LessonScreen({
 
       {showCaptureHome && (
         <>
-          {/* Greeting hero card — indigo gradient */}
-          <div className="mb-4 overflow-hidden rounded-3xl bg-gradient-to-br from-arjuna-primary to-arjuna-primaryDark px-5 py-5 shadow-card">
+          {/* Hero card — warm gradient matching reference design */}
+          <div
+            className="mb-5 overflow-hidden rounded-3xl px-5 py-6 shadow-hero"
+            style={{ background: "linear-gradient(135deg, #E05A2B 0%, #C23B00 55%, #A12E00 100%)" }}
+          >
             <div className="flex items-start justify-between gap-4">
               <div className="flex-1">
-                <p className="font-display text-2xl font-bold leading-tight text-white">
-                  {greeting},<br />{profile.childName}!
+                <p className="text-sm font-semibold text-white/70">
+                  {greeting}
+                </p>
+                <p className="font-display text-3xl font-bold leading-tight text-white">
+                  {profile.childName}!
                 </p>
                 {profile.grade && (
-                  <p className="mt-1 text-sm font-medium text-white/70">
+                  <p className="mt-0.5 text-sm font-medium text-white/60">
                     {profile.grade}
                   </p>
                 )}
-                <p className="mt-3 rounded-2xl bg-white/15 px-3 py-2 text-sm font-medium text-white/90">
-                  What homework do you have today?
+                <p className="mt-4 inline-block rounded-full bg-white/20 px-4 py-1.5 text-sm font-semibold text-white/95 backdrop-blur-sm">
+                  What homework today?
                 </p>
               </div>
               <ArjunaAvatar state={avatarState} size="sm" showTarget />
@@ -593,7 +599,7 @@ export function LessonScreen({
 
       {showGuided && state.tasks[state.currentTaskIndex] && (
         <div className="mt-auto space-y-3 pb-4">
-          <Card className="border-arjuna-border bg-arjuna-bg py-3">
+          <Card className="border-arjuna-border bg-white py-3">
             <p className="text-xs font-semibold uppercase text-arjuna-muted">
               Task {state.currentTaskIndex + 1} of {state.tasks.length}
             </p>
@@ -742,7 +748,7 @@ export function LessonScreen({
             </div>
           )}
           {state.tasks[state.currentTaskIndex] && (
-            <Card className="border-arjuna-border bg-arjuna-bg py-3">
+            <Card className="border-arjuna-border bg-white py-3">
               <p className="text-xs font-semibold uppercase text-arjuna-muted">
                 Task {state.currentTaskIndex + 1} of {state.tasks.length}
               </p>

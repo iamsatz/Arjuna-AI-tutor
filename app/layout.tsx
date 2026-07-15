@@ -12,7 +12,7 @@ const jakarta = Plus_Jakarta_Sans({
   subsets: ["latin"],
   variable: "--font-jakarta",
   display: "swap",
-  weight: ["400", "500", "600", "700"],
+  weight: ["400", "500", "600", "700", "800"],
 });
 
 export const metadata: Metadata = {
@@ -43,7 +43,7 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${fredoka.variable} ${jakarta.variable} bg-arjuna-bg`}
+      className={`${fredoka.variable} ${jakarta.variable} bg-white`}
     >
       <body className="font-sans antialiased">{children}</body>
     </html>

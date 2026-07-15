@@ -8,7 +8,7 @@ type ButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
 const variants = {
   primary: "bg-arjuna-primary text-white hover:bg-arjuna-primaryDark",
   secondary:
-    "border-2 border-arjuna-primary/25 bg-white text-arjuna-text hover:bg-arjuna-bg",
+    "border-2 border-arjuna-primary/25 bg-white text-arjuna-text hover:bg-white",
   success: "bg-arjuna-green text-white hover:bg-green-600",
   ghost: "bg-transparent text-arjuna-muted shadow-none hover:bg-white/60",
 };
