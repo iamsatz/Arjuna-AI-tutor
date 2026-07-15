@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
 import { InviteRequired } from "./InviteRequired";
 import { LessonScreen } from "./LessonScreen";
 import { TvLessonScreen } from "./TvLessonScreen";
@@ -15,29 +14,24 @@ import {
 import { isTvDevice } from "@/lib/platform";
 
 export function DeviceRouter() {
-  const router = useRouter();
-  const searchParams = useSearchParams();
   const [profile, setProfile] = useState<ChildProfile | null>(null);
   const [ready, setReady] = useState(false);
-  // When ?addStudent=1 is present we show the onboarding form to add a new student.
   const [addingStudent, setAddingStudent] = useState(false);
 
   useEffect(() => {
     setProfile(loadChildProfile());
 
-    const wantsAdd = searchParams.get("addStudent") === "1";
-    if (wantsAdd) {
-      // Clear the param from the URL so navigating back never re-triggers the form.
-      router.replace("/");
-      const profiles = listProfiles();
-      if (profiles.length < MAX_PROFILES) {
+    // Read ?addStudent=1 via window.location — avoids useSearchParams suspense
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("addStudent") === "1") {
+      // Clear the param so back-navigation never re-triggers
+      window.history.replaceState({}, "", "/");
+      if (listProfiles().length < MAX_PROFILES) {
         setAddingStudent(true);
       }
-      // If already at cap, just land on home — Settings shows the error there.
     }
 
     setReady(true);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   function handleActiveChange() {
@@ -53,7 +47,7 @@ export function DeviceRouter() {
     );
   }
 
-  // TV path restored — routes any TV user-agent or ?tv=1 to TvLessonScreen
+  // TV path — routes any TV user-agent or ?tv=1 to TvLessonScreen
   if (isTvDevice()) {
     return <TvLessonScreen />;
   }
