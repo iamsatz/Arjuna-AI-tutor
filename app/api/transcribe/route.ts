@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { transcribeSpeech } from "@/lib/sarvam";
+import { normalizeLanguageMode, transcribeSpeech } from "@/lib/sarvam";
 import { missingSarvamResponse } from "@/lib/userErrors";
 
 export async function POST(request: NextRequest) {
@@ -14,9 +14,14 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "audio required" }, { status: 400 });
   }
 
+  const requested = form.get("languageMode");
+  const languageMode = normalizeLanguageMode(
+    typeof requested === "string" ? requested : undefined,
+  );
+
   try {
     const buffer = Buffer.from(await file.arrayBuffer());
-    const transcript = await transcribeSpeech(apiKey, buffer);
+    const transcript = await transcribeSpeech(apiKey, buffer, { languageMode });
     return NextResponse.json({ transcript });
   } catch (error) {
     const message =
