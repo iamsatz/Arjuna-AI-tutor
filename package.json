@@ -12,7 +12,8 @@
     "cap:android": "cap sync android && cap open android",
     "release": "node scripts/release.mjs",
     "supabase:setup": "node --env-file=.env.local scripts/run-supabase-setup.mjs",
-    "smoke": "node scripts/smoke.mjs"
+    "smoke": "node scripts/smoke.mjs",
+    "check:stt": "node --experimental-strip-types --no-warnings scripts/check-stt-language.mjs"
   },
   "dependencies": {
     "@capacitor/android": "^7.4.2",

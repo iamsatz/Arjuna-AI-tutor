@@ -1,15 +1,22 @@
 import { NextRequest, NextResponse } from "next/server";
-import { synthesizeSpeech, DEFAULT_GREETING } from "@/lib/sarvam";
+import {
+  synthesizeSpeech,
+  greetingFor,
+  normalizeLanguageMode,
+} from "@/lib/sarvam";
 import { missingSarvamResponse } from "@/lib/userErrors";
 
-function ttsLanguage(languageMode?: string, languageCode?: string): string {
+function ttsLanguage(languageMode: string, languageCode?: string): string {
   if (languageCode) return languageCode;
   if (languageMode === "pure_telugu" || languageMode === "mixed") return "te-IN";
   return "en-IN";
 }
 
-export async function GET() {
-  return handleSpeak(DEFAULT_GREETING);
+export async function GET(request: NextRequest) {
+  const languageMode = normalizeLanguageMode(
+    request.nextUrl.searchParams.get("languageMode"),
+  );
+  return handleSpeak(greetingFor(languageMode), undefined, languageMode);
 }
 
 export async function POST(request: NextRequest) {
@@ -19,18 +26,19 @@ export async function POST(request: NextRequest) {
     languageMode?: string;
     languageCode?: string;
   };
+  const languageMode = normalizeLanguageMode(body.languageMode);
   return handleSpeak(
-    body.text ?? DEFAULT_GREETING,
+    body.text ?? greetingFor(languageMode),
     body.speaker,
-    body.languageMode,
+    languageMode,
     body.languageCode,
   );
 }
 
 async function handleSpeak(
   text: string,
-  speaker?: string,
-  languageMode?: string,
+  speaker: string | undefined,
+  languageMode: string,
   languageCode?: string,
 ) {
   const apiKey = process.env.SARVAM_API_KEY;

@@ -407,6 +407,7 @@ export function ExamHub({ profile }: ExamHubProps) {
       try {
         const form = new FormData();
         form.append("audio", blob, "recording.webm");
+        form.append("languageMode", settings.languageMode);
         const res = await fetch("/api/transcribe", { method: "POST", body: form });
         const data = (await res.json()) as { transcript?: string; error?: string };
         const text = data.transcript?.trim();
