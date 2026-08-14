@@ -1,8 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
+import { requireInvite } from "@/lib/apiAuth";
 import { transcribeSpeech } from "@/lib/sarvam";
 import { missingSarvamResponse } from "@/lib/userErrors";
 
 export async function POST(request: NextRequest) {
+  const denied = await requireInvite(request);
+  if (denied) return denied;
+
   const apiKey = process.env.SARVAM_API_KEY;
   if (!apiKey) {
     return missingSarvamResponse();

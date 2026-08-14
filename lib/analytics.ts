@@ -1,5 +1,6 @@
 import type { DeviceMode, LanguageMode } from "@/lib/settings";
 import { isTvDevice } from "@/lib/platform";
+import { arjunaFetch } from "@/lib/apiClient";
 
 export type AnalyticsEventType =
   | "app_open"
@@ -12,7 +13,6 @@ export type AnalyticsEventType =
   | "example_given"
   | "understood"
   | "answer_verified"
-  | "parent_unlock"
   | "task_completed"
   | "session_completed"
   | "exam_created"
@@ -20,6 +20,7 @@ export type AnalyticsEventType =
   | "exam_revision_started"
   | "exam_quiz_started"
   | "exam_quiz_answer"
+  | "exam_quiz_checked"
   | "weekly_test_started"
   | "spaced_revision_started";
 
@@ -43,7 +44,7 @@ export async function track(
   if (typeof window === "undefined") return;
 
   try {
-    await fetch("/api/events", {
+    await arjunaFetch("/api/events", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({

@@ -20,7 +20,6 @@ import {
   kidInitial,
   type GradeOption,
 } from "@/lib/profileOptions";
-import { verifyParentPin } from "@/lib/settings";
 import { Button } from "@/components/ui/Button";
 
 type KidSwitcherProps = {
@@ -34,7 +33,7 @@ export function KidSwitcher({ onActiveChange }: KidSwitcherProps) {
   );
   const [adding, setAdding] = useState(false);
   const [removingId, setRemovingId] = useState<string | null>(null);
-  const [pin, setPin] = useState("");
+  const [confirmName, setConfirmName] = useState("");
   const [error, setError] = useState<string | null>(null);
 
   const [name, setName] = useState("");
@@ -92,13 +91,19 @@ export function KidSwitcher({ onActiveChange }: KidSwitcherProps) {
 
   function handleRemove(id: string) {
     setError(null);
-    if (!verifyParentPin(pin)) {
-      setError("Wrong PIN");
+    const target = profiles.find((p) => p.id === id);
+    // Typed-name confirm replaces the old parent PIN: still a deliberate step
+    // before a destructive action, but nothing a child unlocks by guessing 1234.
+    if (
+      !target ||
+      confirmName.trim().toLowerCase() !== target.childName.trim().toLowerCase()
+    ) {
+      setError(`Type "${target?.childName ?? "the name"}" exactly to remove`);
       return;
     }
     removeProfile(id);
     setRemovingId(null);
-    setPin("");
+    setConfirmName("");
     refresh();
   }
 
@@ -138,9 +143,11 @@ export function KidSwitcher({ onActiveChange }: KidSwitcherProps) {
               {isActive && profiles.length > 1 && (
                 <button
                   type="button"
-                  onClick={() =>
-                    setRemovingId((cur) => (cur === p.id ? null : p.id ?? null))
-                  }
+                  onClick={() => {
+                    setConfirmName("");
+                    setError(null);
+                    setRemovingId((cur) => (cur === p.id ? null : p.id ?? null));
+                  }}
                   className="mt-0.5 text-[10px] text-arjuna-muted underline"
                 >
                   remove
@@ -169,13 +176,19 @@ export function KidSwitcher({ onActiveChange }: KidSwitcherProps) {
 
       {removingId && (
         <div className="mt-3 rounded-2xl border-2 border-amber-200 bg-amber-50 p-3">
-          <p className="text-xs text-amber-900">Parent PIN to remove this kid</p>
+          <p className="text-xs text-amber-900">
+            Type{" "}
+            <strong>
+              {profiles.find((p) => p.id === removingId)?.childName}
+            </strong>{" "}
+            to remove this kid
+          </p>
           <div className="mt-2 flex gap-2">
             <input
-              type="password"
-              value={pin}
-              onChange={(e) => setPin(e.target.value)}
-              placeholder="PIN"
+              type="text"
+              value={confirmName}
+              onChange={(e) => setConfirmName(e.target.value)}
+              placeholder="Child's name"
               className="flex-1 rounded-xl border-2 border-orange-100 p-2 text-sm"
             />
             <Button

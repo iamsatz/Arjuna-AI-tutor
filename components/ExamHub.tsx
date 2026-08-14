@@ -13,10 +13,10 @@ import {
   type ChildProfile,
 } from "@/lib/childProfile";
 import type { StoredExam } from "@/lib/examTypes";
-import { arjunaFetch, getGeminiKeyHeader } from "@/lib/apiClient";
+import { arjunaFetch, getGeminiKeyHeader, getInviteHeader } from "@/lib/apiClient";
 import { prepareUploadFiles } from "@/lib/compressImage";
 import { topicsToConceptNotes, type StoredCurriculum } from "@/lib/curriculumTypes";
-import { loadSettings, verifyParentPin } from "@/lib/settings";
+import { loadSettings } from "@/lib/settings";
 import { track } from "@/lib/analytics";
 import { playSpeech } from "@/lib/clientSpeech";
 import { stripSpeechMarkers } from "@/lib/bridgeSubject";
@@ -97,10 +97,11 @@ export function ExamHub({ profile }: ExamHubProps) {
     Omit<ExamQuizQuestion, "correctIndex">[]
   >([]);
   const [missionTitle, setMissionTitle] = useState<string | null>(null);
-  const [fullQuestions, setFullQuestions] = useState<ExamQuizQuestion[]>([]);
   const [selectedAnswers, setSelectedAnswers] = useState<Record<string, number>>({});
-  const [pinInput, setPinInput] = useState("");
-  const [showAnswers, setShowAnswers] = useState(false);
+  /** questionId -> was it right. Graded server-side; correct options never sent. */
+  const [quizResults, setQuizResults] = useState<Record<string, boolean> | null>(
+    null,
+  );
 
   const [curriculum, setCurriculum] = useState<StoredCurriculum | null>(null);
   const [curriculumSubject, setCurriculumSubject] = useState("");
@@ -139,7 +140,7 @@ export function ExamHub({ profile }: ExamHubProps) {
       } else {
         params.set("childName", profile.childName);
       }
-      const res = await fetch(`/api/exam?${params.toString()}`);
+      const res = await fetch(`/api/exam?${params.toString()}`, { headers: getInviteHeader() });
       if (!res.ok) throw new Error("load failed");
       const data = (await res.json()) as { exams: StoredExam[] };
       setExams(data.exams ?? []);
@@ -160,6 +161,7 @@ export function ExamHub({ profile }: ExamHubProps) {
     try {
       const res = await fetch(
         `/api/curriculum?schoolKey=${encodeURIComponent(schoolKey)}`,
+        { headers: getInviteHeader() },
       );
       if (!res.ok) return;
       const data = (await res.json()) as { curriculum: StoredCurriculum | null };
@@ -231,7 +233,7 @@ export function ExamHub({ profile }: ExamHubProps) {
     try {
       const res = await fetch("/api/exam", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...getInviteHeader() },
         body: JSON.stringify({
           inviteCode: profile.inviteCode,
           childName: profile.childName,
@@ -285,7 +287,7 @@ export function ExamHub({ profile }: ExamHubProps) {
       for (const row of rows) {
         const res = await fetch("/api/exam", {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: { "Content-Type": "application/json", ...getInviteHeader() },
           body: JSON.stringify({
             inviteCode: profile.inviteCode,
             childName: profile.childName,
@@ -407,7 +409,11 @@ export function ExamHub({ profile }: ExamHubProps) {
       try {
         const form = new FormData();
         form.append("audio", blob, "recording.webm");
-        const res = await fetch("/api/transcribe", { method: "POST", body: form });
+        const res = await fetch("/api/transcribe", {
+          method: "POST",
+          headers: getInviteHeader(),
+          body: form,
+        });
         const data = (await res.json()) as { transcript?: string; error?: string };
         const text = data.transcript?.trim();
         if (res.ok && text) {
@@ -561,9 +567,8 @@ export function ExamHub({ profile }: ExamHubProps) {
     setMode("quiz");
     setQuestions([]);
     setMissionTitle(null);
-    setFullQuestions([]);
     setSelectedAnswers({});
-    setShowAnswers(false);
+    setQuizResults(null);
     void track("exam_quiz_started", { examId: exam.id, subject: exam.subject });
     setBusy(true);
     try {
@@ -597,7 +602,7 @@ export function ExamHub({ profile }: ExamHubProps) {
     try {
       const res = await fetch("/api/exam", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...getInviteHeader() },
         body: JSON.stringify({
           inviteCode: profile.inviteCode,
           childName: profile.childName,
@@ -633,7 +638,7 @@ export function ExamHub({ profile }: ExamHubProps) {
     try {
       const res = await fetch("/api/exam", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...getInviteHeader() },
         body: JSON.stringify({
           inviteCode: profile.inviteCode,
           childName: profile.childName,
@@ -662,31 +667,34 @@ export function ExamHub({ profile }: ExamHubProps) {
     }
   }
 
-  async function revealQuizAnswers() {
+  async function checkQuizAnswers() {
     if (!selectedExam) return;
-    if (!verifyParentPin(pinInput)) {
-      setError("Wrong PIN");
-      return;
-    }
     setBusy(true);
+    setError(null);
     try {
       const res = await arjunaFetch("/api/exam/quiz", {
         method: "POST",
         json: {
           examId: selectedExam.id,
           languageMode: settings.languageMode,
-          revealAnswers: true,
-          pin: pinInput,
+          answers: selectedAnswers,
           schoolKey: schoolKey ?? undefined,
         },
       });
-      if (!res.ok) throw new Error("reveal failed");
-      const data = (await res.json()) as { questions: ExamQuizQuestion[] };
-      setFullQuestions(data.questions ?? []);
-      setShowAnswers(true);
+      if (!res.ok) throw new Error("check failed");
+      const data = (await res.json()) as {
+        results: Record<string, boolean>;
+        score: number;
+        total: number;
+      };
+      setQuizResults(data.results ?? {});
+      void track("exam_quiz_checked", {
+        score: data.score,
+        total: data.total,
+      });
     } catch (err) {
-      logDevError("revealQuizAnswers", err);
-      setError("Could not reveal answers.");
+      logDevError("checkQuizAnswers", err);
+      setError("Could not check answers.");
     } finally {
       setBusy(false);
     }
@@ -694,6 +702,13 @@ export function ExamHub({ profile }: ExamHubProps) {
 
   function handleQuizAnswer(questionId: string, optionIndex: number) {
     setSelectedAnswers((prev) => ({ ...prev, [questionId]: optionIndex }));
+    // Answering again after a check clears the old verdict for that question.
+    setQuizResults((prev) => {
+      if (!prev || !(questionId in prev)) return prev;
+      const next = { ...prev };
+      delete next[questionId];
+      return next;
+    });
     void track("exam_quiz_answer", { questionId, optionIndex });
   }
 
@@ -1366,51 +1381,53 @@ export function ExamHub({ profile }: ExamHubProps) {
               </p>
               <p className="mt-1 text-sm font-medium">{q.prompt}</p>
               <div className="mt-2 space-y-2">
-                {q.options.map((opt, idx) => {
-                  const selected = selectedAnswers[q.id] === idx;
-                  const correct =
-                    showAnswers &&
-                    fullQuestions.find((fq) => fq.id === q.id)?.correctIndex === idx;
+                {q.options.map((opt, optIdx) => {
+                  const selected = selectedAnswers[q.id] === optIdx;
+                  const verdict = quizResults?.[q.id];
+                  // Only the chosen option is tinted. A wrong answer never
+                  // reveals which option was right — that would be the answer.
+                  const tint =
+                    selected && verdict === true
+                      ? "border-green-500 bg-green-50"
+                      : selected && verdict === false
+                        ? "border-red-400 bg-red-50"
+                        : selected
+                          ? "border-arjuna-primary bg-arjuna-primary/10"
+                          : "";
                   return (
                     <button
-                      key={idx}
+                      key={optIdx}
                       type="button"
-                      onClick={() => handleQuizAnswer(q.id, idx)}
-                      className={`w-full rounded-lg border px-3 py-2 text-left text-sm ${
-                        correct
-                          ? "border-green-500 bg-green-50"
-                          : selected
-                            ? "border-arjuna-primary bg-arjuna-primary/10"
-                            : ""
-                      }`}
+                      onClick={() => handleQuizAnswer(q.id, optIdx)}
+                      className={`w-full rounded-lg border px-3 py-2 text-left text-sm ${tint}`}
                     >
                       {opt}
                     </button>
                   );
                 })}
               </div>
+              {quizResults?.[q.id] === false && (
+                <p className="mt-2 text-xs font-semibold text-red-700">
+                  Not quite — have another go at this one.
+                </p>
+              )}
+              {quizResults?.[q.id] === true && (
+                <p className="mt-2 text-xs font-semibold text-green-700">
+                  Correct!
+                </p>
+              )}
             </div>
           ))}
 
-          {!showAnswers && questions.length > 0 && (
-            <div className="rounded-xl border border-dashed p-4">
-              <p className="text-sm text-arjuna-muted">Parent: enter PIN to see answers</p>
-              <input
-                type="password"
-                value={pinInput}
-                onChange={(e) => setPinInput(e.target.value)}
-                className="mt-2 w-full rounded-xl border p-3"
-                placeholder="PIN"
-              />
-              <button
-                type="button"
-                disabled={busy || pinInput.length < 4}
-                onClick={() => void revealQuizAnswers()}
-                className="mt-2 w-full rounded-xl bg-arjuna-primary py-3 font-semibold text-white disabled:opacity-50"
-              >
-                Show answers
-              </button>
-            </div>
+          {questions.length > 0 && (
+            <button
+              type="button"
+              disabled={busy || Object.keys(selectedAnswers).length === 0}
+              onClick={() => void checkQuizAnswers()}
+              className="w-full rounded-xl bg-arjuna-primary py-3 font-semibold text-white disabled:opacity-50"
+            >
+              Check my answers
+            </button>
           )}
 
           <button type="button" onClick={() => setMode("list")} className="w-full text-sm underline">

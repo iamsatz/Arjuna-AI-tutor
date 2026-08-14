@@ -13,7 +13,6 @@ export type LessonPhase =
   | "teaching"
   | "doubt"
   | "parent_needed"
-  | "parent_solution"
   | "exam_prep"
   | "session_done";
 
@@ -37,7 +36,6 @@ export type LessonState = {
   sessionStartedAt: number;
   messages: ChatMessage[];
   doubtText?: string;
-  parentSolution?: string;
   /** Show retry after /api/chat teach failure */
   teachFailed?: boolean;
   controller: "phone" | "tv";

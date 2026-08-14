@@ -3,6 +3,7 @@ import {
   parseSpeechSegments,
   type SpeechSegment,
 } from "@/lib/bridgeSubject";
+import { getInviteHeader } from "@/lib/apiClient";
 
 type PlaySpeechOptions = {
   speaker?: string;
@@ -15,7 +16,7 @@ async function fetchSpeechAudio(
 ): Promise<Blob> {
   const response = await fetch("/api/speak", {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: { "Content-Type": "application/json", ...getInviteHeader() },
     body: JSON.stringify({
       text: segment.text,
       languageCode: segment.languageCode,

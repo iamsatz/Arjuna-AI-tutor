@@ -64,6 +64,55 @@ after logging in locally). Re-verify with `/api/health` once set.
 | S1.8 | Homework label clarity, curriculum preview+confirm, multi-subject exam create | P1/P2 | M | `/`, `/settings`, `/exam` | ✅ done + live-tested + deployed |
 | S9 | School Message Understanding Agent (homework + notices + timetables, learns from corrections) | P1 | L | `/`, new School Inbox | ☐ designed, not started |
 | S6.5 | Family-code UX: paste-the-link input + owner WhatsApp share | P2 | S | `/` (no profile), `/owner` | ✅ done + live-tested + deployed |
+| MVP-S1 | Remove PINs + gate every AI route (2026-08-13) | P0 | M | `curl` any AI route | ✅ done + live-verified |
+| MVP-S2 | TV display + dual controller (TV remote + phone) | P0 | L | `/tv` + phone | ☐ |
+| MVP-S3 | Extraction reliability + conversational fallback | P0 | L | `/` blurred photo | ☐ |
+| MVP-S4 | Session integrity (25-min cap, answer-leak filter, Supabase sessions) | P1 | M | `/` | ☐ |
+| MVP-S5 | Foundations (ESLint, Telugu copy, smoke tests) | P2 | M | `npm run lint` | ☐ |
+
+## MVP re-scope (2026-08-13) — PIN removal + security hardening
+
+Full code review of ~15,900 lines produced `BACKLOG.md` (everything found) and a
+5-session plan. Session 1 is done; Sessions 2–5 are queued.
+
+### MVP-S1 — Remove PINs + close the open doors ✅ done + live-verified
+
+Three critical findings drove this:
+
+1. **The PIN was never checked.** `/api/solution` tested `pin.length >= 4` and
+   never the value, so `"0000"` returned the full worked solution. The "real"
+   PIN lived in localStorage defaulting to `1234`.
+2. **Every AI route was unauthenticated** and falls back to the server
+   `GEMINI_API_KEY`, so anyone with the URL could spend the owner's quota.
+3. **`/api/summary` was open to the internet** and sends WhatsApp messages to
+   the parents' real phone numbers from env vars.
+
+Changes:
+- **PINs deleted everywhere** — `parentPin`, `verifyParentPin`, the settings
+  field, all `pinInput` forms. `/api/solution` and `generateParentSolution`
+  deleted outright (route now 404s).
+- **No full-answer reveal on the child's device.** `parent_needed` shows an
+  "ask Amma or Nanna" card instead. Exam quiz answers now grade **server-side**:
+  `correctIndex` never reaches the browser at all (stricter than before), and a
+  wrong answer says "not quite — have another go" without revealing the right
+  option. Deleting the reveal outright would have left the quiz with zero
+  feedback, which is why grading moved rather than disappeared.
+- **KidSwitcher** delete guard is now a typed-name confirm, not a PIN.
+- **`lib/apiAuth.ts` `requireInvite()`** gates 20+ AI/mutating routes on a valid
+  invite code. `lib/inviteHeader.ts` holds the shared constant — `apiAuth`
+  reaches `fs` via the invite store, so the client must not import from it
+  (caught by `next build`, not by `tsc`).
+- **Gemini key is header-only.** It was being written into JSON request bodies
+  as well, landing the parent's Google key in server logs.
+
+**Verify:** `npx tsc --noEmit` clean, `next build` clean, and a live probe of 11
+routes against a production server — each returns 401 with no header, 401 with
+an invalid code, and normal validation (400/500/502) with `family01`.
+`POST /api/solution` → 404.
+
+**Known limitation:** the 502s from `/api/speak` and `/api/gemini-test` are the
+dead Sarvam TTS endpoint and the invalid Gemini credential (see the blocked
+items at the top of `BACKLOG.md`) — not regressions from this session.
 
 ## Confirmed defects (source of truth)
 

@@ -19,7 +19,7 @@ import {
 } from "@/lib/settings";
 import { setDailyRewardTarget } from "@/lib/streak";
 import { SettingsGeminiAndFeedback } from "@/components/SettingsGeminiAndFeedback";
-import { getGeminiKeyHeader } from "@/lib/apiClient";
+import { getGeminiKeyHeader, getInviteHeader } from "@/lib/apiClient";
 import { logDevError } from "@/lib/devLog";
 
 export default function SettingsPage() {
@@ -60,6 +60,7 @@ export default function SettingsPage() {
     try {
       const res = await fetch(
         `/api/curriculum?schoolKey=${encodeURIComponent(schoolKey)}`,
+        { headers: getInviteHeader() },
       );
       if (!res.ok) return;
       const data = (await res.json()) as { curriculum: StoredCurriculum | null };
@@ -157,7 +158,7 @@ export default function SettingsPage() {
     try {
       const res = await fetch("/api/curriculum", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...getInviteHeader() },
         body: JSON.stringify({
           schoolName: schoolName.trim(),
           grade: profile.grade,
@@ -248,16 +249,6 @@ export default function SettingsPage() {
             <option value="phone_tv">Phone upload → TV lesson</option>
             <option value="tv_only">TV only (mic + type)</option>
           </select>
-        </label>
-
-        <label className="block">
-          <span className="text-sm font-medium">Parent PIN (default 1234)</span>
-          <input
-            type="password"
-            value={settings.parentPin}
-            onChange={(e) => update({ parentPin: e.target.value })}
-            className="mt-2 w-full rounded-xl border p-3"
-          />
         </label>
 
         {saved && (

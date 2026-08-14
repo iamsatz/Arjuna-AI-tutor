@@ -5,12 +5,15 @@ import {
 } from "@/lib/gemini";
 import { missingGeminiResponse } from "@/lib/userErrors";
 import { getConceptById } from "@/lib/englishConceptMap";
-import { geminiKeyFromValue, resolveGeminiKey } from "@/lib/resolveApiKey";
+import { resolveGeminiKey } from "@/lib/resolveApiKey";
 import { normalizeTeachingMethod } from "@/lib/teachingMethods";
 import type { ChatMessage } from "@/lib/types";
 import type { CurriculumBoard, TeachingMethod } from "@/lib/childProfile";
+import { requireInvite } from "@/lib/apiAuth";
 
 export async function POST(request: NextRequest) {
+  const denied = await requireInvite(request);
+  if (denied) return denied;
   const body = (await request.json()) as {
     conceptId: string;
     step: string;
@@ -21,11 +24,9 @@ export async function POST(request: NextRequest) {
     method?: TeachingMethod;
     languageMode?: "english" | "pure_telugu" | "mixed";
     checkCompletion?: boolean;
-    geminiApiKey?: string;
   };
 
-  const apiKey =
-    geminiKeyFromValue(body.geminiApiKey) ?? resolveGeminiKey(request);
+  const apiKey = resolveGeminiKey(request);
   if (!apiKey) return missingGeminiResponse();
 
   const concept = getConceptById(body.conceptId);

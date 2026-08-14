@@ -1,10 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
+import { requireInvite } from "@/lib/apiAuth";
 import { chatWithArjuna } from "@/lib/gemini";
 import { missingGeminiResponse } from "@/lib/userErrors";
 import { getTeachingPlan, teachingPlanToNotes } from "@/lib/schoolAgent";
 import { buildStudentNotes, getStudentMemory } from "@/lib/studentAgent";
 import { buildBridgeSubjectRules } from "@/lib/prompts";
-import { geminiKeyFromValue, resolveGeminiKey } from "@/lib/resolveApiKey";
+import { resolveGeminiKey } from "@/lib/resolveApiKey";
 import { normalizeTeachingMethod } from "@/lib/teachingMethods";
 import type { ChatMessage } from "@/lib/types";
 import type {
@@ -16,6 +17,9 @@ import type {
 const PLAN_TIMEOUT_MS = 3000;
 
 export async function POST(request: NextRequest) {
+  const denied = await requireInvite(request);
+  if (denied) return denied;
+
   const body = (await request.json()) as {
     messages: ChatMessage[];
     contextNote?: string;
@@ -30,11 +34,9 @@ export async function POST(request: NextRequest) {
     subject?: string;
     topic?: string;
     skipTeachingPlan?: boolean;
-    geminiApiKey?: string;
   };
 
-  const apiKey =
-    geminiKeyFromValue(body.geminiApiKey) ?? resolveGeminiKey(request);
+  const apiKey = resolveGeminiKey(request);
   if (!apiKey) {
     return missingGeminiResponse();
   }

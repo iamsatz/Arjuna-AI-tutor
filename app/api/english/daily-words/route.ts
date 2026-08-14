@@ -1,10 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { generateDailyWords } from "@/lib/gemini";
 import { missingGeminiResponse } from "@/lib/userErrors";
-import { geminiKeyFromValue, resolveGeminiKey } from "@/lib/resolveApiKey";
+import { resolveGeminiKey } from "@/lib/resolveApiKey";
 import type { MediumOfInstruction } from "@/lib/childProfile";
+import { requireInvite } from "@/lib/apiAuth";
 
 export async function POST(request: NextRequest) {
+  const denied = await requireInvite(request);
+  if (denied) return denied;
   const body = (await request.json()) as {
     count?: number;
     grade?: string;
@@ -12,11 +15,9 @@ export async function POST(request: NextRequest) {
     languageMode?: "english" | "pure_telugu" | "mixed";
     homeworkText?: string;
     curriculumTopics?: string[];
-    geminiApiKey?: string;
   };
 
-  const apiKey =
-    geminiKeyFromValue(body.geminiApiKey) ?? resolveGeminiKey(request);
+  const apiKey = resolveGeminiKey(request);
   if (!apiKey) return missingGeminiResponse();
 
   const count = body.count === 10 ? 10 : 5;

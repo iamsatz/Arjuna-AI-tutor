@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { getSupabaseBrowser } from "@/lib/supabase/client";
+import { getInviteHeader } from "@/lib/apiClient";
 import type { LessonState } from "@/lib/lessonTypes";
 
 export function useSupabaseRoomSubscriber(code: string | null) {
@@ -22,11 +23,13 @@ export function useSupabaseRoomSubscriber(code: string | null) {
       try {
         await fetch("/api/room/supabase", {
           method: "PATCH",
-          headers: { "Content-Type": "application/json" },
+          headers: { "Content-Type": "application/json", ...getInviteHeader() },
           body: JSON.stringify({ code, role: "tv" }),
         });
 
-        const res = await fetch(`/api/room/supabase?code=${code}`);
+        const res = await fetch(`/api/room/supabase?code=${code}`, {
+          headers: getInviteHeader(),
+        });
         if (!res.ok) {
           if (!cancelled) setConnected(false);
           return;
@@ -96,7 +99,7 @@ export function useSupabaseRoomPublisher(code: string | null) {
       try {
         await fetch("/api/room/supabase", {
           method: "PATCH",
-          headers: { "Content-Type": "application/json" },
+          headers: { "Content-Type": "application/json", ...getInviteHeader() },
           body: JSON.stringify({ code, state }),
         });
       } catch {
@@ -115,7 +118,7 @@ export async function createSupabaseRoomClient(
   try {
     const res = await fetch("/api/room/supabase", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", ...getInviteHeader() },
       body: JSON.stringify({ initialState }),
     });
     if (!res.ok) return null;

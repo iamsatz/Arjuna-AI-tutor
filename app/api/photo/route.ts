@@ -1,9 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
+import { requireInvite } from "@/lib/apiAuth";
 import { extractHomeworkFromPhoto } from "@/lib/gemini";
 import { resolveGeminiKey } from "@/lib/resolveApiKey";
 import { missingGeminiExtractResponse } from "@/lib/userErrors";
 
 export async function POST(request: NextRequest) {
+  const denied = await requireInvite(request);
+  if (denied) return denied;
+
   const apiKey = resolveGeminiKey(request);
   if (!apiKey) {
     return missingGeminiExtractResponse();

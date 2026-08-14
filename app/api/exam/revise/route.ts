@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { generateExamRevision } from "@/lib/gemini";
-import { geminiKeyFromValue, resolveGeminiKey } from "@/lib/resolveApiKey";
+import { resolveGeminiKey } from "@/lib/resolveApiKey";
 import { missingGeminiResponse } from "@/lib/userErrors";
 import { getExamById } from "@/lib/examStore";
 import { getOrCreate } from "@/lib/memory";
@@ -9,8 +9,11 @@ import { normalizeTopicKey } from "@/lib/childProfile";
 import type { ChatMessage } from "@/lib/types";
 import type { LanguageMode } from "@/lib/settings";
 import type { CurriculumBoard } from "@/lib/childProfile";
+import { requireInvite } from "@/lib/apiAuth";
 
 export async function POST(request: NextRequest) {
+  const denied = await requireInvite(request);
+  if (denied) return denied;
   const body = (await request.json()) as {
     examId?: string;
     childName?: string;
@@ -19,11 +22,9 @@ export async function POST(request: NextRequest) {
     languageMode?: LanguageMode;
     schoolKey?: string;
     studentKey?: string;
-    geminiApiKey?: string;
   };
 
-  const apiKey =
-    geminiKeyFromValue(body.geminiApiKey) ?? resolveGeminiKey(request);
+  const apiKey = resolveGeminiKey(request);
   if (!apiKey) {
     return missingGeminiResponse();
   }

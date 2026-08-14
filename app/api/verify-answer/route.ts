@@ -1,10 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
+import { requireInvite } from "@/lib/apiAuth";
 import { verifyAnswerFromPhoto } from "@/lib/gemini";
 import { missingGeminiExtractResponse } from "@/lib/userErrors";
-import { geminiKeyFromValue, resolveGeminiKey } from "@/lib/resolveApiKey";
+import { resolveGeminiKey } from "@/lib/resolveApiKey";
 import type { LanguageMode } from "@/lib/settings";
 
 export async function POST(request: NextRequest) {
+  const denied = await requireInvite(request);
+  if (denied) return denied;
+
   const contentType = request.headers.get("content-type") ?? "";
 
   try {
@@ -51,11 +55,9 @@ export async function POST(request: NextRequest) {
       task?: string;
       grade?: string;
       languageMode?: LanguageMode;
-      geminiApiKey?: string;
     };
 
-    const apiKey =
-      geminiKeyFromValue(body.geminiApiKey) ?? resolveGeminiKey(request);
+    const apiKey = resolveGeminiKey(request);
     if (!apiKey) {
       return missingGeminiExtractResponse();
     }

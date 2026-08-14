@@ -4,7 +4,7 @@ const MVP_SHIPPED = [
   "Invite link per family + child profile (name, grade, board)",
   "Homework: photo, mic, or type → auto tasks",
   "Task-by-task teaching with Doubt + Explain again",
-  "Parent PIN to unlock full solution",
+  "Practice quiz with right/wrong feedback — answers never shown",
   "Pure Telugu, English, and Mixed language modes",
   "Phone-only, Phone + TV live sync, TV-only modes",
   "Exam prep: upload pages, timetable, revise + practice test",

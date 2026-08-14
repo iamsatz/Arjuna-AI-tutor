@@ -8,6 +8,7 @@ import {
   setGeminiKeyStatus,
 } from "@/lib/geminiKeyStatus";
 import { loadSettings, type GeminiKeyStatus } from "@/lib/settings";
+import { getInviteHeader } from "@/lib/apiClient";
 
 export function GeminiStatusPill() {
   const [hasKey, setHasKey] = useState(false);
@@ -38,8 +39,12 @@ export function GeminiStatusPill() {
         try {
           const res = await fetch("/api/gemini-test", {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ geminiApiKey: savedKey }),
+            headers: {
+              "Content-Type": "application/json",
+              "x-gemini-key": savedKey,
+              ...getInviteHeader(),
+            },
+            body: JSON.stringify({}),
           });
           const data = (await res.json()) as { ok?: boolean };
           const nextStatus: GeminiKeyStatus = data.ok ? "valid" : "invalid";
@@ -54,7 +59,7 @@ export function GeminiStatusPill() {
         try {
           const res = await fetch("/api/gemini-test", {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
+            headers: { "Content-Type": "application/json", ...getInviteHeader() },
             body: JSON.stringify({}),
           });
           const data = (await res.json()) as { ok?: boolean };

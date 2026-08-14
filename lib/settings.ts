@@ -8,7 +8,6 @@ export type GeminiKeyStatus = "valid" | "invalid" | "unknown";
 export type AppSettings = {
   languageMode: LanguageMode;
   deviceMode: DeviceMode;
-  parentPin: string;
   geminiApiKey?: string;
   /** Last known result from Test connection in Settings. */
   geminiKeyStatus?: GeminiKeyStatus;
@@ -23,7 +22,6 @@ export type AppSettings = {
 const DEFAULT_SETTINGS: AppSettings = {
   languageMode: "mixed",
   deviceMode: "phone_only",
-  parentPin: "1234",
   dailyWordsEnabled: false,
   dailyWordsCount: 5,
   journalEnabled: true,
@@ -48,10 +46,6 @@ export function saveSettings(partial: Partial<AppSettings>): AppSettings {
     window.dispatchEvent(new Event("arjuna-settings-changed"));
   }
   return next;
-}
-
-export function verifyParentPin(pin: string): boolean {
-  return pin === loadSettings().parentPin;
 }
 
 export function maskApiKey(key?: string): string {

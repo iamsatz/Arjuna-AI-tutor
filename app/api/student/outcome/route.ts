@@ -1,7 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { recordOutcome, type OutcomeResult } from "@/lib/studentAgent";
+import { requireInvite } from "@/lib/apiAuth";
 
 export async function POST(request: NextRequest) {
+  const denied = await requireInvite(request);
+  if (denied) return denied;
   const body = (await request.json()) as {
     studentKey?: string;
     inviteCode?: string;

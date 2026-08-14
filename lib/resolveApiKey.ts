@@ -25,20 +25,3 @@ export function resolveGeminiKey(
   return null;
 }
 
-export async function resolveGeminiKeyFromBody(
-  request: NextRequest,
-): Promise<string | null> {
-  try {
-    const clone = request.clone();
-    const contentType = clone.headers.get("content-type") ?? "";
-    if (contentType.includes("application/json")) {
-      const body = (await clone.json()) as { geminiApiKey?: string };
-      const fromBody = geminiKeyFromValue(body.geminiApiKey);
-      if (fromBody) return fromBody;
-    }
-  } catch {
-    // ignore
-  }
-
-  return resolveGeminiKey(request);
-}

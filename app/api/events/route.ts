@@ -1,7 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
+import { requireInvite } from "@/lib/apiAuth";
 import { getSupabaseServer } from "@/lib/supabase/server";
 
 export async function POST(request: NextRequest) {
+  const denied = await requireInvite(request);
+  if (denied) return denied;
+
   const sb = getSupabaseServer();
   if (!sb) {
     return NextResponse.json(

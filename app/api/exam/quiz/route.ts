@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
+import { requireInvite } from "@/lib/apiAuth";
 import { generateExamQuiz } from "@/lib/gemini";
-import { geminiKeyFromValue, resolveGeminiKey } from "@/lib/resolveApiKey";
+import { resolveGeminiKey } from "@/lib/resolveApiKey";
 import { missingGeminiResponse } from "@/lib/userErrors";
 import { getExamById } from "@/lib/examStore";
 import { getOrCreate } from "@/lib/memory";
@@ -10,17 +11,18 @@ import type { LanguageMode } from "@/lib/settings";
 import type { CurriculumBoard } from "@/lib/childProfile";
 
 export async function POST(request: NextRequest) {
+  const denied = await requireInvite(request);
+  if (denied) return denied;
+
   const body = (await request.json()) as {
     examId?: string;
     languageMode?: LanguageMode;
-    revealAnswers?: boolean;
-    pin?: string;
+    /** questionId -> chosen option index. Present when the child submits. */
+    answers?: Record<string, number>;
     schoolKey?: string;
-    geminiApiKey?: string;
   };
 
-  const apiKey =
-    geminiKeyFromValue(body.geminiApiKey) ?? resolveGeminiKey(request);
+  const apiKey = resolveGeminiKey(request);
   if (!apiKey) {
     return missingGeminiResponse();
   }
@@ -83,14 +85,21 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (body.revealAnswers) {
-      if (!body.pin || body.pin.length < 4) {
-        return NextResponse.json({ error: "pin required" }, { status: 401 });
+    // Grading happens here, never in the browser: the child learns whether an
+    // answer was right without `correctIndex` ever leaving the server. A wrong
+    // answer returns no correct option — that would just hand over the answer.
+    if (body.answers) {
+      const results: Record<string, boolean> = {};
+      for (const q of quiz.questions) {
+        const chosen = body.answers[q.id];
+        if (typeof chosen === "number") {
+          results[q.id] = chosen === q.correctIndex;
+        }
       }
       return NextResponse.json({
-        questions: quiz.questions,
-        missionTitle: quiz.missionTitle,
-        answersRevealed: true,
+        results,
+        score: Object.values(results).filter(Boolean).length,
+        total: Object.keys(results).length,
         cached,
       });
     }

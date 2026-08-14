@@ -12,7 +12,7 @@ import {
   maskApiKey,
   saveSettings,
 } from "@/lib/settings";
-import { arjunaFetch } from "@/lib/apiClient";
+import { arjunaFetch, getInviteHeader } from "@/lib/apiClient";
 import { setGeminiKeyStatus } from "@/lib/geminiKeyStatus";
 import {
   normalizeTeachingMethod,
@@ -76,8 +76,12 @@ export function SettingsGeminiAndFeedback({ profile, onProfileChange }: Props) {
       }
       const res = await fetch("/api/gemini-test", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ geminiApiKey: key }),
+        headers: {
+          "Content-Type": "application/json",
+          "x-gemini-key": key,
+          ...getInviteHeader(),
+        },
+        body: JSON.stringify({}),
       });
       const data = (await res.json().catch(() => ({}))) as {
         ok?: boolean;

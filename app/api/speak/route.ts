@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { requireInvite } from "@/lib/apiAuth";
 import { synthesizeSpeech, DEFAULT_GREETING } from "@/lib/sarvam";
 import { missingSarvamResponse } from "@/lib/userErrors";
 
@@ -8,11 +9,17 @@ function ttsLanguage(languageMode?: string, languageCode?: string): string {
   return "en-IN";
 }
 
-export async function GET() {
+export async function GET(request: NextRequest) {
+  const denied = await requireInvite(request);
+  if (denied) return denied;
+
   return handleSpeak(DEFAULT_GREETING);
 }
 
 export async function POST(request: NextRequest) {
+  const denied = await requireInvite(request);
+  if (denied) return denied;
+
   const body = (await request.json()) as {
     text?: string;
     speaker?: string;

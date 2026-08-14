@@ -1,21 +1,22 @@
 import { NextRequest, NextResponse } from "next/server";
 import { analyzeParentFeedback } from "@/lib/feedback";
 import { getSupabaseServer } from "@/lib/supabase/server";
-import { geminiKeyFromValue, resolveGeminiKey } from "@/lib/resolveApiKey";
+import { resolveGeminiKey } from "@/lib/resolveApiKey";
 import { missingGeminiResponse } from "@/lib/userErrors";
+import { requireInvite } from "@/lib/apiAuth";
 
 export async function POST(request: NextRequest) {
+  const denied = await requireInvite(request);
+  if (denied) return denied;
   const body = (await request.json()) as {
     rawText?: string;
     submittedBy?: "mother" | "father";
     inviteCode?: string;
     childName?: string;
     sessionId?: string;
-    geminiApiKey?: string;
   };
 
-  const apiKey =
-    geminiKeyFromValue(body.geminiApiKey) ?? resolveGeminiKey(request);
+  const apiKey = resolveGeminiKey(request);
   if (!apiKey) {
     return missingGeminiResponse();
   }

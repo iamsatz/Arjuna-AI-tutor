@@ -1,19 +1,17 @@
 import { NextRequest, NextResponse } from "next/server";
 import { resolveGeminiKey } from "@/lib/resolveApiKey";
+import { requireInvite } from "@/lib/apiAuth";
 
 const GEMINI_URL =
   "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent";
 
 export async function POST(request: NextRequest) {
-  let bodyKey: string | undefined;
-  try {
-    const body = (await request.json()) as { geminiApiKey?: string };
-    bodyKey = body.geminiApiKey;
-  } catch {
-    // no JSON body
-  }
+  const denied = await requireInvite(request);
+  if (denied) return denied;
 
-  const apiKey = resolveGeminiKey(request, bodyKey);
+  // The key being tested arrives in the `x-gemini-key` header like everywhere
+  // else — never in the body, which would put it in the request logs.
+  const apiKey = resolveGeminiKey(request);
 
   if (!apiKey) {
     return NextResponse.json(

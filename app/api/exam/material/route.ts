@@ -3,10 +3,13 @@ import { extractConceptNotesFromImages } from "@/lib/gemini";
 import { resolveGeminiKey } from "@/lib/resolveApiKey";
 import { missingGeminiResponse } from "@/lib/userErrors";
 import { getExamById, updateExam } from "@/lib/examStore";
+import { requireInvite } from "@/lib/apiAuth";
 
 const SOFT_PAGE_CAP = 30;
 
 export async function POST(request: NextRequest) {
+  const denied = await requireInvite(request);
+  if (denied) return denied;
   const apiKey = resolveGeminiKey(request);
   if (!apiKey) {
     return missingGeminiResponse();

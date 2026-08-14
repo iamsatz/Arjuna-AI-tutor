@@ -3,7 +3,6 @@ import type { CurriculumBoard, MediumOfInstruction, TeachingMethod } from "@/lib
 import {
   buildExamQuizPrompt,
   buildExamRevisionPrompt,
-  buildParentSolutionPrompt,
   buildSystemPrompt,
   buildTeachingPlanPrompt,
   buildVerifyAnswerPrompt,
@@ -258,23 +257,6 @@ export async function extractHomeworkFromText(
     confidence: parsed.confidence ?? (tasks.length ? "medium" : "low"),
     reason: parsed.reason,
   };
-}
-
-export async function generateParentSolution(
-  apiKey: string,
-  taskSubject: string,
-  taskText: string,
-  languageMode: LanguageMode,
-  context?: string,
-): Promise<string> {
-  const prompt = `Subject: ${taskSubject}\nTask: ${taskText}\n${context ? `Context: ${context}` : ""}\n\nGive the full worked solution for the parent.`;
-
-  return geminiGenerate(
-    apiKey,
-    [{ text: prompt }],
-    buildParentSolutionPrompt(languageMode),
-    1024,
-  );
 }
 
 export async function generateSessionSummary(

@@ -179,18 +179,7 @@ export function buildExplainAgainPrompt(
   return `${base} Use simpler words. Ask if they understood.`;
 }
 
-export function buildParentSolutionPrompt(languageMode: LanguageMode): string {
-  const lang =
-    languageMode === "pure_telugu"
-      ? "Telugu"
-      : languageMode === "english"
-        ? "English"
-        : "English with simple Telugu";
-
-  return `You are helping a PARENT (not the child). Give the FULL worked solution and brief coaching on how to guide the child without giving the answer directly next time. Language: ${lang}. Be clear and step-by-step.`;
-}
-
-export const PHOTO_EXTRACTION_PROMPT = `You read a student's school DIARY or homework pages (photos or PDF pages).
+export const PHOTO_EXTRACTION_PROMPT =`You read a student's school DIARY or homework pages (photos or PDF pages).
 Extract BOTH:
 1) termPlan — subjects/topics listed for the term (if visible on these pages; else null)
 2) todayTasks — tonight's homework items

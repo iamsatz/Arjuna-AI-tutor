@@ -9,10 +9,10 @@ import {
 import { buildGreeting, buildExplainAgainPrompt, buildHintOnlyPrompt } from "@/lib/prompts";
 import type { LessonState } from "@/lib/lessonTypes";
 import { createInitialLessonState } from "@/lib/lessonTypes";
-import { loadSettings, verifyParentPin, type DeviceMode, type LanguageMode } from "@/lib/settings";
+import { loadSettings, type DeviceMode, type LanguageMode } from "@/lib/settings";
 import type { HomeworkTask } from "@/lib/types";
 import { track, setAnalyticsContext } from "@/lib/analytics";
-import { arjunaFetch, getGeminiKeyHeader } from "@/lib/apiClient";
+import { arjunaFetch, getGeminiKeyHeader, getInviteHeader } from "@/lib/apiClient";
 import { clearInvalidUserKey } from "@/lib/geminiKeyStatus";
 import { appendTaskHistory, profileHistoryKey } from "@/lib/taskHistoryStore";
 import { normalizeTeachingMethod } from "@/lib/teachingMethods";
@@ -104,7 +104,6 @@ export function useLessonSession({
     }),
   );
   const [doubtInput, setDoubtInput] = useState("");
-  const [pinInput, setPinInput] = useState("");
   const [loading, setLoading] = useState(false);
   const sessionTrackedRef = useRef(false);
   const sessionPageHashesRef = useRef<string[]>([]);
@@ -146,10 +145,9 @@ export function useLessonSession({
       note?: string,
     ) => {
       if (!studentKey || !task) return;
-      void fetch("/api/student/outcome", {
+      void arjunaFetch("/api/student/outcome", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
+        json: {
           studentKey,
           inviteCode: profile.inviteCode,
           childName: profile.childName,
@@ -158,7 +156,7 @@ export function useLessonSession({
           topic: task.task,
           result,
           note,
-        }),
+        },
       }).catch(() => {});
     },
     [studentKey, scopeKey, profile.inviteCode, profile.childName],
@@ -600,7 +598,11 @@ export function useLessonSession({
   const transcribeToText = useCallback(async (blob: Blob): Promise<string | null> => {
     const form = new FormData();
     form.append("audio", blob, "recording.webm");
-    const res = await fetch("/api/transcribe", { method: "POST", body: form });
+    const res = await fetch("/api/transcribe", {
+      method: "POST",
+      headers: getInviteHeader(),
+      body: form,
+    });
     if (!res.ok) {
       const errBody = (await res.json().catch(() => ({}))) as { error?: string };
       patchState({
@@ -959,49 +961,6 @@ export function useLessonSession({
     recordStudentOutcome,
   ]);
 
-  const unlockParentSolution = useCallback(async () => {
-    if (!verifyParentPin(pinInput)) {
-      patchState({ statusMessage: "Wrong PIN" });
-      return;
-    }
-    const task = activeState.tasks[activeState.currentTaskIndex];
-    if (!task) return;
-
-    setLoading(true);
-    void track("parent_unlock", { subject: task.subject });
-
-    try {
-      const res = await arjunaFetch("/api/solution", {
-        method: "POST",
-        json: {
-          pin: pinInput,
-          subject: task.subject,
-          task: task.task,
-          languageMode: settings.languageMode,
-        },
-      });
-      if (!res.ok) throw new Error("solution failed");
-      const data = (await res.json()) as { solution: string };
-      patchState({
-        phase: "parent_solution",
-        parentSolution: data.solution,
-        statusMessage: "Parent solution",
-      });
-    } catch (err) {
-      logDevError("unlockParentSolution", err);
-      patchState({ statusMessage: "Could not load solution" });
-    } finally {
-      setLoading(false);
-      setPinInput("");
-    }
-  }, [
-    activeState.currentTaskIndex,
-    activeState.tasks,
-    patchState,
-    pinInput,
-    settings.languageMode,
-  ]);
-
   useEffect(() => {
     setAnalyticsContext({
       deviceMode: settings.deviceMode,
@@ -1027,8 +986,6 @@ export function useLessonSession({
     loading,
     doubtInput,
     setDoubtInput,
-    pinInput,
-    setPinInput,
     extractHomeworkForReview,
     startSelectedTasks,
     jumpToTask,
@@ -1044,7 +1001,6 @@ export function useLessonSession({
     handleRetryTeach,
     handleUnderstood,
     handleNotUnderstood,
-    unlockParentSolution,
     startTask,
     speak,
     settings,

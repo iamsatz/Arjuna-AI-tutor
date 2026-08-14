@@ -6,10 +6,13 @@ import {
 } from "@/lib/curriculumStore";
 import { extractCurriculum } from "@/lib/gemini";
 import { missingGeminiResponse } from "@/lib/userErrors";
-import { geminiKeyFromValue, resolveGeminiKey } from "@/lib/resolveApiKey";
+import { resolveGeminiKey } from "@/lib/resolveApiKey";
 import type { CurriculumSubject } from "@/lib/curriculumTypes";
+import { requireInvite } from "@/lib/apiAuth";
 
 export async function GET(request: NextRequest) {
+  const denied = await requireInvite(request);
+  if (denied) return denied;
   const schoolKey = request.nextUrl.searchParams.get("schoolKey");
   if (!schoolKey) {
     return NextResponse.json({ error: "schoolKey required" }, { status: 400 });
@@ -24,6 +27,8 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
+  const denied = await requireInvite(request);
+  if (denied) return denied;
   const contentType = request.headers.get("content-type") ?? "";
 
   // Confirm step: parent already saw the preview and approved it — persist
@@ -76,9 +81,7 @@ export async function POST(request: NextRequest) {
   const board = (boardRaw || undefined) as CurriculumBoard | undefined;
   const replace = String(form.get("replace") ?? "") === "true";
   const preview = String(form.get("preview") ?? "") === "true";
-  const apiKey =
-    geminiKeyFromValue(form.get("geminiApiKey")?.toString()) ??
-    resolveGeminiKey(request);
+  const apiKey = resolveGeminiKey(request);
 
   if (!schoolName || !grade) {
     return NextResponse.json(
@@ -171,6 +174,8 @@ export async function POST(request: NextRequest) {
 }
 
 export async function DELETE(request: NextRequest) {
+  const denied = await requireInvite(request);
+  if (denied) return denied;
   const schoolKey = request.nextUrl.searchParams.get("schoolKey");
   if (!schoolKey) {
     return NextResponse.json({ error: "schoolKey required" }, { status: 400 });

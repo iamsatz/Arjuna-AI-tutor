@@ -34,6 +34,7 @@ import {
   type ReviewableTask,
 } from "@/lib/homeworkReview";
 import { prepareUploadFiles } from "@/lib/compressImage";
+import { getInviteHeader } from "@/lib/apiClient";
 import { hashFiles, formatCompletedAt } from "@/lib/duplicateTasks";
 import {
   findHistoryByImageHash,
@@ -90,7 +91,9 @@ export function LessonScreen({
         const params = new URLSearchParams({ inviteCode: profile.inviteCode });
         if (profile.id) params.set("profileId", profile.id);
         else params.set("childName", profile.childName);
-        const res = await fetch(`/api/exam?${params.toString()}`);
+        const res = await fetch(`/api/exam?${params.toString()}`, {
+          headers: getInviteHeader(),
+        });
         if (!res.ok) return;
         const data = (await res.json()) as { exams: StoredExam[] };
         setUpcomingExams(
@@ -110,8 +113,7 @@ export function LessonScreen({
     readOnly,
   });
 
-  const { state, loading, doubtInput, setDoubtInput, pinInput, setPinInput, speak } =
-    lesson;
+  const { state, loading, doubtInput, setDoubtInput, speak } = lesson;
   const settings = loadSettings();
 
   const celebrateTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -335,8 +337,7 @@ export function LessonScreen({
     !showReview &&
     !showGuided &&
     (state.phase === "teaching" || state.phase === "doubt");
-  const showParent =
-    state.phase === "parent_needed" || state.phase === "parent_solution";
+  const showParent = state.phase === "parent_needed";
   const showSessionDone = state.phase === "session_done" && !readOnly;
   const lastTask = state.tasks[state.tasks.length - 1];
 
@@ -780,33 +781,23 @@ export function LessonScreen({
 
       {showParent && (
         <div className="mt-auto space-y-3 pb-4">
-          {state.phase === "parent_solution" && state.parentSolution ? (
-            <Card className="border-yellow-300 bg-yellow-50">
-              <p className="font-display font-bold">Parent answer</p>
-              <p className="mt-2 whitespace-pre-wrap text-sm">
-                {state.parentSolution}
-              </p>
-            </Card>
-          ) : (
-            <>
-              <p className="text-sm text-arjuna-muted">
-                Parent: enter PIN to see the full answer
-              </p>
-              <input
-                type="password"
-                value={pinInput}
-                onChange={(e) => setPinInput(e.target.value)}
-                placeholder="PIN"
-                className="w-full rounded-2xl border-2 border-orange-100 p-3"
-              />
-              <Button
-                className="w-full"
-                onClick={() => void lesson.unlockParentSolution()}
-              >
-                Show answer
-              </Button>
-            </>
-          )}
+          <Card className="border-yellow-300 bg-yellow-50 text-center">
+            <p className="text-3xl">🤝</p>
+            <p className="mt-2 font-display font-bold text-yellow-900">
+              Let&apos;s ask Amma or Nanna
+            </p>
+            <p className="mt-1 text-sm text-yellow-900">
+              This one is tricky. Show it to a grown-up and work it out together
+              — then come back and tell me what you found.
+            </p>
+          </Card>
+          <Button
+            variant="secondary"
+            className="w-full"
+            onClick={() => void lesson.handleUnderstood()}
+          >
+            We worked it out — next task
+          </Button>
         </div>
       )}
     </main>

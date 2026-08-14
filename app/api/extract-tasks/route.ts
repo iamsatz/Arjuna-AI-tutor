@@ -1,14 +1,18 @@
 import { NextRequest, NextResponse } from "next/server";
+import { requireInvite } from "@/lib/apiAuth";
 import {
   extractHomeworkFromPhotos,
   extractHomeworkFromText,
 } from "@/lib/gemini";
 import { cacheDiaryTermPlan } from "@/lib/diaryTermPlan";
 import { buildSchoolKey, type CurriculumBoard } from "@/lib/childProfile";
-import { geminiKeyFromValue, resolveGeminiKey } from "@/lib/resolveApiKey";
+import { resolveGeminiKey } from "@/lib/resolveApiKey";
 import { missingGeminiExtractResponse } from "@/lib/userErrors";
 
 export async function POST(request: NextRequest) {
+  const denied = await requireInvite(request);
+  if (denied) return denied;
+
   const contentType = request.headers.get("content-type") ?? "";
 
   try {
@@ -88,14 +92,12 @@ export async function POST(request: NextRequest) {
     const body = (await request.json()) as {
       text?: string;
       diaryNote?: string;
-      geminiApiKey?: string;
       schoolName?: string;
       grade?: string;
       board?: CurriculumBoard;
     };
 
-    const apiKey =
-      geminiKeyFromValue(body.geminiApiKey) ?? resolveGeminiKey(request);
+    const apiKey = resolveGeminiKey(request);
     if (!apiKey) {
       return missingGeminiExtractResponse();
     }

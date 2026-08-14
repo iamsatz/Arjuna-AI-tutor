@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { requireInvite } from "@/lib/apiAuth";
 import {
   createSupabaseRoom,
   getSupabaseRoom,
@@ -8,6 +9,9 @@ import {
 import type { LessonState } from "@/lib/lessonTypes";
 
 export async function POST(request: NextRequest) {
+  const denied = await requireInvite(request);
+  if (denied) return denied;
+
   const body = (await request.json()) as { initialState?: Partial<LessonState> };
   const room = await createSupabaseRoom(body.initialState ?? {});
   if (!room) {
@@ -17,6 +21,9 @@ export async function POST(request: NextRequest) {
 }
 
 export async function GET(request: NextRequest) {
+  const denied = await requireInvite(request);
+  if (denied) return denied;
+
   const code = request.nextUrl.searchParams.get("code");
   if (!code) {
     return NextResponse.json({ error: "code required" }, { status: 400 });
@@ -29,6 +36,9 @@ export async function GET(request: NextRequest) {
 }
 
 export async function PATCH(request: NextRequest) {
+  const denied = await requireInvite(request);
+  if (denied) return denied;
+
   const body = (await request.json()) as {
     code: string;
     role?: "phone" | "tv";

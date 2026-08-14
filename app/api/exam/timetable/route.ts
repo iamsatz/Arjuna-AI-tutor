@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { extractExamTimetable, extractExamTimetableFromText } from "@/lib/gemini";
-import { geminiKeyFromValue, resolveGeminiKey } from "@/lib/resolveApiKey";
+import { resolveGeminiKey } from "@/lib/resolveApiKey";
 import { missingGeminiResponse } from "@/lib/userErrors";
 import { createExam } from "@/lib/examStore";
 import type { CurriculumBoard } from "@/lib/childProfile";
+import { requireInvite } from "@/lib/apiAuth";
 
 async function saveExams(
   exams: { subject: string; examDate?: string; topics: string[] }[],
@@ -31,6 +32,8 @@ async function saveExams(
 }
 
 export async function POST(request: NextRequest) {
+  const denied = await requireInvite(request);
+  if (denied) return denied;
   const contentType = request.headers.get("content-type") ?? "";
 
   try {
@@ -75,10 +78,9 @@ export async function POST(request: NextRequest) {
       childName?: string;
       board?: CurriculumBoard;
       grade?: string;
-      geminiApiKey?: string;
     };
 
-    const apiKey = geminiKeyFromValue(body.geminiApiKey) ?? resolveGeminiKey(request);
+    const apiKey = resolveGeminiKey(request);
     if (!apiKey) return missingGeminiResponse();
 
     if (!body.text?.trim() || !body.inviteCode || !body.childName) {

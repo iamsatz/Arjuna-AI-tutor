@@ -1,19 +1,20 @@
 import { NextRequest, NextResponse } from "next/server";
 import { journalListenReply } from "@/lib/gemini";
 import { missingGeminiResponse } from "@/lib/userErrors";
-import { geminiKeyFromValue, resolveGeminiKey } from "@/lib/resolveApiKey";
+import { resolveGeminiKey } from "@/lib/resolveApiKey";
+import { requireInvite } from "@/lib/apiAuth";
 
 export async function POST(request: NextRequest) {
+  const denied = await requireInvite(request);
+  if (denied) return denied;
   const body = (await request.json()) as {
     childName?: string;
     languageMode?: "english" | "pure_telugu" | "mixed";
     prompt?: string;
     kidText?: string;
-    geminiApiKey?: string;
   };
 
-  const apiKey =
-    geminiKeyFromValue(body.geminiApiKey) ?? resolveGeminiKey(request);
+  const apiKey = resolveGeminiKey(request);
   if (!apiKey) return missingGeminiResponse();
 
   if (!body.kidText?.trim() || !body.prompt?.trim()) {

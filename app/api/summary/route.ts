@@ -1,22 +1,26 @@
 import { randomUUID } from "crypto";
 import { NextRequest, NextResponse } from "next/server";
+import { requireInvite } from "@/lib/apiAuth";
 import { generateSessionSummary } from "@/lib/gemini";
 import { missingGeminiResponse } from "@/lib/userErrors";
 import { appendSession } from "@/lib/sessionsStore";
 import { sendWhatsAppText } from "@/lib/whatsapp";
-import { geminiKeyFromValue, resolveGeminiKey } from "@/lib/resolveApiKey";
+import { resolveGeminiKey } from "@/lib/resolveApiKey";
 
 export async function POST(request: NextRequest) {
+  // This route sends WhatsApp messages to the parents' real phone numbers.
+  // It must never be callable by anyone who simply knows the URL.
+  const denied = await requireInvite(request);
+  if (denied) return denied;
+
   const body = (await request.json()) as {
     transcript: string;
     durationMin?: number;
     childName?: string;
     inviteCode?: string;
-    geminiApiKey?: string;
   };
 
-  const geminiKey =
-    geminiKeyFromValue(body.geminiApiKey) ?? resolveGeminiKey(request);
+  const geminiKey = resolveGeminiKey(request);
   if (!geminiKey) {
     return missingGeminiResponse();
   }

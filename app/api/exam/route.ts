@@ -1,8 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createExam, listExamsByInvite } from "@/lib/examStore";
 import type { CurriculumBoard } from "@/lib/childProfile";
+import { requireInvite } from "@/lib/apiAuth";
 
 export async function GET(request: NextRequest) {
+  const denied = await requireInvite(request);
+  if (denied) return denied;
   const inviteCode = request.nextUrl.searchParams.get("inviteCode");
   if (!inviteCode) {
     return NextResponse.json({ error: "inviteCode required" }, { status: 400 });
@@ -15,6 +18,8 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
+  const denied = await requireInvite(request);
+  if (denied) return denied;
   const body = (await request.json()) as {
     inviteCode?: string;
     childName?: string;
