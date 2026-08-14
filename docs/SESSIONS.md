@@ -65,7 +65,7 @@ after logging in locally). Re-verify with `/api/health` once set.
 | S9 | School Message Understanding Agent (homework + notices + timetables, learns from corrections) | P1 | L | `/`, new School Inbox | ☐ designed, not started |
 | S6.5 | Family-code UX: paste-the-link input + owner WhatsApp share | P2 | S | `/` (no profile), `/owner` | ✅ done + live-tested + deployed |
 | MVP-S1 | Remove PINs + gate every AI route (2026-08-13) | P0 | M | `curl` any AI route | ✅ done + live-verified |
-| MVP-S2 | TV display + dual controller (TV remote + phone) | P0 | L | `/tv` + phone | ☐ |
+| MVP-S2 | TV display + dual controller (TV remote + phone) (2026-08-14) | P0 | L | `/tv` + phone | ✅ done + browser-verified (live pairing blocked on Supabase) |
 | MVP-S3 | Extraction reliability + conversational fallback | P0 | L | `/` blurred photo | ☐ |
 | MVP-S4 | Session integrity (25-min cap, answer-leak filter, Supabase sessions) | P1 | M | `/` | ☐ |
 | MVP-S5 | Foundations (ESLint, Telugu copy, smoke tests) | P2 | M | `npm run lint` | ☐ |
@@ -113,6 +113,71 @@ an invalid code, and normal validation (400/500/502) with `family01`.
 **Known limitation:** the 502s from `/api/speak` and `/api/gemini-test` are the
 dead Sarvam TTS endpoint and the invalid Gemini credential (see the blocked
 items at the top of `BACKLOG.md`) — not regressions from this session.
+
+### MVP-S2 — TV display + dual controller ✅ done + browser-verified
+
+No keys were available for this session (deliberately deferred to the end),
+so this session focused on what's pure UI: the TV screen itself needs no
+Gemini/Sarvam/Supabase call to render — only room *sync* does. Verified via a
+throwaway local preview harness in a real browser (Playwright-driven, not
+screenshots-only) rather than live phone↔TV pairing.
+
+The actual TV blocker, confirmed by reading the code rather than assuming:
+`TvLessonScreen` rendered `<LessonScreen controller="tv" externalState={state} />`
+completely unmodified for both `tv_only` and `phone_tv` — the TV showed the
+full interactive phone UI (upload buttons, review forms, teaching controls),
+and because `readOnly` was **never actually passed by any caller in the
+codebase** (grep-confirmed dead prop), both the phone and TV's independent
+`useLessonSession` instances called `playSpeech()` for their own actions.
+
+Changes:
+- **New `components/TvLessonView.tsx`** — the TV's own screen, not a scaled
+  phone UI: full-bleed `ArjunaAvatar`, current task, Arjuna's spoken line, and
+  four large remote-focusable buttons (Repeat · Explain differently ·
+  I understood · Didn't understand). Sized to fit a 720p viewport without
+  scrolling — a real layout bug caught live: the first pass overflowed a
+  1280×720 frame, which matters specifically for a D-pad interface since
+  there's no scroll affordance to reach an off-screen button.
+- **Button semantics deliberately changed from the original plan wording**
+  ("Repeat · Next · I understood · Didn't understand"): "Next" read as
+  "advance to the next task," which is actually what "I understood" does.
+  Relabeled to "Explain differently" and wired to `handleExplainAgain`
+  (fresh AI explanation) vs. "Repeat" wired to `speak()` directly — a free
+  replay of the last line with no AI call.
+- **`TvLessonScreen` rewritten** to stop delegating to `LessonScreen`
+  entirely. New `TvLessonRoom` wrapper instantiates `useLessonSession`
+  directly (`controller: "tv"`) and drives `TvLessonView`. Both the
+  `tv_only` and `phone_tv` render paths now use it.
+- **Fixed the double `pushState`** in `patchState`
+  (`hooks/useLessonSession.ts`) — computed `next` once and pushed once,
+  instead of once inside the `setState` updater and once outside it.
+- **D-pad navigation needs no new code.** `git log --all -S"keydown"` and
+  `-S"ArrowDown"` return zero hits across every commit — no JS focus manager
+  has ever existed. Android TV's WebView maps D-pad to native `<button>`
+  focus already; `TvLessonView` reuses the same `.tv-focus` class and
+  `ref.current?.focus()` pattern the pairing keypad already proves works.
+
+**New follow-up found while wiring (not yet done):** the TV now correctly
+owns its own audio, but the phone's *own* independent session (rendered via
+`DeviceRouter` when `deviceMode === "phone_tv"`) still calls `speak()` for
+actions it triggers itself (e.g. right after uploading homework), so the
+phone can still audibly duplicate the TV. Logged in `BACKLOG.md` as "Phone
+companion mode" — needs a `speaksAloud` gate in `useLessonSession` plus
+hiding lesson content on the phone per the "controller only" decision.
+
+**Verify:** `npx tsc --noEmit` and `next build` both clean. Rendered all four
+`TvLessonView` states (teaching / listening / parent_needed / session_done)
+via a mocked `LessonState` in a throwaway `app/dev-tv-preview` route (deleted
+after use), screenshotted in-browser. Separately confirmed the real `/tv`
+pairing-keypad route still renders and focuses correctly after the rewrite —
+one regression caught and fixed along the way: running `next build` while
+`next dev` was still serving corrupted the dev server's `.next` cache
+(`Cannot find module`), unrelated to the code change; cleared and restarted.
+
+**Known limitation:** live phone→TV pairing is untested — blocked on the
+Supabase project recreation noted in `BACKLOG.md`. Per-phase TV copy (for the
+five phases outside teaching/parent_needed/session_done) is also left generic;
+logged as a follow-up.
 
 ## Confirmed defects (source of truth)
 

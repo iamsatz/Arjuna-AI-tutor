@@ -165,25 +165,24 @@ export function useLessonSession({
   const activeState = externalState ?? state;
   const { pushState } = useSupabaseRoomPublisher(activeState.code);
 
-    const patchState = useCallback(
+  const patchState = useCallback(
     (patch: Partial<LessonState>) => {
       if (readOnly) return;
-      setState((prev) => {
-        const base = externalState ?? prev;
-        const next = { ...base, ...patch, updatedAt: Date.now() };
-        if (next.code && settings.deviceMode !== "phone_only") {
-          void pushState(next);
-        }
-        return externalState ? prev : next;
-      });
-      if (externalState) {
-        const next = { ...externalState, ...patch, updatedAt: Date.now() };
-        if (next.code && settings.deviceMode !== "phone_only") {
-          void pushState(next);
-        }
+
+      // externalState (TV/room-synced) never has a local setState to update —
+      // push once to Supabase and let the realtime subscription bring it back.
+      const base = externalState ?? state;
+      const next = { ...base, ...patch, updatedAt: Date.now() };
+
+      if (next.code && settings.deviceMode !== "phone_only") {
+        void pushState(next);
+      }
+
+      if (!externalState) {
+        setState(next);
       }
     },
-    [externalState, pushState, readOnly, settings.deviceMode],
+    [externalState, pushState, readOnly, settings.deviceMode, state],
   );
 
   const speak = useCallback(

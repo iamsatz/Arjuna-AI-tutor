@@ -2,15 +2,48 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { LessonScreen } from "./LessonScreen";
-import { loadChildProfile } from "@/lib/childProfile";
+import { TvLessonView } from "./TvLessonView";
+import { loadChildProfile, type ChildProfile } from "@/lib/childProfile";
 import { loadSettings } from "@/lib/settings";
 import {
   useSupabaseRoomSubscriber,
   createSupabaseRoomClient,
 } from "@/hooks/useSupabaseRoom";
-import { createInitialLessonState } from "@/lib/lessonTypes";
+import { useLessonSession } from "@/hooks/useLessonSession";
+import { createInitialLessonState, type LessonState } from "@/lib/lessonTypes";
 import { getInitialTvCode } from "@/lib/platform";
+
+/**
+ * Drives the TV's own screen from room-synced state. The TV always speaks —
+ * see the phone-companion-mode note in BACKLOG.md for the follow-up needed
+ * so the phone stops also speaking for actions it triggers in phone_tv mode.
+ */
+function TvLessonRoom({
+  profile,
+  roomState,
+}: {
+  profile: ChildProfile;
+  roomState: LessonState;
+}) {
+  const lesson = useLessonSession({
+    profile,
+    controller: "tv",
+    externalState: roomState,
+  });
+
+  return (
+    <TvLessonView
+      state={lesson.state}
+      loading={lesson.loading}
+      onRepeat={() =>
+        void lesson.speak(lesson.state.currentExplanation || lesson.state.lastReply)
+      }
+      onExplainAgain={() => void lesson.handleExplainAgain()}
+      onUnderstood={() => void lesson.handleUnderstood()}
+      onNotUnderstood={() => void lesson.handleNotUnderstood()}
+    />
+  );
+}
 
 function DigitButton({
   digit,
@@ -89,9 +122,7 @@ export function TvLessonScreen() {
       );
     }
 
-    return (
-      <LessonScreen profile={profile} controller="tv" externalState={state} />
-    );
+    return <TvLessonRoom profile={profile} roomState={state} />;
   }
 
   if (!activeCode || !connected || !state || !profile) {
@@ -149,13 +180,5 @@ export function TvLessonScreen() {
     );
   }
 
-  return (
-    <main className="mx-auto min-h-dvh max-w-6xl bg-arjuna-bg px-8 py-6">
-      <LessonScreen
-        profile={profile}
-        controller="tv"
-        externalState={state}
-      />
-    </main>
-  );
+  return <TvLessonRoom profile={profile} roomState={state} />;
 }
