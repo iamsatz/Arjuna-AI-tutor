@@ -1,7 +1,7 @@
 import Link from "next/link";
 
 const MVP_SHIPPED = [
-  "Invite link per family + child profile (name, grade, board)",
+  "Child profile setup (name, grade, board) — no invite code required",
   "Homework: photo, mic, or type → auto tasks",
   "Task-by-task teaching with Doubt + Explain again",
   "Parent PIN to unlock full solution",
