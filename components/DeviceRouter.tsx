@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { InviteRequired } from "./InviteRequired";
+import { WhoIsLearning } from "./WhoIsLearning";
 import { LessonScreen } from "./LessonScreen";
 import { TvLessonScreen } from "./TvLessonScreen";
 import {
@@ -45,7 +45,7 @@ export function DeviceRouter() {
   }
 
   if (!profile) {
-    return <InviteRequired />;
+    return <WhoIsLearning onComplete={handleActiveChange} />;
   }
 
   return (
