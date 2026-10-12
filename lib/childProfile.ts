@@ -13,6 +13,9 @@ export type TeachingMethod =
 /** Backlog: government Telugu-medium support. Default english_medium. */
 export type MediumOfInstruction = "english_medium" | "telugu_medium";
 
+/** Silent default when families join without an invite code. */
+export const LOCAL_INVITE_CODE = "local";
+
 export type ChildProfile = {
   /** Stable per-kid id. Always set on stored profiles; optional on freshly constructed ones. */
   id?: string;
@@ -106,7 +109,12 @@ export function buildGreeting(childName: string): string {
 function isValidProfile(p: unknown): p is ChildProfile {
   if (!p || typeof p !== "object") return false;
   const c = p as ChildProfile;
-  return Boolean(c.inviteCode) && Boolean(c.childName?.trim());
+  return Boolean(c.childName?.trim());
+}
+
+function withInviteCode(profile: ChildProfile): ChildProfile {
+  const inviteCode = profile.inviteCode?.trim() || LOCAL_INVITE_CODE;
+  return { ...profile, inviteCode };
 }
 
 function writeStore(store: ProfileStore): void {
@@ -135,7 +143,9 @@ function readStore(): ProfileStore {
     if (raw) {
       const parsed = JSON.parse(raw) as ProfileStore;
       const profiles = dedupeProfiles(
-        (parsed.profiles ?? []).filter(isValidProfile),
+        (parsed.profiles ?? [])
+          .filter(isValidProfile)
+          .map((p) => withInviteCode(p)),
       );
       let activeId = parsed.activeId;
       if (!profiles.some((p) => p.id === activeId)) {
@@ -218,15 +228,16 @@ export function addProfile(profile: ChildProfile): ChildProfile | null {
 }
 
 export function tryAddProfile(profile: ChildProfile): AddProfileResult {
+  const normalized = withInviteCode(profile);
   const store = readStore();
   if (store.profiles.length >= MAX_PROFILES) {
     return { ok: false, reason: "max_profiles" };
   }
-  if (nameExistsInFamily(profile.inviteCode, profile.childName)) {
+  if (nameExistsInFamily(normalized.inviteCode, normalized.childName)) {
     return { ok: false, reason: "duplicate_name" };
   }
-  const id = profile.id ?? generateProfileId();
-  const created: ChildProfile = { ...profile, id };
+  const id = normalized.id ?? generateProfileId();
+  const created: ChildProfile = { ...normalized, id };
   writeStore({ profiles: [...store.profiles, created], activeId: id });
   return { ok: true, profile: created };
 }
@@ -251,10 +262,11 @@ function getActiveProfileFrom(store: ProfileStore): ChildProfile | null {
  * The affected profile becomes active.
  */
 export function saveChildProfile(profile: ChildProfile): ChildProfile {
+  const normalized = withInviteCode(profile);
   const store = readStore();
   const profiles = [...store.profiles];
 
-  let id = profile.id;
+  let id = normalized.id;
   let index = -1;
 
   if (id) {
@@ -262,20 +274,20 @@ export function saveChildProfile(profile: ChildProfile): ChildProfile {
   } else {
     index = profiles.findIndex(
       (p) =>
-        p.inviteCode === profile.inviteCode &&
+        p.inviteCode === normalized.inviteCode &&
         p.childName.trim().toLowerCase() ===
-          profile.childName.trim().toLowerCase(),
+          normalized.childName.trim().toLowerCase(),
     );
     if (index >= 0) id = profiles[index].id;
   }
 
   if (!id) id = generateProfileId();
-  const saved: ChildProfile = { ...profile, id };
+  const saved: ChildProfile = { ...normalized, id };
 
   if (index >= 0) {
     profiles[index] = saved;
   } else if (profiles.length < MAX_PROFILES) {
-    if (nameExistsInFamily(profile.inviteCode, profile.childName, id)) {
+    if (nameExistsInFamily(normalized.inviteCode, normalized.childName, id)) {
       return profiles.find((p) => p.id === store.activeId) ?? saved;
     }
     profiles.push(saved);

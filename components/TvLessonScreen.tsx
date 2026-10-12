@@ -75,7 +75,7 @@ export function TvLessonScreen() {
       return (
         <main className="flex min-h-dvh items-center justify-center bg-arjuna-bg p-10">
           <p className="text-2xl text-arjuna-text">
-            Open invite link on phone first to set child name.
+            Set up a child on the phone first, then open Arjuna on the TV.
           </p>
         </main>
       );

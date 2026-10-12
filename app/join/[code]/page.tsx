@@ -1,13 +1,6 @@
-import { JoinForm } from "@/components/JoinForm";
+import { redirect } from "next/navigation";
 
-type JoinPageProps = {
-  params: { code: string };
-};
-
-export default function JoinPage({ params }: JoinPageProps) {
-  return (
-    <main className="mx-auto flex min-h-dvh max-w-md flex-col justify-center bg-arjuna-bg px-6 py-10">
-      <JoinForm code={params.code} />
-    </main>
-  );
+/** Family invite links are no longer required — send everyone to kid setup. */
+export default function JoinPage(_props: { params: { code: string } }) {
+  redirect("/");
 }

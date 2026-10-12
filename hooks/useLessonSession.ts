@@ -600,6 +600,7 @@ export function useLessonSession({
   const transcribeToText = useCallback(async (blob: Blob): Promise<string | null> => {
     const form = new FormData();
     form.append("audio", blob, "recording.webm");
+    form.append("languageMode", settings.languageMode);
     const res = await fetch("/api/transcribe", { method: "POST", body: form });
     if (!res.ok) {
       const errBody = (await res.json().catch(() => ({}))) as { error?: string };
@@ -619,7 +620,7 @@ export function useLessonSession({
       });
     }
     return text;
-  }, [patchState]);
+  }, [patchState, settings.languageMode]);
 
   const handleExplainAgain = useCallback(async () => {
     void track("explain_again", { attempt: activeState.attemptCount + 1 });

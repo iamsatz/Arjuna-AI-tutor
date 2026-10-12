@@ -2,8 +2,12 @@
 
 import { Suspense, useEffect, useState } from "react";
 import { EnglishHub } from "@/components/EnglishHub";
-import { InviteRequired } from "@/components/InviteRequired";
-import { loadChildProfile, type ChildProfile } from "@/lib/childProfile";
+import { WhoIsLearning } from "@/components/WhoIsLearning";
+import {
+  getActiveProfile,
+  loadChildProfile,
+  type ChildProfile,
+} from "@/lib/childProfile";
 
 export default function EnglishPage() {
   const [profile, setProfile] = useState<ChildProfile | null>(null);
@@ -23,7 +27,9 @@ export default function EnglishPage() {
   }
 
   if (!profile) {
-    return <InviteRequired />;
+    return (
+      <WhoIsLearning onComplete={() => setProfile(getActiveProfile())} />
+    );
   }
 
   return (
