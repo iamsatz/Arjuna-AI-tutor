@@ -99,10 +99,6 @@ export function normalizeTopicKey(parts: string[]): string {
   return parts.map((p) => normalize(p)).filter(Boolean).join("|");
 }
 
-export function buildGreeting(childName: string): string {
-  return `Hi ${childName}! What homework do you have? Please upload or tell me the homework.`;
-}
-
 function isValidProfile(p: unknown): p is ChildProfile {
   if (!p || typeof p !== "object") return false;
   const c = p as ChildProfile;
@@ -190,7 +186,7 @@ export function setActiveProfile(id: string): ChildProfile | null {
   return store.profiles.find((p) => p.id === id) ?? null;
 }
 
-export function nameExistsInFamily(
+function nameExistsInFamily(
   inviteCode: string,
   childName: string,
   excludeId?: string,
@@ -208,14 +204,6 @@ export function nameExistsInFamily(
 export type AddProfileResult =
   | { ok: true; profile: ChildProfile }
   | { ok: false; reason: "duplicate_name" | "max_profiles" };
-
-/**
- * Adds a new profile (assigns an id) and makes it active.
- */
-export function addProfile(profile: ChildProfile): ChildProfile | null {
-  const result = tryAddProfile(profile);
-  return result.ok ? result.profile : null;
-}
 
 export function tryAddProfile(profile: ChildProfile): AddProfileResult {
   const store = readStore();
@@ -287,24 +275,4 @@ export function saveChildProfile(profile: ChildProfile): ChildProfile {
 
   writeStore({ profiles, activeId: id });
   return saved;
-}
-
-/** Removes the active profile (or all profiles if none active). */
-export function clearChildProfile(): void {
-  if (typeof window === "undefined") return;
-  const store = readStore();
-  if (store.activeId) {
-    removeProfile(store.activeId);
-  } else {
-    localStorage.removeItem(PROFILES_KEY);
-  }
-  // Clean up the legacy key so migration doesn't resurrect old data.
-  localStorage.removeItem(STORAGE_KEY);
-}
-
-/** Clears every profile on the device. */
-export function clearAllProfiles(): void {
-  if (typeof window === "undefined") return;
-  localStorage.removeItem(PROFILES_KEY);
-  localStorage.removeItem(STORAGE_KEY);
 }

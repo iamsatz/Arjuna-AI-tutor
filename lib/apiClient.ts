@@ -69,11 +69,3 @@ export function getGeminiKeyHeader(): Record<string, string> {
     ...(key ? { "x-gemini-key": key } : {}),
   };
 }
-
-export function hasGeminiKeyConfigured(): boolean {
-  return validatedUserKey() !== null;
-}
-
-export function hasValidatedUserKey(): boolean {
-  return validatedUserKey() !== null;
-}

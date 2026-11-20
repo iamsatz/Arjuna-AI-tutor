@@ -23,7 +23,7 @@ const METHOD_GUIDANCE: Record<TeachingMethod, string> = {
     "Traditional/textbook: clear step-by-step explanation in the school's standard way.",
 };
 
-export function methodGuidance(method?: TeachingMethod): string {
+function methodGuidance(method?: TeachingMethod): string {
   return METHOD_GUIDANCE[method ?? "experiential"];
 }
 
@@ -32,26 +32,12 @@ export function methodGuidance(method?: TeachingMethod): string {
  * example" instructions to something specific instead of generic filler
  * ("an apple", "a ball"). Pick ONE matching scene per reply, don't list them.
  */
-export const REAL_WORLD_SCENARIO_BANK = `- Maths: counting change from an auto-rickshaw fare, sharing samosas or laddus equally among friends, cricket overs/scores/run-rate, measuring rangoli chalk lines, splitting a recharge pack cost between siblings.
+const REAL_WORLD_SCENARIO_BANK = `- Maths: counting change from an auto-rickshaw fare, sharing samosas or laddus equally among friends, cricket overs/scores/run-rate, measuring rangoli chalk lines, splitting a recharge pack cost between siblings.
 - Science: why the fan feels cooler in summer, why chapati puffs up on a hot tava, why the sky looks orange at sunset, ice melting in summer lemonade, why clothes dry faster on a terrace.
 - English/Grammar: labeling a school bag or tiffin box, a text message home, cricket commentary ("Kohli hits the ball" = verb), describing a favourite street food, a postcard to a cousin in another city.
 - Telugu/Hindi: festival greetings (Sankranti, Diwali, Eid, Ugadi), a grandparent's saying, naming family members and relations, a temple or mosque visit.
 - Social Studies/EVS: the local vegetable market, a train or bus journey, a family function, the school morning assembly, a nearby river or landmark.
 Match the scene to the CURRENT subject in context. Never use a scene from a different subject.`;
-
-export function buildGreeting(
-  childName: string,
-  languageMode: LanguageMode,
-): string {
-  switch (languageMode) {
-    case "pure_telugu":
-      return `హాయ్ ${childName}! ఈరోజు హోంవర్క్ ఏముంది? ఫోటో పెట్టు లేదా చెప్పు.`;
-    case "english":
-      return `Hi ${childName}! What homework do you have today? Upload a photo or tell me.`;
-    default:
-      return `Hi ${childName}! Eeroju homework em undi? Photo pettu leda cheppu.`;
-  }
-}
 
 function languageRules(languageMode: LanguageMode): string {
   switch (languageMode) {

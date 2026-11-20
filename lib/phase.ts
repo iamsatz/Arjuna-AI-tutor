@@ -5,7 +5,3 @@ export function getAppPhase(): AppPhase {
   if (phase === "v0") return "v0";
   return "alpha";
 }
-
-export function isV0Locked(): boolean {
-  return false;
-}

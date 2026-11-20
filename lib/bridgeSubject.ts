@@ -1,7 +1,4 @@
-import {
-  bridgeSubjectFor,
-  type MediumOfInstruction,
-} from "@/lib/childProfile";
+import type { MediumOfInstruction } from "@/lib/childProfile";
 
 export type SpeechSegment = {
   languageCode: string;
@@ -9,15 +6,6 @@ export type SpeechSegment = {
 };
 
 const SEGMENT_RE = /\[\[(hi-IN|en-IN|te-IN)\]\]([\s\S]*?)\[\[\/\]\]/g;
-
-export function isBridgeSubject(
-  subject: string | undefined,
-  medium: MediumOfInstruction | undefined,
-): boolean {
-  if (!subject?.trim()) return false;
-  const bridge = bridgeSubjectFor(medium);
-  return subject.trim().toLowerCase() === bridge.toLowerCase();
-}
 
 export function bridgeSpeechLanguage(
   medium: MediumOfInstruction | undefined,

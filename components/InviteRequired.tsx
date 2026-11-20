@@ -11,7 +11,7 @@ import { Card } from "@/components/ui/Card";
  * Accept whatever the parent has: a bare code ("family01"), the code with
  * stray spaces/capitals, or the entire WhatsApp link pasted as-is.
  */
-export function extractFamilyCode(raw: string): string {
+function extractFamilyCode(raw: string): string {
   const trimmed = raw.trim();
   if (!trimmed) return "";
   const fromLink = trimmed.match(/join\/([A-Za-z0-9_-]+)/);

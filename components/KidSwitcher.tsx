@@ -2,7 +2,6 @@
 
 import { FormEvent, useState } from "react";
 import {
-  addProfile,
   tryAddProfile,
   getActiveProfile,
   listProfiles,

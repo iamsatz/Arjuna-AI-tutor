@@ -81,7 +81,7 @@ function saveRewardStats(stats: RewardStats) {
   localStorage.setItem(STATS_KEY, JSON.stringify(stats));
 }
 
-export function bumpRewardStat(field: keyof RewardStats, dayKey?: string) {
+function bumpRewardStat(field: keyof RewardStats, dayKey?: string) {
   const stats = getRewardStats();
   if (field === "englishSessions") stats.englishSessions += 1;
   if (field === "journalEntries") stats.journalEntries += 1;
@@ -142,9 +142,4 @@ export function recordDailyActivity(type: DailyActivityType): StreakData {
   }
 
   return getStreak();
-}
-
-/** @deprecated Use recordDailyActivity('homework') */
-export function recordConceptMastered(): StreakData {
-  return recordDailyActivity("homework");
 }

@@ -45,7 +45,7 @@ export const SUBJECT_OPTIONS = [
 export type SubjectOption = (typeof SUBJECT_OPTIONS)[number];
 
 /** Kid avatar bubble colors */
-export const KID_COLORS = [
+const KID_COLORS = [
   "bg-sky-400",
   "bg-purple-400",
   "bg-emerald-400",

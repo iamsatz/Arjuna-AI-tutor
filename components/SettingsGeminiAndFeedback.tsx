@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import {
-  loadChildProfile,
   saveChildProfile,
   type ChildProfile,
   type TeachingMethod,

@@ -2,7 +2,6 @@ import type { StoredCurriculum } from "@/lib/curriculumTypes";
 import {
   ALL_ENGLISH_CONCEPTS,
   curriculumEnglishChips,
-  getConceptById,
   type EnglishConcept,
 } from "@/lib/englishConceptMap";
 import type { TaskHistoryEntry } from "@/lib/taskHistoryStore";
@@ -122,8 +121,4 @@ export function conceptIdFromQuery(query: string): EnglishConcept | undefined {
   if (direct) return direct;
   const matches = findConceptsInText(query);
   return matches[0];
-}
-
-export function resolveConceptRef(ref: string): EnglishConcept | undefined {
-  return getConceptById(ref) ?? conceptIdFromQuery(ref);
 }

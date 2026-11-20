@@ -4,7 +4,7 @@ const SARVAM_STT_URL = "https://api.sarvam.ai/speech-to-text";
 export const DEFAULT_GREETING =
   "Hi! What homework do you have? Please upload or tell me the homework.";
 
-export const SARVAM_SPEAKERS = ["shubh", "priya", "ritu"] as const;
+const SARVAM_SPEAKERS = ["shubh", "priya", "ritu"] as const;
 export type SarvamSpeaker = (typeof SARVAM_SPEAKERS)[number];
 
 export type SarvamSpeakOptions = {
