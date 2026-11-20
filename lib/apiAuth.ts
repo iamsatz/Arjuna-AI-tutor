@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getInviteByCode } from "@/lib/invitesStore";
 import { INVITE_HEADER } from "@/lib/inviteHeader";
 
-export { INVITE_HEADER };
+{ INVITE_HEADER };
 
 /**
  * Family gate for AI and mutating routes.

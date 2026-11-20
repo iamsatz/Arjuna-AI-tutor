@@ -231,12 +231,6 @@ export function getConceptById(id: string): EnglishConcept | undefined {
   return ALL_ENGLISH_CONCEPTS.find((c) => c.id === id);
 }
 
-export function getCategoryForConcept(conceptId: string): EnglishCategory | undefined {
-  return ENGLISH_CATEGORIES.find((cat) =>
-    cat.concepts.some((c) => c.id === conceptId),
-  );
-}
-
 export type CurriculumConceptChip = {
   id: string;
   label: string;

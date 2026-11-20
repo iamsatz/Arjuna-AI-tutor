@@ -19,7 +19,7 @@ export type ReviewableTask = {
   duplicateOf?: DuplicateInfo;
 };
 
-export function newReviewTaskId(): string {
+function newReviewTaskId(): string {
   if (typeof crypto !== "undefined" && crypto.randomUUID) {
     return crypto.randomUUID();
   }

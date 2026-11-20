@@ -14,7 +14,9 @@ console.log(`
 1. Open Supabase SQL editor for your project
 2. Run migrations in order:
    - supabase/migrations/001_arjuna_mvp.sql
+   - supabase/migrations/002_arjuna_feedback.sql
    - supabase/migrations/002_family_access.sql
+   - supabase/migrations/003_system_alerts.sql
 3. Add Vercel env vars on arjuna-ai-tutor.vercel.app:
    GEMINI_API_KEY, NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_ANON_KEY,
    NEXT_PUBLIC_ARJUNA_PHASE, SARVAM_API_KEY, OWNER_PASSWORD
@@ -44,7 +46,7 @@ for (const invite of invites) {
   );
   if (error) {
     console.error(`Seed failed for ${invite.code}:`, error.message);
-    console.error("Run migrations 001 and 002 in Supabase SQL editor first.");
+    console.error("Run all migrations in supabase/migrations (see docs/DEPLOY.md) in the Supabase SQL editor first.");
     process.exit(1);
   }
   console.log("OK", invite.code, invite.label);

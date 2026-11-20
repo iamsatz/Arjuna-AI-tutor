@@ -3,7 +3,7 @@ import { saveCurriculum } from "@/lib/curriculumStore";
 import type { CurriculumBoard } from "@/lib/childProfile";
 import type { CurriculumSubject } from "@/lib/curriculumTypes";
 
-export function diaryTermToSubjects(
+function diaryTermToSubjects(
   termPlan: DiaryTermPlan,
 ): CurriculumSubject[] {
   return termPlan.subjects.map((s) => ({

@@ -2,7 +2,7 @@ import { NextRequest } from "next/server";
 
 const PLACEHOLDER = "your_gemini_api_key_here";
 
-export function geminiKeyFromValue(value?: string | null): string | null {
+function geminiKeyFromValue(value?: string | null): string | null {
   const key = value?.trim();
   if (!key || key === PLACEHOLDER) return null;
   return key;

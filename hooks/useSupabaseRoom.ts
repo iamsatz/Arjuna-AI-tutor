@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { getSupabaseBrowser } from "@/lib/supabase/client";
 import { getInviteHeader } from "@/lib/apiClient";
 import type { LessonState } from "@/lib/lessonTypes";

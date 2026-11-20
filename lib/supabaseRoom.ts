@@ -3,7 +3,7 @@ import type { LessonState } from "@/lib/lessonTypes";
 
 const ROOM_TTL_MS = 2 * 60 * 60 * 1000;
 
-export function createRoomCode(): string {
+function createRoomCode(): string {
   return String(Math.floor(1000 + Math.random() * 9000));
 }
 

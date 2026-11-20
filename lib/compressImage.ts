@@ -2,7 +2,7 @@ import { pdfToImageFiles } from "@/lib/pdfToImages";
 
 const MAX_EDGE = 1200;
 const JPEG_QUALITY = 0.85;
-export const MAX_UPLOAD_FILES = 5;
+const MAX_UPLOAD_FILES = 5;
 
 async function compressImageFile(file: File): Promise<File> {
   if (!file.type.startsWith("image/")) return file;
@@ -35,7 +35,7 @@ async function compressImageFile(file: File): Promise<File> {
 }
 
 /** Expand PDF to JPEG pages; resize photos; pass other files through. */
-export async function prepareUploadFile(file: File): Promise<File[]> {
+async function prepareUploadFile(file: File): Promise<File[]> {
   if (file.type === "application/pdf") {
     try {
       const pages = await pdfToImageFiles(file);
@@ -65,10 +65,4 @@ export async function prepareUploadFiles(files: File[]): Promise<File[]> {
     expanded.push(...prepared);
   }
   return expanded.slice(0, MAX_UPLOAD_FILES);
-}
-
-/** @deprecated use prepareUploadFiles — returns first file only */
-export async function prepareUploadFileLegacy(file: File): Promise<File> {
-  const list = await prepareUploadFile(file);
-  return list[0] ?? file;
 }

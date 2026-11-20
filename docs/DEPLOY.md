@@ -13,8 +13,10 @@ Then follow the printed checklist (Vercel deploy, cap sync, APK copy).
 
 Open [Supabase SQL editor](https://supabase.com/dashboard/project/shikwtguxfhefzvfkedo/sql) and run:
 
-- `supabase/migrations/001_arjuna_mvp.sql`
-- `supabase/migrations/002_arjuna_feedback.sql`
+1. `supabase/migrations/001_arjuna_mvp.sql`
+2. `supabase/migrations/002_arjuna_feedback.sql`
+3. `supabase/migrations/002_family_access.sql`
+4. `supabase/migrations/003_system_alerts.sql` (needs the feedback table from step 2)
 
 Creates events, rooms, exams, curricula, memory, and **parent feedback** tables.
 

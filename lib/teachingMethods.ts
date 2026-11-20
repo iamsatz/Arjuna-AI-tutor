@@ -36,7 +36,7 @@ export const TEACHING_METHOD_OPTIONS: TeachingMethodOption[] = [
   },
 ];
 
-export const DEFAULT_TEACHING_METHOD: TeachingMethod = "experiential";
+const DEFAULT_TEACHING_METHOD: TeachingMethod = "experiential";
 
 export function normalizeTeachingMethod(
   method?: TeachingMethod | null,

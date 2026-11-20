@@ -6,10 +6,10 @@ import {
   buildStudentKey,
   type ChildProfile,
 } from "@/lib/childProfile";
-import { buildGreeting, buildExplainAgainPrompt, buildHintOnlyPrompt } from "@/lib/prompts";
+import { buildExplainAgainPrompt, buildHintOnlyPrompt } from "@/lib/prompts";
 import type { LessonState } from "@/lib/lessonTypes";
 import { createInitialLessonState } from "@/lib/lessonTypes";
-import { loadSettings, type DeviceMode, type LanguageMode } from "@/lib/settings";
+import { loadSettings, type LanguageMode } from "@/lib/settings";
 import type { HomeworkTask } from "@/lib/types";
 import { track, setAnalyticsContext } from "@/lib/analytics";
 import { arjunaFetch, getGeminiKeyHeader, getInviteHeader } from "@/lib/apiClient";

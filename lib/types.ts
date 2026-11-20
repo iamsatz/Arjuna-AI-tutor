@@ -25,18 +25,3 @@ export type SessionMeta = {
   struggles: string[];
   askAmmaFlags: string[];
 };
-
-export function createSessionMeta(): SessionMeta {
-  return {
-    startedAt: Date.now(),
-    tasks: [],
-    currentTaskIndex: 0,
-    mode: "general",
-    strikesOnTask: 0,
-    photoAttempts: 0,
-    dictationProgress: 0,
-    highlights: [],
-    struggles: [],
-    askAmmaFlags: [],
-  };
-}

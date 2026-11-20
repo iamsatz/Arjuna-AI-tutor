@@ -19,11 +19,11 @@ export type DueRevision = {
 const DAY_MS = 24 * 60 * 60 * 1000;
 const WEEK_MS = 7 * DAY_MS;
 
-export const TOPICS_PER_WEEK = 2;
-export const REVISION_MIN_DAYS = 20;
-export const REVISION_MAX_DAYS = 35;
+const TOPICS_PER_WEEK = 2;
+const REVISION_MIN_DAYS = 20;
+const REVISION_MAX_DAYS = 35;
 
-export function weekIndexSince(startISO: string, now = new Date()): number {
+function weekIndexSince(startISO: string, now = new Date()): number {
   const start = new Date(startISO).getTime();
   if (!Number.isFinite(start)) return 0;
   return Math.max(0, Math.floor((now.getTime() - start) / WEEK_MS));
